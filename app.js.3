@@ -444,7 +444,7 @@ function renderScrapeRecords(){
     var action='';
     if(r.type==='menu') action='<button class="btn-blue-ghost" style="padding:2px 8px;font-size:11px;" onclick="useScrapeMenu('+i+')">导入分析</button> <button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载</button>';
     else if(r.type==='zip') action='<button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载zip</button>';
-    else action='<span style="color:var(--text3);font-size:11px;">已开始</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" data-idx="'+i+'" class="scrape-open">打开店铺</a>:'')';
+    else { var _l=(r.link||''); action='<span style="color:var(--text3);font-size:11px;">已开始</span>'; if(_l.indexOf('http')===0){ action+=' <a style="color:var(--primary);font-size:11px;cursor:pointer;" data-idx="'+i+'" class="scrape-open">打开店铺</a>'; } }
     return '<div class="hist-item"><div><div class="h-name">'+esc(r.mname||r.name||'实抓记录')+'</div>'+
       '<div style="font-size:11px;color:var(--text3);">'+(r.note?esc(r.note):'')+(r.count?' ｜ 商品 '+r.count+' 项':'')+(r.size?' ｜ '+r.size:'')+'</div></div>'+
       '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
