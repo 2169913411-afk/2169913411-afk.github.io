@@ -4,7 +4,12 @@ function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
   var el=$('bookmarkHint');
-  if(el) el.innerHTML='<span style="color:#16A34A;">已复制。存书签步骤：Ctrl+D 新建书签 → 名称随意 → 「网址」栏粘贴这段代码 → 保存。之后在店铺页点它即可自动抓取。</span>';
+  if(el) el.innerHTML='<span style="color:#16A34A;">已复制。存书签：Ctrl+D 新建书签 → 名称随意 → 「网址」栏粘贴这段代码 → 保存。之后在店铺页点它即可自动抓取。</span>';
+}
+/* 给「拖到书签栏」链接写入真实抓取代码（浏览器拖拽时会取 href 作为书签地址） */
+function setupBookmarkDrag(){
+  var el=$('bookmarkDrag');
+  if(el && SCRAPE_BOOKMARK) el.setAttribute('href', SCRAPE_BOOKMARK);
 }
 
 function copyText(txt){
@@ -420,6 +425,7 @@ document.querySelectorAll('.plan-opt input[name=plan]').forEach(function(r){
   updateBalanceUI();
   refreshTip();
   loadScrapeScript();
+  setupBookmarkDrag();
   document.querySelectorAll('.mask').forEach(function(m){
     m.addEventListener('click',function(e){ if(e.target===m) m.classList.add('hidden'); });
   });
