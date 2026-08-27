@@ -76,7 +76,7 @@ function crc32(bytes){
   return (crc^0xFFFFFFFF)>>>0;
 }
 function utf8(s){ return new TextEncoder().encode(s); }
-function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
+function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function colName(i){ return String.fromCharCode(65+i); }
 function buildZip(files){
   var chunks=[],central=[],offset=0,i;
@@ -210,7 +210,53 @@ function checkTaoLink(){
   var h=$('taoHint');
   if(h){ h.style.display = (v.indexOf('m.tb.cn')>-1||v.indexOf('tb.cn')>-1||v.indexOf('口令')>-1) ? 'block':'none'; }
 }
-/* 二维码识别（主面板 + 商家调研弹窗共用） */
+/* 二维码识别（增强版：多尺度 + 灰度二值化 + 反色尝试，兼容淘宝/饿了么富媒体码） */
+function recognizeQrFromDataUrl(dataUrl, cb){
+  var img=new Image();
+  img.onload=function(){
+    var W=img.naturalWidth||img.width, H=img.naturalHeight||img.height;
+    if(!W||!H){ cb(''); return; }
+    var cands=[{w:W,h:H}];
+    if(W>900){ var k=900/W; cands.push({w:900,h:Math.round(H*k)}); }
+    if(W<500){ var k2=Math.min(3,1000/W); cands.push({w:Math.round(W*k2),h:Math.round(H*k2)}); }
+    var found=null;
+    for(var s=0;s<cands.length&&!found;s++){
+      var c=document.createElement('canvas');
+      c.width=cands[s].w; c.height=cands[s].h;
+      var ctx=c.getContext('2d',{willReadFrequently:true});
+      ctx.drawImage(img,0,0,c.width,c.height);
+      var run=function(invert){
+        try{
+          var d=ctx.getImageData(0,0,c.width,c.height);
+          if(invert){
+            for(var i=0;i<d.data.length;i+=4){
+              d.data[i]=255-d.data[i]; d.data[i+1]=255-d.data[i+1]; d.data[i+2]=255-d.data[i+2];
+            }
+            ctx.putImageData(d,0,0);
+            d=ctx.getImageData(0,0,c.width,c.height);
+          }
+          var qr=jsQR(d.data,d.width,d.height,{inversionAttempts:'attemptBoth'});
+          if(qr&&qr.data) return qr.data;
+          var d2=ctx.getImageData(0,0,c.width,c.height);
+          var px=d2.data;
+          for(var j=0;j<px.length;j+=4){
+            var g=px[j]*0.299+px[j+1]*0.587+px[j+2]*0.114;
+            var v=g>128?255:0;
+            px[j]=px[j+1]=px[j+2]=v;
+          }
+          ctx.putImageData(d2,0,0);
+          var qr2=jsQR(d2.data,d2.width,d2.height,{inversionAttempts:'attemptBoth'});
+          return qr2&&qr2.data;
+        }catch(e){ return null; }
+      };
+      found=run(false);
+      if(!found) found=run(true);
+    }
+    cb(found||'');
+  };
+  img.onerror=function(){ cb(''); };
+  img.src=dataUrl;
+}
 function applyQrRecognized(txt){
   if(txt){
     var isUrl=/^https?:\/\//i.test(txt);
@@ -218,7 +264,7 @@ function applyQrRecognized(txt){
     window.__scrapeQR=txt;
     if(isUrl&&$('shopLink')) $('shopLink').value=txt;
   }else{
-    if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
+    if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 未能自动识别。可用手机「微信/饿了么App」扫该二维码，把显示的链接粘贴到输入框</span>';
     window.__scrapeQR='';
   }
 }
