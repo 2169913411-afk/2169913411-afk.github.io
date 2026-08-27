@@ -27,13 +27,11 @@ function exportMenuXlsx(){
   var products=(r.structured.products||[]);
   var changes=(r.changes||[]);
   if(!products.length&&!changes.length){ toast('无菜单数据可导出'); return; }
-  // 合并：先所有商品原样，再覆盖修改项
   var map={};
   products.forEach(function(p){ map[p.name]=p; });
   var rows=[['商品名称','菜单分组','原价(元)','优化后名称','优化后描述','优化后价格(元)','修改说明']];
   var changeSet={};
   changes.forEach(function(c){ changeSet[c.name]=c; });
-  // 输出所有商品；有修改的在相应列填新值并标红
   var allNames=Object.keys(map);
   changes.forEach(function(c){ if(!map[c.name]) allNames.push(c.name); });
   allNames.forEach(function(name){
@@ -197,42 +195,45 @@ function checkTaoLink(){
   var h=$('taoHint');
   if(h){ h.style.display = (v.indexOf('m.tb.cn')>-1||v.indexOf('tb.cn')>-1||v.indexOf('口令')>-1) ? 'block':'none'; }
 }
-/* 二维码识别 */
-$('qrInput').addEventListener('change',function(){
-  var f=this.files&&this.files[0]; this.value='';
-  if(!f) return;
-  var rd=new FileReader();
-  rd.onload=function(){
-    var img=new Image();
-    img.onload=function(){
-      var c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
-      var ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
-      var id=ctx.getImageData(0,0,c.width,c.height);
-      var code=null;
-      try{ if(window.jsQR) code=jsQR(id.data,id.width,id.height); }catch(e){}
-      if(code&&code.data){
-        var txt=String(code.data).trim();
-        var isUrl=/^https?:\/\//i.test(txt);
-        $('qrResult').innerHTML='<span style="color:#16A34A;">✅ 已识别'+(isUrl?'链接':'内容')+'：'+esc(txt.slice(0,60))+'</span>';
-        window.__scrapeQR=txt;
-        if(isUrl) $('shopLink').value=txt;
-      }else{
-        $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
-        window.__scrapeQR='';
-      }
+/* 二维码识别（主面板 + 商家调研弹窗共用） */
+function bindQrInput(inputEl){
+  if(!inputEl) return;
+  inputEl.addEventListener('change',function(){
+    var f=this.files&&this.files[0]; this.value='';
+    if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+        var ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
+        var id=ctx.getImageData(0,0,c.width,c.height);
+        var code=null;
+        try{ if(window.jsQR) code=jsQR(id.data,id.width,id.height); }catch(e){}
+        if(code&&code.data){
+          var txt=String(code.data).trim();
+          var isUrl=/^https?:\/\//i.test(txt);
+          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#16A34A;">✅ 已识别'+(isUrl?'链接':'内容')+'：'+esc(txt.slice(0,60))+'</span>';
+          window.__scrapeQR=txt;
+          if(isUrl&&$('shopLink')) $('shopLink').value=txt;
+        }else{
+          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
+          window.__scrapeQR='';
+        }
+      };
+      img.src=rd.result;
     };
-    img.src=rd.result;
-  };
-  rd.readAsDataURL(f);
-});
+    rd.readAsDataURL(f);
+  });
+}
+bindQrInput($('qrInput'));
+bindQrInput($('qrInput2'));
 /* 清洗粘贴文本，提取真正的店铺链接/口令（防止把上次的任务文本反复贴回导致重复累积） */
 function cleanLink(raw){
   var s=String(raw||'').trim();
   if(!s) return '';
-  /* 如果粘贴的是整段任务文本，提取其中第一个 http(s) 链接 */
   var m=s.match(/https?:\/\/[^\s）)】》《<>"']+/);
   if(m) return m[0].replace(/[，。、；;]+$/,'');
-  /* 其他情况原样返回（可能是口令原文） */
   return s;
 }
 /* 确认抓取 */
@@ -246,16 +247,13 @@ function confirmScrape(){
   state.scrapeRecords=state.scrapeRecords||[];
   state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:note,link:link||qr,t:nowStr(),status:'待抓取'});
   saveState(); renderScrapeRecords();
-  /* 生成任务信息，一键复制发给助手 */
   var msg='【商家调研抓取任务】\n抓取内容：'+mname+'\n店铺链接：'+(link||qr)+'\n'+(note?'说明：'+note+'\n':'')+'请开始抓取';
   var box=$('scrapeTaskMsg'), txt=$('scrapeTaskMsgText');
   if(box&&txt){ txt.textContent=msg; box.style.display='block'; }
   copyText(msg);
-  /* 生成后清空输入框与识别结果，防止反复点击重复累积 */
   if($('shopLink')) $('shopLink').value='';
   window.__scrapeQR='';
   if($('qrResult')) $('qrResult').innerHTML='';
-  /* 只有纯 http 链接才尝试打开；口令类由助手解析 */
   if(/^https?:\/\//i.test(link||'')) window.open(link,'_blank');
 }
 function copyTaskMsg(){
@@ -355,7 +353,6 @@ document.querySelectorAll('.plan-opt input[name=plan]').forEach(function(r){
   });
   updateBalanceUI();
   refreshTip();
-  // 点击遮罩关闭
   document.querySelectorAll('.mask').forEach(function(m){
     m.addEventListener('click',function(e){ if(e.target===m) m.classList.add('hidden'); });
   });
