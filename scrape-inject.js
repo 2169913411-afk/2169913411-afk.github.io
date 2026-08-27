@@ -1,8 +1,8 @@
-/* 餐谋长·运营助手 - 商家调研零插件抓取脚本 v2（抓全版）
-   由「抓取书签」在店铺页动态加载执行：
-   1) 依次点击左侧全部分类tab，触发各分组菜品渲染
-   2) 滚动到底加载全部菜品
-   3) 提取 分组/名称/价格/券后价/月售/描述 -> 下载CSV(Excel可打开)
+/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3（支持 URL 参数自动模式：菜单/图片/全部）
+   由「餐谋长抓取」书签在店铺页动态加载执行：
+   1) 读取 URL 参数 cmz_scrape=menu|img|all（网站在打开店铺时已自动写入）
+   2) 依次点击左侧全部分类tab + 滚动到底，加载全部菜品
+   3) 菜单 -> CSV(Excel可打开)；菜品图 -> zip 打包下载
    仅抓取用户端公开展示的店铺菜单数据，用于商家调研分析。 */
 (function(){
   'use strict';
@@ -33,15 +33,33 @@
     return s;
   }
   function ts(){ var d=new Date(); function p2(x){return ('0'+x).slice(-2);} return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes()); }
-  function downloadCSV(text, name){
-    var blob=new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'});
+  function downloadBlob(blob, name){
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url; a.download=name;
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },400);
   }
+  function downloadCSV(text, name){
+    downloadBlob(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'}), name);
+  }
   function isPunish(){ return /punish|waimai-guide|x5secdata/i.test(location.href); }
+  function getParam(name){
+    var m=location.href.match(new RegExp('[?&#]'+name+'=([^&#]*)'));
+    return m?decodeURIComponent(m[1]):'';
+  }
+  function loadJS(src){
+    return new Promise(function(res,rej){
+      if(document.querySelector('script[data-cmzjs="'+src+'"]')){ res(); return; }
+      var s=document.createElement('script');
+      s.setAttribute('data-cmzjs',src);
+      s.src=src;
+      s.onload=function(){ res(); };
+      s.onerror=function(){ rej(new Error('加载失败:'+src)); };
+      document.head.appendChild(s);
+    });
+  }
+  /* 解析菜单条目（含图片地址） */
   function parseMenu(){
     var items=[], seen={};
     document.querySelectorAll('.menuItem').forEach(function(item){
@@ -51,14 +69,16 @@
       var use=txt(item,'.menuItem--info-useCouponPrice');
       var sales=txt(item,'.menuItem--info-sales');
       var desc=txt(item,'.menuItem--info-description');
+      var imgEl=item.querySelector('img');
+      var img=imgEl?(imgEl.getAttribute('src')||imgEl.getAttribute('data-src')||''):'';
       if(!title) return;
       var key=title+'|'+cate;
       if(seen[key]) return; seen[key]=1;
-      items.push({cate:cate,name:title,price:price,use:use,sales:sales,desc:desc});
+      items.push({cate:cate,name:title,price:price,use:use,sales:sales,desc:desc,img:img});
     });
     return items;
   }
-  /* 依次点击左侧全部分类tab，触发各分组菜品渲染 */
+  /* 依次点击左侧全部分类tab */
   async function clickAllTabs(){
     var tabs=document.querySelectorAll('.sideList--item');
     if(!tabs.length) return true;
@@ -69,7 +89,7 @@
     }
     return true;
   }
-  /* 滚动到最底部，直到菜品数量稳定（全部加载完成） */
+  /* 滚动到最底部直到菜品数量稳定 */
   async function loadAll(){
     var sc=document.querySelector('.mor-comp-page-content');
     if(!sc){
@@ -91,12 +111,45 @@
     sc.scrollTop=0;
     return true;
   }
+  /* 下载图片 zip */
+  async function grabImgs(items, fnBase){
+    var imgs=items.filter(function(x){ return x.img; });
+    if(!imgs.length) return 0;
+    banner('⏳ '+BRAND+'：正在下载 '+imgs.length+' 张菜品图并打包…');
+    try{ await loadJS('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }
+    catch(e){ banner('❌ '+BRAND+'：压缩组件加载失败，图片未打包。','#FEF2F2'); return -1; }
+    if(typeof JSZip==='undefined'){ banner('❌ '+BRAND+'：压缩组件不可用。','#FEF2F2'); return -1; }
+    var zip=new JSZip(), ok=0, fail=0;
+    for(var i=0;i<imgs.length;i++){
+      if(isPunish()) return -2;
+      try{
+        var it=imgs[i];
+        var u=(it.img.split('?')[0])||it.img;
+        var r=await fetch(u, {mode:'cors'});
+        if(!r.ok) throw new Error('http'+r.status);
+        var blob=await r.blob();
+        var ext='jpg'; var mm=u.match(/\.(jpe?g|png|webp|gif)$/i); if(mm) ext=mm[1].toLowerCase();
+        var name=(it.cate||'未分组')+'_'+(it.name||('img'+i)).replace(/[\\\/:*?"<>|\r\n]/g,' ').slice(0,30)+'.'+ext;
+        zip.file(name, blob);
+        ok++;
+      }catch(e){ fail++; }
+      if(i%5===0) banner('⏳ '+BRAND+'：图片下载中 '+i+'/'+imgs.length+'…');
+    }
+    if(ok){
+      var z=await zip.generateAsync({type:'blob'});
+      downloadBlob(z, '菜品图_'+fnBase+'.zip');
+    }
+    return ok;
+  }
   (async function(){
     if(isPunish()){
       banner('⚠️ '+BRAND+'：当前是平台安全验证页。请先用手机「饿了么」App 扫码登录后，再重新打开店铺点书签。','#FEF3C7');
       return;
     }
-    banner('⏳ '+BRAND+'：正在展开全部菜单（遍历分类+滚动加载），请稍候…');
+    var mode=getParam('cmz_scrape')||'menu';
+    if(mode!=='menu'&&mode!=='img'&&mode!=='all') mode='menu';
+    var mname=mode==='menu'?'菜单':(mode==='img'?'菜品图':'菜单+菜品图');
+    banner('⏳ '+BRAND+'：正在展开全部菜单（遍历分类+滚动加载），抓取内容：'+mname+'…');
     var waited=0;
     while(waited<30000){
       if(document.querySelectorAll('.food-item--wrap,.menuItem,.sideList--item').length>0) break;
@@ -119,17 +172,27 @@
       banner('❌ '+BRAND+'：未识别到菜单。请确认当前页面是店铺「点餐」页后，再点一次书签。','#FEF2F2');
       return;
     }
-    var lines=['分组,菜品名称,现价(元),券后/预估到手(元),月售,说明'];
-    items.forEach(function(x){
-      lines.push([escCSV(x.cate),escCSV(x.name),escCSV(x.price),escCSV(x.use),escCSV(x.sales),escCSV(x.desc)].join(','));
-    });
     var shop='';
     var t=document.body.innerText||'';
     var m=t.match(/([^\n]{2,20}?\([^)]*店\))/)||t.match(/[^\n]{2,15}店/);
     if(m) shop=String(m[1]||'').replace(/[\\\/:*?"<>|\n\r]/g,' ').trim().slice(0,30);
+    var fnBase=(shop||'店铺').replace(/\s+/g,'')+'_'+ts();
+    /* 菜单 */
+    if(mode==='menu'||mode==='all'){
+      var lines=['分组,菜品名称,现价(元),券后/预估到手(元),月售,说明,有无图片'];
+      items.forEach(function(x){
+        lines.push([escCSV(x.cate),escCSV(x.name),escCSV(x.price),escCSV(x.use),escCSV(x.sales),escCSV(x.desc),x.img?'有':''].join(','));
+      });
+      downloadCSV(lines.join('\n'),'抓取菜单_'+fnBase+'.csv');
+    }
+    /* 图片 */
+    var imgsResult=0;
+    if(mode==='img'||mode==='all'){
+      imgsResult=await grabImgs(items, fnBase);
+    }
+    if(imgsResult===-2){ banner('⚠️ '+BRAND+'：图片下载中触发安全验证，菜单部分已完成。','#FEF3C7'); return; }
+    var doneImg=imgsResult>0?('，图片 '+imgsResult+' 张已打包'):(imgsResult===-1?'，图片打包失败(网络/组件)':'');
     var cateSet={}; items.forEach(function(x){ if(x.cate) cateSet[x.cate]=1; });
-    var cateCount=Object.keys(cateSet).length;
-    downloadCSV(lines.join('\n'),'抓取菜单_'+(shop||'店铺')+'_'+ts()+'.csv');
-    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（覆盖 '+cateCount+' 个分类），CSV 已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
+    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（覆盖 '+Object.keys(cateSet).length+' 个分类）'+doneImg+'。文件已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
   })();
 })();
