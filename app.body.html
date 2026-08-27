@@ -272,47 +272,61 @@
 
 <!-- ============ 商家调研（进用户端抓数据） ============ -->
 <div class="mask hidden" id="scrapeMask">
-  <div class="modal" style="max-width:680px;">
+  <div class="modal" style="max-width:700px;">
     <div class="modal-head"><h3>商家调研 · 店铺数据采集</h3><button class="modal-close" onclick="closeModal('scrapeMask')">✕</button></div>
-    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
-      <div style="font-weight:700;color:var(--text1);font-size:13px;">① 上传店铺二维码 或 粘贴店铺链接（二选一即可）</div>
-      <div style="display:flex;gap:10px;margin-top:8px;">
-        <div class="upload-zone" style="flex:1;height:88px;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
-          <div class="main" style="font-size:12px;">点击上传店铺二维码图片</div>
-          <div class="sub" style="font-size:11px;">支持 png / jpg，自动识别链接</div>
-          <input type="file" id="qrInput2" accept="image/*" class="hidden">
-        </div>
-        <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-          <input type="text" id="shopLink" placeholder="或直接粘贴店铺链接，例如 https://h5.ele.me/…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:12px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
-          <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
-          <div id="taoHint" style="display:none;font-size:11px;color:#B45309;">⚠️ 这是淘宝口令链接（m.tb.cn），网页无法直接打开。请点「确认抓取」后把任务信息复制发给我，我会自动解析口令并抓取。</div>
-        </div>
+
+    <div style="font-size:13px;color:var(--text1);font-weight:700;">① 店铺信息（上传二维码 或 粘贴链接，二选一）</div>
+    <div style="display:flex;gap:10px;margin:8px 0 6px;">
+      <div class="upload-zone" style="flex:1;height:84px;margin:0;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
+        <div class="main" style="font-size:12px;">点击上传店铺二维码</div>
+        <div class="sub" style="font-size:11px;">png / jpg，自动识别链接</div>
+        <input type="file" id="qrInput2" accept="image/*" class="hidden">
       </div>
-      <div style="font-weight:700;color:var(--text1);font-size:13px;margin-top:14px;">② 选择抓取内容</div>
-      <label style="display:flex;align-items:center;gap:6px;margin:8px 0 2px;font-size:13px;"><input type="radio" name="scrapeMode" value="menu" checked> 仅菜单 —— 生成 Excel（分组 / 菜品名称 / 现价 / 原价 / 月售 / 有无图片）</label>
-      <label style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;"><input type="radio" name="scrapeMode" value="img"> 仅菜品图 —— 生成 zip 压缩包（全部菜品原图，文件名带分组+菜名）</label>
-      <label style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;"><input type="radio" name="scrapeMode" value="all"> 全部 —— Excel + 菜品图，一起打包成 zip</label>
-      <div style="margin-top:12px;font-size:12px;color:var(--text2);">③ 说明（可选，店铺名称 / 特殊分组等）</div>
-      <textarea id="scrapeNotes" style="width:100%;height:48px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;margin-top:6px;" placeholder="例如：赣味小灶（凌空SOHO店），全部分组"></textarea>
+      <input type="text" id="shopLink" placeholder="或粘贴店铺链接 / 口令" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
     </div>
-    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-primary enabled" style="flex:2;height:40px;" onclick="confirmScrape()">确认抓取</button>
-      <button class="btn-blue-ghost" style="flex:1;height:40px;" onclick="openEleH5()">打开饿了么H5登录</button>
+    <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
+
+    <div style="font-size:13px;color:var(--text1);font-weight:700;margin-top:6px;">② 外卖平台（决定登录方式）</div>
+    <div class="plat-row" id="scrapePlatRow" style="margin:8px 0;">
+      <div class="plat-opt active" data-plat="淘宝闪购" onclick="pickScrapePlat(this)">淘宝闪购</div>
+      <div class="plat-opt" data-plat="饿了么" onclick="pickScrapePlat(this)">饿了么</div>
+      <div class="plat-opt" data-plat="美团外卖" onclick="pickScrapePlat(this)">美团外卖</div>
     </div>
-    <div id="scrapeTaskMsg" style="display:none;margin-top:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 12px;">
-      <div style="font-size:12px;color:#166534;font-weight:700;margin-bottom:4px;">✅ 抓取任务已生成！点下方「一键复制」，把内容粘贴回豆包对话发给我即可开始抓取</div>
-      <div id="scrapeTaskMsgText" style="font-size:11px;color:var(--text2);word-break:break-all;line-height:1.6;"></div>
-      <button class="btn-blue-ghost" style="margin-top:8px;height:28px;padding:0 12px;font-size:12px;" onclick="copyTaskMsg()">一键复制任务信息</button>
-      <div style="margin-top:6px;font-size:11px;color:var(--text3);">⚠️ 这不是网址，请勿粘贴到浏览器地址栏；直接发给豆包对话即可。</div>
+    <div id="scrapePlatTip" style="font-size:12px;color:#B45309;margin-bottom:10px;">请准备手机「淘宝」App 扫码登录淘宝闪购</div>
+
+    <div style="font-size:13px;color:var(--text1);font-weight:700;">③ 抓取内容</div>
+    <div style="display:flex;gap:16px;margin:8px 0 10px;font-size:13px;">
+      <label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="scrapeMode" value="menu" checked> 仅菜单（Excel）</label>
+      <label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="scrapeMode" value="img"> 仅菜品图（zip）</label>
+      <label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="scrapeMode" value="all"> 全部打包（zip）</label>
     </div>
-    <div style="margin-top:8px;font-size:11px;color:var(--text3);">点「确认抓取」会自动保存任务并复制信息；把复制的任务信息粘贴到豆包对话发给我，我会解析二维码/口令/链接并抓取菜单与菜品图（需登录的店铺我会引导你接管浏览器，单店约2-3分钟）。</div>
-    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">采集完成后：把助手生成的 <b>Excel/zip</b> 拖到下方导入，即可存入「实抓记录」用于下载与分析。</div>
-      <div class="upload-zone" style="height:64px;" id="scrapeImportZone" onclick="document.getElementById('scrapeImportInput').click()">
-        <div class="main" style="font-size:12px;">点击导入实抓结果文件（.xlsx / .zip）</div>
-        <input type="file" id="scrapeImportInput" accept=".xlsx,.xls,.zip" class="hidden">
+
+    <div style="font-size:12px;color:var(--text2);">④ 说明（可选，店铺名 / 分组）</div>
+    <textarea id="scrapeNotes" style="width:100%;height:44px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;margin-top:6px;" placeholder="例如：赣味小灶（凌空SOHO店），全部分组"></textarea>
+
+    <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:12px;" onclick="confirmScrape()">开始抓取</button>
+
+    <div id="scrapeFlow" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-size:13px;color:var(--text1);font-weight:700;margin-bottom:10px;">✅ 已就绪，按下面三步操作（全程在此网页完成）</div>
+
+      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;">第 1 步　登录账号（一次性）</div>
+        <div id="scrapeLoginTip" style="font-size:12px;color:var(--text2);margin:4px 0 8px;">请打开「淘宝闪购登录」，用手机「淘宝」App 扫码登录</div>
+        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="openLogin()">打开登录页</button>
       </div>
-      <div id="scrapeRecordList" style="margin-top:8px;"></div>
+
+      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;">第 2 步　打开店铺</div>
+        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">登录后点下方打开店铺链接，进入店铺页面（淘宝口令请先在手机淘宝打开，把链接粘贴到上方输入框）</div>
+        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="openShop()">打开店铺链接</button>
+      </div>
+
+      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:13px;font-weight:700;">第 3 步　一键抓取数据</div>
+        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">在店铺页面按 <b>F12</b>（Mac：<b>Cmd+Option+J</b>）打开控制台 → 粘贴脚本 → 回车，自动抓取并下载 Excel / zip</div>
+        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeScript()">一键复制抓取脚本</button>
+        <div id="scrapeScriptStatus" style="font-size:11px;color:var(--text3);margin-top:4px;"></div>
+      </div>
     </div>
   </div>
 </div>
