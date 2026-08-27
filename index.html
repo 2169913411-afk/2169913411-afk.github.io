@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>餐谋长·运营助手 - 外卖店铺AI运营诊断</title>
+<link rel="stylesheet" href="app.css">
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+</head>
+<body>
+<div id="__appRoot" style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#94A3B8;font-size:14px;">正在加载餐谋长·运营助手…</div>
+<script>
+(function(){
+  var root=document.getElementById('__appRoot');
+  fetch('app.body.html').then(function(r){ return r.text(); }).then(function(html){
+    root.outerHTML=html;
+    return fetch('app.js');
+  }).then(function(r){ return r.text(); }).then(function(js){
+    try{ (0,eval)(js); }catch(e){ console.error('APP_INIT_ERROR',e); }
+  })['catch'](function(e){ console.error('LOAD_ERROR',e); root.textContent='加载失败，请刷新重试'; });
+})();
+</script>
+</body>
+</html>
