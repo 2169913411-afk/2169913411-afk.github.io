@@ -91,7 +91,7 @@ function buildZip(files){
     chunks.push(new Uint8Array(lh.buffer),name,data);
     var ch=new DataView(new ArrayBuffer(46));
     ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true);
-    ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0,true);
+    ch.setUint8(8,0x0800); ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0,true);
     ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
     ch.setUint16(28,name.length,true); ch.setUint16(30,0,true); ch.setUint16(32,0,true);
     ch.setUint16(34,0,true); ch.setUint16(36,0,true); ch.setUint32(38,0,true); ch.setUint32(42,offset,true);
@@ -322,7 +322,7 @@ function openShop(){
   if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
   toast('该内容不是网址，请用手机 App 打开后把店铺链接粘贴到上方');
 }
-/* 抓取插件：安装引导（已下线 UI 入口，保留函数兼容旧页面） */
+/* 抓取插件：安装引导 */
 var SCRAPER_RAW='https://raw.githubusercontent.com/2169913411-afk/2169913411-afk.github.io/main/cmz-scraper.user.js';
 function installTamper(){
   var ua=navigator.userAgent;
@@ -330,7 +330,7 @@ function installTamper(){
   var is360=ua.indexOf('360')>-1;
   var url=isEdge?'https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd':'https://www.tampermonkey.net/';
   window.open(url,'_blank');
-  toast(isEdge?'已打开 Edge 扩展商店（国内可访问），点「获取」安装 Tampermonkey':'已打开 Tampermonkey 官网下载页。若打不开（国内网络），建议改用 Edge 浏览器，或直接用书签方案');
+  toast(isEdge?'已打开 Edge 扩展商店（国内可访问），点「获取」安装 Tampermonkey':'已打开 Tampermonkey 官网下载页。若打不开（国内网络），建议改用 Edge 浏览器，或直接用下方 ⑤ 零插件书签');
 }
 function installScraper(){
   window.open(SCRAPER_RAW,'_blank');
@@ -376,20 +376,19 @@ function resolveTaoLink(shortUrl){
     {url:'https://r.jina.ai/'+shortUrl, raw:true}
   ];
   return new Promise(function(res){
-    var i=0;
-    function next(){
-      if(i>=proxies.length){ res(''); return; }
-      var p=proxies[i++];
+    /* 并行尝试全部代理：谁先返回 shopId 谁胜出；单代理 8 秒超时，总兜底 11 秒 */
+    var done=false;
+    function finish(url){ if(!done){ done=true; res(url); } }
+    proxies.forEach(function(p){
       var ctrl=('AbortController' in window)?new AbortController():null;
-      var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },9000);
+      var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },8000);
       fetch(p.url, {mode:'cors', signal:ctrl?ctrl.signal:undefined}).then(function(r){ return r.text(); }).then(function(html){
         clearTimeout(timer);
         var m=(html||'').match(/shopId=([A-Za-z0-9]+)/);
-        if(m && m[1]) res(makeShopUrl(m[1]));
-        else next();
-      })['catch'](function(){ clearTimeout(timer); next(); });
-    }
-    next();
+        if(m && m[1]) finish(makeShopUrl(m[1]));
+      })['catch'](function(){ clearTimeout(timer); });
+    });
+    setTimeout(function(){ finish(''); }, 11000);
   });
 }
 function makeShopUrl(shopId){
@@ -410,7 +409,7 @@ function confirmScrape(){
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
   if(link.indexOf('m.tb.cn')>-1){
     showScrapeFlow();
-    setScrapeStatus('⏳ 正在解析口令链接（淘宝口令需通过网络中转解析，约 5-10 秒），请稍候…','run');
+    setScrapeStatus('⏳ 正在解析口令链接（淘宝口令需通过网络中转解析，约 8-15 秒），请稍候…','run');
     toast('正在解析口令链接…');
     resolveTaoLink(link).then(function(shopUrl){
       if(shopUrl){
