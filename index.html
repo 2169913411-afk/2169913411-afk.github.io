@@ -15,10 +15,15 @@
   var root=document.getElementById('__appRoot');
   fetch('app.body.html').then(function(r){ return r.text(); }).then(function(html){
     root.outerHTML=html;
-    return fetch('app.js');
-  }).then(function(r){ return r.text(); }).then(function(js){
-    try{ (0,eval)(js); }catch(e){ console.error('APP_INIT_ERROR',e); }
-  })['catch'](function(e){ console.error('LOAD_ERROR',e); root.textContent='加载失败，请刷新重试'; });
+    var parts=['app.js.1','app.js.2','app.js.3'];
+    var chain=Promise.resolve();
+    parts.forEach(function(p){
+      chain=chain.then(function(){ return fetch(p); })
+                 .then(function(r){ return r.text(); })
+                 .then(function(code){ try{ (0,eval)(code); }catch(e){ console.error('EVAL_'+p,e); } });
+    });
+    return chain;
+  })['catch'](function(e){ console.error('LOAD_ERROR',e); if(root) root.textContent='加载失败，请刷新重试'; });
 })();
 </script>
 </body>
