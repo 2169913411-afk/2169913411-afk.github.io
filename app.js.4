@@ -10,6 +10,8 @@
   var DEFAULT_DECODE_URL='https://1475030627-37d6yqessz.ap-guangzhou.tencentscf.com';
   function decodeCfgUrl(){
     var v=(localStorage.getItem('cmzDecodeUrl')||'').trim();
+    /* 过滤已失效的旧 Cloudflare workers.dev 地址，回退到内置腾讯云地址 */
+    if(v && (v.indexOf('workers.dev')>-1 || v.indexOf('cfdecode')>-1)){ v=''; }
     return v || DEFAULT_DECODE_URL;
   }
   function saveDecodeCfg(){
