@@ -1,0 +1,347 @@
+function copyText(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){toast('复制成功');},function(){fallbackCopy(txt);}); }
+  else fallbackCopy(txt);
+}
+function fallbackCopy(txt){
+  var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('复制成功'); }catch(e){ toast('复制失败'); }
+  ta.remove();
+}
+function downloadReport(){
+  if(!lastReport.report){ toast('暂无报告可下载'); return; }
+  var r=lastReport;
+  var txt='餐谋长·AI运营诊断报告\n生成时间：'+nowStr()+' ｜ 分析功能：'+r.plan.name+' ｜ 消耗积分：'+r.plan.cost+'\n\n'+r.report+'\n\n免责声明：以上调整建议仅供参考，实际效果受商圈竞品、平台规则等多因素影响。';
+  var blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  downloadBlob(blob,'运营诊断报告_'+nowStr().replace(/[-: ]/g,'')+'.md');
+}
+function downloadBlob(blob,filename){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },300);
+}
+
+/* ---------- 导出优化版菜单 xlsx（必要才改+标红） ---------- */
+function exportMenuXlsx(){
+  var r=lastReport;
+  var products=(r.structured.products||[]);
+  var changes=(r.changes||[]);
+  if(!products.length&&!changes.length){ toast('无菜单数据可导出'); return; }
+  // 合并：先所有商品原样，再覆盖修改项
+  var map={};
+  products.forEach(function(p){ map[p.name]=p; });
+  var rows=[['商品名称','菜单分组','原价(元)','优化后名称','优化后描述','优化后价格(元)','修改说明']];
+  var changeSet={};
+  changes.forEach(function(c){ changeSet[c.name]=c; });
+  // 输出所有商品；有修改的在相应列填新值并标红
+  var allNames=Object.keys(map);
+  changes.forEach(function(c){ if(!map[c.name]) allNames.push(c.name); });
+  allNames.forEach(function(name){
+    var p=map[name]||{name:name,group:'',price:null};
+    var c=changeSet[name];
+    var changed=c&&(c.new_name||c.new_desc||(c.new_price!=null&&c.new_price!==p.price));
+    rows.push({
+      cells:[p.name,p.group||'',p.price!=null?p.price:null,
+        c&&c.new_name?c.new_name:null,
+        c&&c.new_desc?c.new_desc:null,
+        c&&c.new_price!=null&&c.new_price!==p.price?c.new_price:null,
+        changed?(c.reason||'优化'):''],
+      changed:!!changed
+    });
+  });
+  var xlsx=buildMenuXlsx(rows);
+  var store=(r.structured.shop_base&&r.structured.shop_base.shop_name)||'菜单';
+  var blob=new Blob([xlsx],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  downloadBlob(blob,'优化版菜单_'+store+'.xlsx');
+  toast('优化版菜单已导出（红色为修改项）');
+}
+
+/* 手动构建 xlsx（含红色样式） */
+function crc32(bytes){
+  var c,table=[],k,n;
+  for(n=0;n<256;n++){ c=n; for(k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[n]=c>>>0; }
+  var crc=0xFFFFFFFF; for(var i=0;i<bytes.length;i++) crc=table[(crc^bytes[i])&0xFF]^(crc>>>8);
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function utf8(s){ return new TextEncoder().encode(s); }
+function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function colName(i){ return String.fromCharCode(65+i); }
+function buildZip(files){
+  var chunks=[],central=[],offset=0,i;
+  for(i=0;i<files.length;i++){
+    var name=utf8(files[i].name),data=files[i].data;
+    var crc=crc32(data),size=data.length;
+    var lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true);
+    lh.setUint16(8,0,true); lh.setUint16(10,0,true); lh.setUint16(12,0,true);
+    lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    chunks.push(new Uint8Array(lh.buffer),name,data);
+    var ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true);
+    ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0,true);
+    ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
+    ch.setUint16(28,name.length,true); ch.setUint16(30,0,true); ch.setUint16(32,0,true);
+    ch.setUint16(34,0,true); ch.setUint16(36,0,true); ch.setUint32(38,0,true); ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer),name);
+    offset+=30+name.length+size;
+  }
+  var centralOffset=offset,centralSize=0;
+  for(i=0;i<central.length;i++) centralSize+=central[i].length;
+  var eocd=new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0,0x06054b50,true); eocd.setUint16(4,0,true); eocd.setUint16(6,0,true);
+  eocd.setUint16(8,files.length,true); eocd.setUint16(10,files.length,true);
+  eocd.setUint32(12,centralSize,true); eocd.setUint32(16,centralOffset,true); eocd.setUint16(20,0,true);
+  var all=chunks.concat(central,[new Uint8Array(eocd.buffer)]);
+  var total=0,p=0;
+  for(i=0;i<all.length;i++) total+=all[i].length;
+  var out=new Uint8Array(total);
+  for(i=0;i<all.length;i++){ out.set(all[i],p); p+=all[i].length; }
+  return out;
+}
+function buildMenuXlsx(rows){
+  var width=[30,16,12,32,46,14,30];
+  var colsXml='<cols>'+width.map(function(w,i){ return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'; }).join('')+'</cols>';
+  var sheetXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+colsXml+'<sheetData>'+
+    rows.map(function(r,ri){
+      var isHeader=ri===0;
+      var cells=r.cells.map(function(c,ci){
+        var ref=colName(ci)+(ri+1);
+        var style=isHeader?1:(r.changed&&ci>=3?'2':'0');
+        var cval=c==null?'':c;
+        if(typeof c==='number') return '<c r="'+ref+'" s="'+style+'"><v>'+c+'</v></c>';
+        return '<c r="'+ref+'" s="'+style+'" t="inlineStr"><is><t>'+escapeXml(cval)+'</t></is></c>';
+      }).join('');
+      return '<row r="'+(ri+1)+'">'+cells+'</row>';
+    }).join('')+'</sheetData></worksheet>';
+  var contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+    '<Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  var workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+    '<sheets><sheet name="优化版菜单" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  var wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<fonts count="3">'+
+      '<font><sz val="11"/><name val="Calibri"/></font>'+
+      '<font><b/><sz val="11"/><name val="Calibri"/><color rgb="FF0F172A"/></font>'+
+      '<font><sz val="11"/><name val="Calibri"/><color rgb="FFC00000"/></font>'+
+    '</fonts>'+
+    '<fills count="3">'+
+      '<fill><patternFill patternType="none"/></fill>'+
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/><bgColor indexed="64"/></patternFill></fill>'+
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFFFE5E5"/><bgColor indexed="64"/></patternFill></fill>'+
+    '</fills>'+
+    '<borders count="1"><border/></borders>'+
+    '<cellStyleXfs count="1"><xf/></cellStyleXfs>'+
+    '<cellXfs count="3">'+
+      '<xf fontId="0" fillId="0" applyFont="1"/>'+
+      '<xf fontId="1" fillId="1" applyFont="1" applyFill="1"/>'+
+      '<xf fontId="2" fillId="2" applyFont="1" applyFill="1"/>'+
+    '</cellXfs></styleSheet>';
+  return buildZip([
+    {name:'[Content_Types].xml',data:utf8(contentTypes)},
+    {name:'_rels/.rels',data:utf8(rels)},
+    {name:'xl/workbook.xml',data:utf8(workbook)},
+    {name:'xl/_rels/workbook.xml.rels',data:utf8(wbRels)},
+    {name:'xl/worksheets/sheet1.xml',data:utf8(sheetXml)},
+    {name:'xl/styles.xml',data:utf8(styles)}
+  ]);
+}
+
+/* ---------- 历史 ---------- */
+function openHistory(){
+  var list=state.history||[];
+  $('historyList').innerHTML=list.length?
+    list.map(function(h,i){
+      return '<div class="hist-item" onclick="loadHistory('+i+')">'+
+        '<div><div class="h-name">'+esc(h.shopName||'未命名')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);">'+esc(h.plan)+' ｜ 消耗'+h.cost+'积分</div></div>'+
+        '<span class="h-time">'+esc(h.t)+'</span></div>';
+    }).join('') : '<p style="font-size:13px;color:var(--text3);text-align:center;padding:24px 0;">暂无历史记录</p>';
+  openModal('historyMask');
+}
+function loadHistory(i){
+  closeModal('historyMask');
+  var h=state.history[i];
+  if(!h) return;
+  lastReport={structured:h.structured,report:h.report,changes:h.changes||[],plan:{name:h.plan,cost:h.cost}};
+  renderReport(h.report,h.structured,h.changes||[],{name:h.plan,cost:h.cost});
+  toast('已加载历史报告');
+}
+
+/* ---------- 扫码实抓（进用户端抓数据） ---------- */
+function openScrape(){
+  renderScrapeRecords();
+  openModal('scrapeMask');
+}
+function openEleH5(){
+  window.open('https://h5.ele.me/','_blank');
+  toast('已打开饿了么H5，请登录并进入你的店铺');
+}
+/* 识别淘宝口令链接 */
+function checkTaoLink(){
+  var v=($('shopLink')||{}).value||'';
+  var h=$('taoHint');
+  if(h){ h.style.display = (v.indexOf('m.tb.cn')>-1||v.indexOf('tb.cn')>-1||v.indexOf('口令')>-1) ? 'block':'none'; }
+}
+/* 二维码识别 */
+$('qrInput').addEventListener('change',function(){
+  var f=this.files&&this.files[0]; this.value='';
+  if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+      var ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
+      var id=ctx.getImageData(0,0,c.width,c.height);
+      var code=null;
+      try{ if(window.jsQR) code=jsQR(id.data,id.width,id.height); }catch(e){}
+      if(code&&code.data){
+        var txt=String(code.data).trim();
+        var isUrl=/^https?:\/\//i.test(txt);
+        $('qrResult').innerHTML='<span style="color:#16A34A;">✅ 已识别'+(isUrl?'链接':'内容')+'：'+esc(txt.slice(0,60))+'</span>';
+        window.__scrapeQR=txt;
+        if(isUrl) $('shopLink').value=txt;
+      }else{
+        $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
+        window.__scrapeQR='';
+      }
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+});
+/* 确认抓取 */
+function confirmScrape(){
+  var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
+  var note=($('scrapeNotes')||{}).value||'';
+  var link=($('shopLink')||{}).value||''.trim();
+  var qr=window.__scrapeQR||'';
+  if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
+  var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
+  state.scrapeRecords=state.scrapeRecords||[];
+  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:note,link:link||qr,t:nowStr(),status:'待抓取'});
+  saveState(); renderScrapeRecords();
+  /* 生成任务信息，一键复制发给助手 */
+  var msg='【商家调研抓取任务】\n抓取内容：'+mname+'\n店铺链接：'+(link||qr)+'\n'+(note?'说明：'+note+'\n':'')+'请开始抓取';
+  var box=$('scrapeTaskMsg'), txt=$('scrapeTaskMsgText');
+  if(box&&txt){ txt.textContent=msg; box.style.display='block'; }
+  copyText(msg);
+  if(link) window.open(link,'_blank');
+}
+function copyTaskMsg(){
+  var txt=$('scrapeTaskMsgText').textContent||'';
+  if(txt) copyText(txt);
+}
+function arrayBufferToBase64(buf){
+  var bytes=new Uint8Array(buf), binary='';
+  for(var i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function renderScrapeRecords(){
+  var list=state.scrapeRecords||[];
+  var el=$('scrapeRecordList');
+  if(!el) return;
+  el.innerHTML=list.length?list.map(function(r,i){
+    var action='';
+    if(r.type==='menu') action='<button class="btn-blue-ghost" style="padding:2px 8px;font-size:11px;" onclick="useScrapeMenu('+i+')">导入分析</button> <button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载</button>';
+    else if(r.type==='zip') action='<button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载zip</button>';
+    else action='<span style="color:var(--text3);font-size:11px;">待抓取</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" onclick="window.open(\''+r.link+'\')">打开店铺</a>':'');
+    return '<div class="hist-item"><div><div class="h-name">'+esc(r.mname||r.name||'实抓记录')+'</div>'+
+      '<div style="font-size:11px;color:var(--text3);">'+(r.note?esc(r.note):'')+(r.count?' ｜ 商品 '+r.count+' 项':'')+(r.size?' ｜ '+r.size:'')+'</div></div>'+
+      '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
+  }).join(''):'<p style="font-size:12px;color:var(--text3);text-align:center;padding:14px 0;">暂无实抓记录</p>';
+}
+$('scrapeImportInput').addEventListener('change',function(){
+  var f=this.files&&this.files[0]; this.value='';
+  if(!f) return;
+  var ext=(f.name||'').split('.').pop().toLowerCase();
+  if(ext==='zip'){
+    var url=URL.createObjectURL(f);
+    window.__zipURLs=window.__zipURLs||{};
+    state.scrapeRecords.unshift({id:'z'+Date.now(),type:'zip',mname:'菜品图打包',name:f.name,size:fmtSize(f.size),t:nowStr(),url:url});
+    saveState(); renderScrapeRecords(); toast('已导入图片包：'+f.name);
+    return;
+  }
+  if(ext==='xlsx'||ext==='xls'){
+    var rd=new FileReader();
+    rd.onload=function(){
+      var b64=arrayBufferToBase64(rd.result);
+      state.scrapeRecords.unshift({id:'m'+Date.now(),type:'menu',mname:'用户端实抓菜单',name:f.name,size:fmtSize(f.size),t:nowStr(),data:b64});
+      saveState(); renderScrapeRecords(); toast('已导入菜单文件，可点「导入分析」用于菜单优化');
+    };
+    rd.readAsArrayBuffer(f);
+    return;
+  }
+  toast('仅支持 .xlsx / .xls / .zip');
+});
+function fmtSize(b){ b=b||0; return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(0)+'KB'; }
+function downloadScrape(i){
+  var r=state.scrapeRecords[i]; if(!r) return;
+  if(r.type==='zip'){ if(r.url){ var a=document.createElement('a'); a.href=r.url; a.download=r.name||'菜品图.zip'; a.click(); } return; }
+  if(r.type==='menu'&&r.data){
+    var bin=atob(r.data), len=bin.length, u8=new Uint8Array(len);
+    for(var k=0;k<len;k++) u8[k]=bin.charCodeAt(k);
+    var blob=new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=r.name||'实抓菜单.xlsx'; a.click();
+  }
+}
+function useScrapeMenu(i){
+  var r=state.scrapeRecords[i]; if(!r||!r.data){ toast('无菜单数据'); return; }
+  var bin=atob(r.data), len=bin.length, u8=new Uint8Array(len);
+  for(var k=0;k<len;k++) u8[k]=bin.charCodeAt(k);
+  var f=new File([u8], r.name||'实抓菜单.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  readSheetArray(f).then(function(rows){
+    var res=parseMenuFile(rows);
+    if(res&&res.ok&&res.products&&res.products.length){
+      state.menu={file:f,rows:rows,parsed:res,name:r.name||'实抓菜单.xlsx'};
+      RECOGNIZED.menu=res;
+      saveState();
+      $('menuItem').classList.remove('hidden'); $('menuZone').classList.add('hidden');
+      $('menuName').textContent=f.name; $('menuSize').textContent=fmtSize(f.size);
+      var box=$('menuRecog');
+      if(box){ box.className='recog-box'; box.innerHTML='<div class="r-title">✅ 已导入用户端实抓菜单：'+res.found.join('、')+'，共 '+res.products.length+' 个商品</div><div class="recog-list">'+res.found.map(function(x){return '<span>'+x+'</span>';}).join('')+'</div>'; box.classList.remove('hidden'); }
+      updateStartBtn();
+      toast('已导入实抓菜单用于分析（'+res.products.length+' 项，含月售）');
+    } else {
+      toast('菜单解析失败，请检查文件格式');
+    }
+  })['catch'](function(){ toast('菜单解析失败，请检查文件格式'); });
+}
+
+/* ---------- 计划选择 ---------- */
+document.querySelectorAll('.plan-opt input[name=plan]').forEach(function(r){
+  r.addEventListener('change',function(){
+    document.querySelectorAll('.plan-opt').forEach(function(o){ o.classList.remove('active'); });
+    r.closest('.plan-opt').classList.add('active');
+    refreshTip();
+  });
+});
+
+/* ---------- 初始化 ---------- */
+(function init(){
+  if(!state.platform) state.platform='淘宝闪购';
+  document.querySelectorAll('.plat-opt').forEach(function(el){
+    el.classList.toggle('active',el.getAttribute('data-plat')===state.platform);
+  });
+  updateBalanceUI();
+  refreshTip();
+  // 点击遮罩关闭
+  document.querySelectorAll('.mask').forEach(function(m){
+    m.addEventListener('click',function(e){ if(e.target===m) m.classList.add('hidden'); });
+  });
+})();
