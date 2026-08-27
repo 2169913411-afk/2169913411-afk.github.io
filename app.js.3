@@ -444,12 +444,20 @@ function renderScrapeRecords(){
     var action='';
     if(r.type==='menu') action='<button class="btn-blue-ghost" style="padding:2px 8px;font-size:11px;" onclick="useScrapeMenu('+i+')">导入分析</button> <button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载</button>';
     else if(r.type==='zip') action='<button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载zip</button>';
-    else action='<span style="color:var(--text3);font-size:11px;">已开始</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" onclick="window.open(\''+r.link+'\')">打开店铺</a>:'')';
+    else action='<span style="color:var(--text3);font-size:11px;">已开始</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" data-idx="'+i+'" class="scrape-open">打开店铺</a>:'')';
     return '<div class="hist-item"><div><div class="h-name">'+esc(r.mname||r.name||'实抓记录')+'</div>'+
       '<div style="font-size:11px;color:var(--text3);">'+(r.note?esc(r.note):'')+(r.count?' ｜ 商品 '+r.count+' 项':'')+(r.size?' ｜ '+r.size:'')+'</div></div>'+
       '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
   }).join(''):'<p style="font-size:12px;color:var(--text3);text-align:center;padding:14px 0;">暂无实抓记录</p>';
 }
+/* 记录区「打开店铺」事件委托（避免内联 onclick 引号转义） */
+document.addEventListener('click',function(e){
+  var t=e.target&&e.target.closest?e.target.closest('.scrape-open'):null;
+  if(!t) return;
+  var idx=parseInt(t.getAttribute('data-idx'),10);
+  var r=(state.scrapeRecords||[])[idx];
+  if(r&&r.link) window.open(r.link,'_blank');
+});
 if($('scrapeImportInput')) $('scrapeImportInput').addEventListener('change',function(){
   var f=this.files&&this.files[0]; this.value='';
   if(!f) return;
