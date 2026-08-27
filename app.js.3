@@ -361,12 +361,19 @@ function detectScraper(){
   }
 }
 /* 商家调研：持久状态提示（解析中/成功/失败原因） */
+(function(){
+  if(document.getElementById('cmzSpinStyle')) return;
+  var st=document.createElement('style'); st.id='cmzSpinStyle';
+  st.textContent='.cmz-spin{display:inline-block;width:13px;height:13px;border:2px solid #FED7AA;border-top-color:#B45309;border-radius:50%;animation:cmzRot .8s linear infinite;vertical-align:-2px;margin-right:7px;}@keyframes cmzRot{to{transform:rotate(360deg)}}';
+  document.head.appendChild(st);
+})();
 function setScrapeStatus(msg,type){
   var el=$('scrapeStatus');
   if(!el) return;
   var colors={ok:'#16A34A',err:'#B91C1C',run:'#B45309'};
   var bg={ok:'#F0FDF4',err:'#FEF2F2',run:'#FFF7ED'};
   var border={ok:'#BBF7D0',err:'#FECACA',run:'#FED7AA'};
+  if(type==='run') msg='<span class="cmz-spin"></span>'+msg;
   el.style.display='block';
   el.style.color=colors[type]||'#1D4ED8';
   el.style.background=bg[type]||'#EFF6FF';
@@ -421,16 +428,19 @@ function confirmScrape(){
   /* ① 粘贴内容里带 shopId（h5.ele.me / market.m.taobao 跳转页 / 任意带 shopId 链接）→ 直接构造店铺直链 */
   if(link && extractShopId(link)){
     showScrapeFlow();
-    setScrapeStatus('✅ 已识别店铺ID，正在构造店铺直链并打开…','ok');
+    setScrapeStatus('已识别店铺ID，正在构造店铺直链并打开…','run');
     _doScrape(normalizeShopUrl(link));
     return;
   }
   /* ② 淘宝口令 m.tb.cn：电脑端无法自动解析（平台强制跳"请在手机上扫码"），自动打开口令页，引导复制地址栏链接 */
   if(link && isTaoKouLing(link)){
     showScrapeFlow();
-    setScrapeStatus('⏳ 已自动打开淘宝口令页。<br><b>淘宝限制电脑端自动解析</b>，请这样操作（只需 1 步）：<br>① 在新打开的页面，点一下地址栏，<b>全选复制整条链接</b>（里面含 shopId=…）；<br>② 回到本页，把它<b>粘贴到上方输入框</b>，再点「开始抓取」→ 系统会自动构造店铺直链并进店抓取。','run');
+    setScrapeStatus('正在打开淘宝口令页，定位店铺…','run');
     toast('已打开口令页，请复制地址栏链接粘贴回来');
     window.open(link,'_blank');
+    setTimeout(function(){
+      setScrapeStatus('<b>新页面已打开（显示"请在手机上扫码"是正常的，别管它）。</b><br>现在只需 1 步：<br>① 点新页面的<b>地址栏</b>，全选复制整条链接（Ctrl+A 再 Ctrl+C，Mac 用 Cmd+A/Cmd+C），它长这样：<b>market.m.taobao.com/...shopId=…</b><br>② 回到本页，把链接<b>粘贴到上方输入框</b>，再点「开始抓取」→ 系统会自动构造店铺直链并进店抓取。','run');
+    }, 3000);
     return;
   }
   if(/^https?:\/\//i.test(link)){ _doScrape(link); return; }
