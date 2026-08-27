@@ -270,7 +270,7 @@
         <div class="sub" style="font-size:11px;">png / jpg，自动识别链接</div>
         <input type="file" id="qrInput2" accept="image/*" class="hidden">
       </div>
-      <input type="text" id="shopLink" placeholder="或粘贴店铺链接 / 口令" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
+      <input type="text" id="shopLink" placeholder="粘贴店铺链接 / 口令（h5.ele.me 可直接抓；#小程序:// 需先在手机微信复制链接）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
     </div>
     <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
 
@@ -324,7 +324,7 @@
 
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;">第 2 步　打开店铺</div>
-        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">点下方打开店铺链接（口令链接请先用手机 App 打开，再把 h5.ele.me 链接粘贴到上方输入框）</div>
+        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">点下方打开店铺链接（口令链接会自动解析成 h5.ele.me 店铺链接）</div>
         <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="openShop()">打开店铺链接</button>
       </div>
 
