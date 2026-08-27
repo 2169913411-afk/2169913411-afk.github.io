@@ -196,39 +196,30 @@ function checkTaoLink(){
   if(h){ h.style.display = (v.indexOf('m.tb.cn')>-1||v.indexOf('tb.cn')>-1||v.indexOf('口令')>-1) ? 'block':'none'; }
 }
 /* 二维码识别（主面板 + 商家调研弹窗共用） */
+function applyQrRecognized(txt){
+  if(txt){
+    var isUrl=/^https?:\/\//i.test(txt);
+    if($('qrResult')) $('qrResult').innerHTML='<span style="color:#16A34A;">✅ 已识别'+(isUrl?'链接':'内容')+'：'+esc(txt.slice(0,60))+'</span>';
+    window.__scrapeQR=txt;
+    if(isUrl&&$('shopLink')) $('shopLink').value=txt;
+  }else{
+    if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
+    window.__scrapeQR='';
+  }
+}
 function bindQrInput(inputEl){
   if(!inputEl) return;
   inputEl.addEventListener('change',function(){
     var f=this.files&&this.files[0]; this.value='';
     if(!f) return;
     var rd=new FileReader();
-    rd.onload=function(){
-      var img=new Image();
-      img.onload=function(){
-        var c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
-        var ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
-        var id=ctx.getImageData(0,0,c.width,c.height);
-        var code=null;
-        try{ if(window.jsQR) code=jsQR(id.data,id.width,id.height); }catch(e){}
-        if(code&&code.data){
-          var txt=String(code.data).trim();
-          var isUrl=/^https?:\/\//i.test(txt);
-          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#16A34A;">✅ 已识别'+(isUrl?'链接':'内容')+'：'+esc(txt.slice(0,60))+'</span>';
-          window.__scrapeQR=txt;
-          if(isUrl&&$('shopLink')) $('shopLink').value=txt;
-        }else{
-          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
-          window.__scrapeQR='';
-        }
-      };
-      img.src=rd.result;
-    };
+    rd.onload=function(){ recognizeQrFromDataUrl(rd.result, applyQrRecognized); };
     rd.readAsDataURL(f);
   });
 }
 bindQrInput($('qrInput'));
 bindQrInput($('qrInput2'));
-/* 清洗粘贴文本，提取真正的店铺链接/口令（防止把上次的任务文本反复贴回导致重复累积） */
+/* 清洗粘贴文本，提取真正的店铺链接/口令 */
 function cleanLink(raw){
   var s=String(raw||'').trim();
   if(!s) return '';
@@ -268,13 +259,14 @@ function confirmScrape(){
   var qr=window.__scrapeQR||'';
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
-  var note=($('scrapeNotes')||{}).value||'';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
   state.scrapeRecords=state.scrapeRecords||[];
-  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:note,link:link||qr,t:nowStr(),status:'待抓取'});
+  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:'',link:link||qr,t:nowStr(),status:'待抓取'});
   saveState();
   var flow=$('scrapeFlow'); if(flow) flow.style.display='block';
-  toast('已生成抓取任务，请按下方三步操作');
+  var hint=$('scrapeFlowHint');
+  if(hint) hint.innerHTML='已自动打开登录页（第 1 步）。请用手机 App 扫码登录，登录成功后<b>回到本窗口</b>，依次点「打开店铺链接」→「一键复制抓取脚本」即可抓取';
+  toast('已自动打开登录页，登录后回到本窗口继续');
   openLogin();
 }
 /* 第3步：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
