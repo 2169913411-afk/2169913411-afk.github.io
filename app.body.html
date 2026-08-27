@@ -16,12 +16,10 @@
 
 <!-- ============ 主体布局 ============ -->
 <main class="layout">
-  <!-- 左栏：操作区 -->
   <aside class="left-panel">
     <div class="lp-title">外卖店铺AI运营诊断</div>
     <div class="lp-sub">上传数据截图与文件，一键生成专业运营方案 + 商家沟通话术</div>
 
-    <!-- 平台选择 -->
     <div class="section">
       <div class="section-title">选择外卖平台</div>
       <div class="plat-row" id="platRow">
@@ -30,7 +28,6 @@
       </div>
     </div>
 
-    <!-- 模块1：门店二维码 -->
     <div class="section">
       <div class="section-title">1. 上传门店二维码 <span class="tag tag-req">必选</span></div>
       <div class="upload-zone uz-small" id="qrZone">
@@ -46,7 +43,6 @@
       </div>
     </div>
 
-    <!-- 模块2：同行数据对比截图 -->
     <div class="section">
       <div class="section-title">2. 上传同行数据以及其他重要截图数据 <span class="tag tag-req">必选</span></div>
       <div class="upload-zone uz-mid" id="peerZone">
@@ -60,7 +56,6 @@
       <div class="thumb-grid" id="peerThumbs"></div>
     </div>
 
-    <!-- 模块3：门店数据文件 -->
     <div class="section">
       <div class="section-title">3. 上传门店数据文件 <span class="tag tag-req">必选</span></div>
       <div class="upload-zone uz-mid" id="shopZone">
@@ -76,7 +71,6 @@
       <div id="shopRecog" class="recog-box hidden"></div>
     </div>
 
-    <!-- 模块4：菜单数据文件 -->
     <div class="section">
       <div class="section-title">4. 上传菜单数据文件 <span class="tag tag-opt">非必选</span></div>
       <div class="upload-zone uz-mid" id="menuZone">
@@ -92,7 +86,6 @@
       <div id="menuRecog" class="recog-box hidden"></div>
     </div>
 
-    <!-- 模块5：门店评价数据 -->
     <div class="section">
       <div class="section-title">5. 上传门店评价数据 <span class="tag tag-opt">非必选</span></div>
       <div class="upload-zone uz-mid" id="reviewZone">
@@ -108,13 +101,11 @@
       <div id="reviewRecog" class="recog-box hidden"></div>
     </div>
 
-    <!-- 补充说明 -->
     <div class="section">
       <div class="section-title" style="font-size:14px;">补充说明（可选）</div>
       <textarea id="notesInput" placeholder="填写门店品类、商圈、近期特殊情况、想要重点分析的方向"></textarea>
     </div>
 
-    <!-- 功能选择 -->
     <div class="section">
       <div class="section-title" style="font-size:14px;">选择分析功能</div>
       <div id="planList">
@@ -140,7 +131,6 @@
     </div>
   </aside>
 
-  <!-- 右栏：结果区 -->
   <section class="right-panel">
     <div class="result-head">
       <h2>运营诊断报告</h2>
@@ -278,7 +268,7 @@
     <div style="font-size:13px;color:var(--text1);font-weight:700;">① 店铺信息（上传二维码 或 粘贴链接，二选一）</div>
     <div style="display:flex;gap:10px;margin:8px 0 6px;">
       <div class="upload-zone" style="flex:1;height:84px;margin:0;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
-        <div class="main" style="font-size:12px;">点击上传店铺二维码</div>
+        <div class="main" style="font-size:12px;">点击上传 或 Ctrl+V 粘贴二维码</div>
         <div class="sub" style="font-size:11px;">png / jpg，自动识别链接</div>
         <input type="file" id="qrInput2" accept="image/*" class="hidden">
       </div>
@@ -300,13 +290,10 @@
       <label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="scrapeMode" value="all"> 全部打包（zip）</label>
     </div>
 
-    <div style="font-size:12px;color:var(--text2);">④ 说明（可选，店铺名 / 分组）</div>
-    <textarea id="scrapeNotes" style="width:100%;height:44px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;margin-top:6px;" placeholder="例如：赣味小灶（凌空SOHO店），全部分组"></textarea>
-
     <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:12px;" onclick="confirmScrape()">开始抓取</button>
 
     <div id="scrapeFlow" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-      <div style="font-size:13px;color:var(--text1);font-weight:700;margin-bottom:10px;">✅ 已就绪，按下面三步操作（全程在此网页完成）</div>
+      <div id="scrapeFlowHint" style="font-size:13px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-weight:600;">✅ 已就绪，按下面三步操作（全程在此网页完成）</div>
 
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;">第 1 步　登录账号（一次性）</div>
