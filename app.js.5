@@ -21,7 +21,7 @@ function detectScraper(){
       var bm=document.getElementById('bookmarkDragV3');
       if(bm&&!bm.getAttribute('data-set')){
         bm.setAttribute('data-set','1');
-        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260828.1\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
+        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260828.2\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
       }
     }
   }

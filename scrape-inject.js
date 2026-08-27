@@ -1,8 +1,9 @@
-/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3（支持 URL 参数自动模式：菜单/图片/全部）
+/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.1（支持 URL 参数自动模式：菜单/图片/全部）
+   修复：菜品图为 CSS background-image（饿了么 H5 菜单图是背景图而非 <img>），新增背景图解析 + 取原图下载
    由「餐谋长抓取」书签在店铺页动态加载执行：
    1) 读取 URL 参数 cmz_scrape=menu|img|all（网站在打开店铺时已自动写入）
    2) 依次点击左侧全部分类tab + 滚动到底，加载全部菜品
-   3) 菜单 -> CSV(Excel可打开)；菜品图 -> zip 打包下载
+   3) 菜单 -> CSV(Excel可打开)；菜品图 -> zip 打包下载（高清原图）
    仅抓取用户端公开展示的店铺菜单数据，用于商家调研分析。 */
 (function(){
   'use strict';
@@ -59,6 +60,38 @@
       document.head.appendChild(s);
     });
   }
+  /* 取高清原图：去掉 oss 处理参数 */
+  function cleanImgUrl(u){
+    if(!u) return '';
+    u=u.replace(/^["']|["']$/g,'');
+    var idx=u.indexOf('?x-oss-process');
+    if(idx>-1) u=u.slice(0,idx);
+    return u;
+  }
+  /* 从菜单条目提取菜品图：饿了么 H5 菜品图是 CSS background-image */
+  function getItemImg(item){
+    var sel=['.menuItem--image-img','.menuItem--image','[class*="image-img"]','[class*="menuItem--image"]'];
+    for(var k=0;k<sel.length;k++){
+      var els=item.querySelectorAll(sel[k]);
+      for(var i=0;i<els.length;i++){
+        var cs=window.getComputedStyle(els[i]);
+        var m=cs.backgroundImage&&cs.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/);
+        if(m&&m[1]&&/elemecdn|alicdn|cube\./.test(m[1])) return cleanImgUrl(m[1]);
+      }
+    }
+    var img=item.querySelector('img');
+    if(img){
+      var s=img.getAttribute('src')||img.getAttribute('data-src')||'';
+      if(s) return cleanImgUrl(s);
+    }
+    var all=item.querySelectorAll('*');
+    for(var j=0;j<all.length;j++){
+      var cs2=window.getComputedStyle(all[j]);
+      var m2=cs2.backgroundImage&&cs2.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/);
+      if(m2&&m2[1]&&/elemecdn|alicdn|cube\./.test(m2[1])) return cleanImgUrl(m2[1]);
+    }
+    return '';
+  }
   /* 解析菜单条目（含图片地址） */
   function parseMenu(){
     var items=[], seen={};
@@ -69,8 +102,7 @@
       var use=txt(item,'.menuItem--info-useCouponPrice');
       var sales=txt(item,'.menuItem--info-sales');
       var desc=txt(item,'.menuItem--info-description');
-      var imgEl=item.querySelector('img');
-      var img=imgEl?(imgEl.getAttribute('src')||imgEl.getAttribute('data-src')||''):'';
+      var img=getItemImg(item);
       if(!title) return;
       var key=title+'|'+cate;
       if(seen[key]) return; seen[key]=1;
@@ -191,7 +223,7 @@
       imgsResult=await grabImgs(items, fnBase);
     }
     if(imgsResult===-2){ banner('⚠️ '+BRAND+'：图片下载中触发安全验证，菜单部分已完成。','#FEF3C7'); return; }
-    var doneImg=imgsResult>0?('，图片 '+imgsResult+' 张已打包'):(imgsResult===-1?'，图片打包失败(网络/组件)':'');
+    var doneImg=imgsResult>0?('，图片 '+imgsResult+' 张已打包'):(imgsResult===-1?'，图片打包失败(网络/组件)':(imgsResult===0?'，菜品图未识别到(本页菜品无图)':''));
     var cateSet={}; items.forEach(function(x){ if(x.cate) cateSet[x.cate]=1; });
     banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（覆盖 '+Object.keys(cateSet).length+' 个分类）'+doneImg+'。文件已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
   })();
