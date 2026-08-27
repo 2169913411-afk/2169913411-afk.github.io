@@ -1,5 +1,5 @@
 /* 零插件抓取书签：加载网站内的远程抓取脚本 */
-var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260827.2').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
+var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260828.3').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
 function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
@@ -194,11 +194,49 @@ function loadHistory(i){
   toast('已加载历史报告');
 }
 
-/* ---------- 扫码实抓（进用户端抓数据） ---------- */
+/* ---------- 商家调研（进用户端抓数据） ---------- */
 function openScrape(){
   renderScrapeRecords();
   detectScraper();
+  updateDecodeCfg();
   openModal('scrapeMask');
+}
+/* ---------- 淘宝口令自动解码（走解码服务） ---------- */
+function decodeCfgUrl(){
+  return (localStorage.getItem('cmzDecodeUrl')||'').trim();
+}
+function saveDecodeCfg(){
+  var v=((($('decodeUrl')||{}).value)||'').trim().replace(/\/+$/,'');
+  localStorage.setItem('cmzDecodeUrl',v);
+  toast(v?'解码服务地址已保存':'已清空解码服务地址');
+}
+function updateDecodeCfg(){
+  var i=$('decodeUrl');
+  if(i&&document.activeElement!==i){ i.value=decodeCfgUrl(); }
+}
+function decodeTaoKouLing(){
+  var box=$('shopLink'); var raw=(box||{}).value||'';
+  var url=decodeCfgUrl();
+  var st=$('decodeStatus');
+  if(st) st.innerHTML='';
+  if(!raw.trim()){ if(st) st.innerHTML='<span style="color:#DC2626;">请先粘贴淘宝口令到输入框</span>'; return; }
+  if(!url){ if(st) st.innerHTML='<span style="color:#DC2626;">请先在上方填入口令解码服务地址</span>'; return; }
+  if(st) st.innerHTML='<span style="color:#1D4ED8;">解码中，请稍候…</span>';
+  fetch(url+'/api/decode',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:raw})
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if(j&&j.ok&&j.url){
+      box.value=j.url;
+      if(st) st.innerHTML='<span style="color:#16A34A;">✅ 解码成功，已自动填入店铺直链，可点「开始抓取」</span>';
+      var th=$('taoHint'); if(th) th.style.display='none';
+    }else{
+      if(st) st.innerHTML='<span style="color:#DC2626;">解码失败：'+(j&&j.error||'未知错误')+'</span>';
+    }
+  })['catch'](function(e){
+    if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查服务地址是否正确）</span>';
+  });
 }
 function openEleH5(){
   window.open('https://h5.ele.me/','_blank');
@@ -305,18 +343,18 @@ function isTaoKouLing(s){ return /m\.tb\.cn|tb\.cn|market\.m\.taobao/i.test(s); 
 function pickScrapePlat(el){
   document.querySelectorAll('#scrapePlatRow .plat-opt').forEach(function(o){ o.classList.remove('active'); });
   el.classList.add('active');
-  var tips={'淘宝闪购（原饿了么）':'请准备手机「饿了么」App 扫码登录淘宝闪购（原饿了么）','美团外卖':'请准备手机「美团」App 扫码登录美团外卖'};
+  var tips={'淘宝闪购':'请准备手机「饿了么」App 扫码登录淘宝闪购','美团外卖':'请准备手机「美团」App 扫码登录美团外卖'};
   var p=el.getAttribute('data-plat');
   var t=$('scrapePlatTip'); if(t) t.textContent=tips[p]||'';
   var l=$('scrapeLoginTip'); if(l) l.textContent=(tips[p]||'')+'（第 1 步登录账号）';
 }
 function scrapePlat(){
   var o=document.querySelector('#scrapePlatRow .plat-opt.active');
-  return o?o.getAttribute('data-plat'):'淘宝闪购（原饿了么）';
+  return o?o.getAttribute('data-plat'):'淘宝闪购';
 }
 /* 第1步：打开对应平台登录页 */
 function openLogin(){
-  var urls={'淘宝闪购（原饿了么）':'https://h5.ele.me/','美团外卖':'https://passport.meituan.com/account/unitivelogin'};
+  var urls={'淘宝闪购':'https://h5.ele.me/','美团外卖':'https://passport.meituan.com/account/unitivelogin'};
   window.open(urls[scrapePlat()]||'https://h5.ele.me/','_blank');
   toast('已打开登录页，请用手机 App 扫码登录');
 }
@@ -338,7 +376,6 @@ var SCRAPER_RAW='https://2169913411-afk.github.io/cmz-scraper.user.js';
 function installTamper(){
   var ua=navigator.userAgent;
   var isEdge=ua.indexOf('Edg/')>-1;
-  var is360=ua.indexOf('360')>-1;
   var url=isEdge?'https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd':'https://www.tampermonkey.net/';
   window.open(url,'_blank');
   toast(isEdge?'已打开 Edge 扩展商店（国内可访问），点「获取」安装 Tampermonkey':'已打开 Tampermonkey 官网下载页。若打不开（国内网络），建议改用 Edge 浏览器，或直接用下方 ⑤ 零插件书签');
@@ -351,13 +388,22 @@ function detectScraper(){
   var st=$('scrapePluginState');
   if(!st) return;
   var installed=document.documentElement.getAttribute('data-cmz-scraper')==='installed';
+  var area=$('scrapeInstallArea');
   if(installed){
     st.textContent='✅ 已安装';
     st.style.color='#16A34A';
-    $('scrapePluginState')&&(document.getElementById('scrapePluginState').style.color='#16A34A');
+    if(area) area.innerHTML='<span style="color:#16A34A;font-weight:600;">全自动：粘贴口令进店即自动抓取下载</span>';
   }else{
-    st.textContent='⚠️ 未安装';
+    st.textContent='未安装';
     st.style.color='#B45309';
+    if(area){
+      area.innerHTML='<a id="bookmarkDragV3" draggable="true" style="display:inline-block;background:#16A34A;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:grab;text-decoration:none;margin-right:8px;" href="javascript:void(0)">⭐ 按住我拖到书签栏</a><span style="color:var(--text3);">零安装。进店后点一下书签即自动抓取。</span>';
+      var bm=$('bookmarkDragV3');
+      if(bm&&!bm.getAttribute('data-set')){
+        bm.setAttribute('data-set','1');
+        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260828.3\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
+      }
+    }
   }
 }
 /* 商家调研：持久状态提示（解析中/成功/失败原因） */
@@ -394,7 +440,6 @@ function resolveTaoLink(shortUrl){
     {url:'https://r.jina.ai/'+shortUrl, raw:true}
   ];
   return new Promise(function(res){
-    /* 并行尝试全部代理：谁先返回 shopId 谁胜出；单代理 8 秒超时，总兜底 11 秒 */
     var done=false;
     function finish(url){ if(!done){ done=true; res(url); } }
     proxies.forEach(function(p){
@@ -425,14 +470,12 @@ function confirmScrape(){
     return;
   }
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
-  /* ① 粘贴内容里带 shopId（h5.ele.me / market.m.taobao 跳转页 / 任意带 shopId 链接）→ 直接构造店铺直链 */
   if(link && extractShopId(link)){
     showScrapeFlow();
     setScrapeStatus('已识别店铺ID，正在构造店铺直链并打开…','run');
     _doScrape(normalizeShopUrl(link));
     return;
   }
-  /* ② 淘宝口令 m.tb.cn：若已装抓取插件（油猴）则全自动（插件自动识别shopId跳转+抓取）；未装则引导复制地址栏 */
   if(link && isTaoKouLing(link)){
     showScrapeFlow();
     var hasPlugin=document.documentElement.getAttribute('data-cmz-scraper')==='installed';
@@ -452,7 +495,6 @@ function confirmScrape(){
 }
 function _doScrape(target){
   showScrapeFlow();
-  /* 任何带 shopId 的非 ele.me 链接（如 market.m.taobao 跳转页）统一规范化为 h5.ele.me 直链 */
   if(extractShopId(target) && !/h5\.ele\.me|ele\.me/i.test(target)) target=normalizeShopUrl(target);
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
@@ -462,7 +504,6 @@ function _doScrape(target){
 
   var isEle=/(h5\.)?ele\.me|i\.ele\.me|m\.tb\.cn|tb\.cn|market\.m\.taobao/i.test(target);
   if(isEle){
-    /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取 */
     if(/h5\.ele\.me|ele\.me/i.test(target) && target.indexOf('cmz_scrape')<0){
       var sep=target.indexOf('?')>=0?'&':'?';
       target=target+sep+'cmz_scrape='+mode;
@@ -507,7 +548,6 @@ function renderScrapeRecords(){
       '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
   }).join(''):'<p style="font-size:12px;color:var(--text3);text-align:center;padding:14px 0;">暂无实抓记录</p>';
 }
-/* 记录区「打开店铺」事件委托（避免内联 onclick 引号转义） */
 document.addEventListener('click',function(e){
   var t=e.target&&e.target.closest?e.target.closest('.scrape-open'):null;
   if(!t) return;
