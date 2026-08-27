@@ -133,7 +133,7 @@ function buildMenuXlsx(rows){
     '<Default Extension="xml" ContentType="application/xml"/>'+
     '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
     '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
-    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"></Types>';
   var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
@@ -284,7 +284,7 @@ bindQrInput($('qrInput2'));
 function cleanLink(raw){
   var s=String(raw||'').trim();
   if(!s) return '';
-  var m=s.match(/https?:\/\/[^\s）)】》《<>\"']+/);
+  var m=s.match(/https?:\/\/[^\s）)】》《<>"']+/);
   if(m) return m[0].replace(/[，。、；;]+$/,'');
   return s;
 }
@@ -311,6 +311,14 @@ function openLogin(){
 function openShop(){
   var link=cleanLink(($('shopLink')||{}).value)||window.__scrapeQR||'';
   if(!link){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
+  if(link.indexOf('m.tb.cn')>-1){
+    toast('正在解析口令链接，获取店铺…');
+    resolveTaoLink(link).then(function(shopUrl){
+      if(shopUrl){ window.open(shopUrl,'_blank'); }
+      else { toast('口令解析失败，请改用店铺二维码'); }
+    });
+    return;
+  }
   if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
   toast('该内容不是网址，请用手机 App 打开后把店铺链接粘贴到上方');
 }
@@ -341,21 +349,63 @@ function detectScraper(){
     st.style.color='#B45309';
   }
 }
+/* 解析 m.tb.cn 口令链接 -> 真实店铺链接（页面HTML内嵌 shopId，跨域用 CORS 代理抓取） */
+function resolveTaoLink(shortUrl){
+  var proxies=[
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(shortUrl),
+    'https://corsproxy.io/?url='+encodeURIComponent(shortUrl),
+    'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(shortUrl)
+  ];
+  return new Promise(function(res){
+    var i=0;
+    function next(){
+      if(i>=proxies.length){ res(''); return; }
+      var p=proxies[i++];
+      fetch(p, {mode:'cors'}).then(function(r){ return r.text(); }).then(function(html){
+        var m=(html||'').match(/shopId=([A-Za-z0-9]+)/);
+        if(m && m[1]) res(makeShopUrl(m[1]));
+        else next();
+      })['catch'](function(){ next(); });
+    }
+    next();
+  });
+}
+function makeShopUrl(shopId){
+  var lat=localStorage.getItem('cmz_lat')||'31.222007';
+  var lng=localStorage.getItem('cmz_lng')||'121.353007';
+  return 'https://h5.ele.me/2021001185671035/pages/ele-takeout-index/ele-takeout-index?from=mobile.default&psc=24901&type=1&scheme_type=SHOP_SCHEME&latitude='+lat+'&longitude='+lng+'&shopId='+shopId;
+}
 /* 开始抓取（自动模式） */
 function confirmScrape(){
-  var link=cleanLink(($('shopLink')||{}).value);
+  var raw=($('shopLink')||{}).value||'';
+  var link=cleanLink(raw);
   var qr=window.__scrapeQR||'';
+  if(/小程序:\/\//.test(raw)||raw.indexOf('#小程序')>-1){
+    toast('这是微信小程序链接，电脑端无法直接解析。请用手机微信打开该链接 → 进入店铺 → 右上角分享 → 选「复制链接」→ 把复制的 https://h5.ele.me/... 链接粘贴回来');
+    if($('shopLink')) $('shopLink').focus();
+    return;
+  }
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
+  if(link.indexOf('m.tb.cn')>-1){
+    toast('正在解析口令链接，获取店铺…');
+    resolveTaoLink(link).then(function(shopUrl){
+      if(shopUrl){ _doScrape(shopUrl); }
+      else { toast('口令解析失败，请改用店铺二维码，或先用手机打开口令后复制 h5.ele.me 链接'); }
+    });
+    return;
+  }
+  _doScrape(link||qr);
+}
+function _doScrape(target){
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
   state.scrapeRecords=state.scrapeRecords||[];
-  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:'',link:link||qr,t:nowStr(),status:'已开始'});
+  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:'',link:target,t:nowStr(),status:'已开始'});
   saveState();
 
-  var target=link||qr;
   var isEle=/(h5\.)?ele\.me|i\.ele\.me|m\.tb\.cn|tb\.cn|market\.m\.taobao/i.test(target);
   if(isEle){
-    /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取；m.tb.cn/口令由抓取插件自动解析跳转 */
+    /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取；m.tb.cn/口令由 resolveTaoLink 解析后进店 */
     if(/h5\.ele\.me|ele\.me/i.test(target) && target.indexOf('cmz_scrape')<0){
       var sep=target.indexOf('?')>=0?'&':'?';
       target=target+sep+'cmz_scrape='+mode;
@@ -394,7 +444,7 @@ function renderScrapeRecords(){
     var action='';
     if(r.type==='menu') action='<button class="btn-blue-ghost" style="padding:2px 8px;font-size:11px;" onclick="useScrapeMenu('+i+')">导入分析</button> <button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载</button>';
     else if(r.type==='zip') action='<button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载zip</button>';
-    else action='<span style="color:var(--text3);font-size:11px;">已开始</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" onclick="window.open(\''+r.link+'\')">打开店铺</a>':'');
+    else action='<span style="color:var(--text3);font-size:11px;">已开始</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" onclick="window.open(\''+r.link+'\')">打开店铺</a>':'')';
     return '<div class="hist-item"><div><div class="h-name">'+esc(r.mname||r.name||'实抓记录')+'</div>'+
       '<div style="font-size:11px;color:var(--text3);">'+(r.note?esc(r.note):'')+(r.count?' ｜ 商品 '+r.count+' 项':'')+(r.size?' ｜ '+r.size:'')+'</div></div>'+
       '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
