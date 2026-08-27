@@ -260,38 +260,35 @@
 
 <!-- ============ 商家调研（进用户端抓数据） ============ -->
 <div class="mask hidden" id="scrapeMask">
-  <div class="modal" style="max-width:700px;">
+  <div class="modal" style="max-width:620px;">
     <div class="modal-head"><h3>商家调研 · 店铺数据采集</h3><button class="modal-close" onclick="closeModal('scrapeMask')">✕</button></div>
 
-    <div style="font-size:13px;color:var(--text1);font-weight:700;">① 店铺信息（上传二维码 或 粘贴链接，二选一）</div>
+    <div style="font-size:13px;color:var(--text1);font-weight:700;">① 店铺信息（上传二维码 或 粘贴链接/口令）</div>
     <div style="display:flex;gap:10px;margin:8px 0 6px;">
-      <div class="upload-zone" style="flex:1;height:84px;margin:0;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
-        <div class="main" style="font-size:12px;">点击上传 或 Ctrl+V 粘贴二维码</div>
-        <div class="sub" style="font-size:11px;">png / jpg，自动识别链接</div>
+      <div class="upload-zone" style="flex:0 0 128px;height:80px;margin:0;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
+        <div class="main" style="font-size:12px;">上传二维码</div>
+        <div class="sub" style="font-size:11px;">或 Ctrl+V 粘贴</div>
         <input type="file" id="qrInput2" accept="image/*" class="hidden">
       </div>
-      <input type="text" id="shopLink" placeholder="粘贴店铺链接 / 口令（h5.ele.me 可直接抓；#小程序:// 需先在手机微信复制链接）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
-    </div>
-    <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
-    <div id="taoHint" style="display:none;font-size:12px;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:6px 10px;margin:6px 0;line-height:1.7;">
-      检测到淘宝口令（m.tb.cn）。点下方「🔗 自动解码口令」可自动解析出店铺直链并填入；或先用手机 App 打开，把 h5.ele.me 链接粘贴回来。
-      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn-blue-ghost" style="height:30px;font-size:12px;" onclick="decodeTaoKouLing()">🔗 自动解码口令</button>
-        <span id="decodeStatus" style="font-size:11px;color:var(--text3);"></span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <input type="text" id="shopLink" placeholder="粘贴店铺链接 / 淘宝口令（h5.ele.me 可直接抓；口令点「自动解码」）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
+        <div id="taoHint" style="display:none;font-size:12px;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:6px 10px;line-height:1.7;">
+          检测到淘宝口令，点下方按钮自动解析出店铺直链
+          <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-blue-ghost" style="height:30px;font-size:12px;" onclick="decodeTaoKouLing()">🔗 自动解码口令</button>
+            <span id="decodeStatus" style="font-size:11px;color:var(--text3);"></span>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="decodeCfg" style="font-size:11px;color:var(--text3);margin:2px 0 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-      <span>口令解码服务地址：</span>
-      <input id="decodeUrl" placeholder="https://你的worker名.你的子域.workers.dev" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;box-sizing:border-box;">
-      <button class="btn-mini" onclick="saveDecodeCfg()">保存</button>
-    </div>
+    <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
 
-    <div style="font-size:13px;color:var(--text1);font-weight:700;margin-top:6px;">② 外卖平台（决定登录方式）</div>
+    <div style="font-size:13px;color:var(--text1);font-weight:700;">② 外卖平台</div>
     <div class="plat-row" id="scrapePlatRow" style="margin:8px 0;">
       <div class="plat-opt active" data-plat="淘宝闪购（原饿了么）" onclick="pickScrapePlat(this)">淘宝闪购（原饿了么）</div>
       <div class="plat-opt" data-plat="美团外卖" onclick="pickScrapePlat(this)">美团外卖</div>
     </div>
-    <div id="scrapePlatTip" style="font-size:12px;color:#B45309;margin-bottom:10px;">请准备手机「饿了么」App 扫码登录淘宝闪购（原饿了么）</div>
+    <div id="scrapePlatTip" style="font-size:11px;color:var(--text3);margin-bottom:8px;">淘宝闪购（原饿了么）：首次需用手机「饿了么」App 扫码登录一次</div>
 
     <div style="font-size:13px;color:var(--text1);font-weight:700;">③ 抓取内容</div>
     <div style="display:flex;gap:16px;margin:8px 0 10px;font-size:13px;">
@@ -300,63 +297,17 @@
       <label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="scrapeMode" value="all"> 全部打包（zip）</label>
     </div>
 
-    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:700;color:#166534;">④（备选）零安装书签「餐谋长抓取」——不装插件也能抓取</div>
-      <div style="font-size:12px;color:var(--text2);margin:4px 0 10px;line-height:1.8;">存好后每次：<b>打开店铺页 → 点一下书签</b> → 自动抓取下载。<b>注意：</b>书签方案<b>不能自动解析淘宝口令（m.tb.cn）</b>；要粘贴口令也全自动，请用下面 ⑤ 插件（推荐，装一次永久用）。粘贴 h5.ele.me 链接 / 上传二维码不受影响。</div>
-      <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text1);margin-bottom:4px;">第 1 步　让浏览器显示「书签栏」</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.7;">打开 Chrome 后按 <b>Ctrl + Shift + B</b>（Mac 用 <b>Cmd + Shift + B</b>），地址栏下方会出现一行书签栏；如果地址栏右边有 <b>☆</b> 也可以不用书签栏（见第 3 步）。</div>
-        <div style="font-size:12px;font-weight:700;color:var(--text1);margin-bottom:4px;">第 2 步　把「餐谋长抓取」放进去（二选一）</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-          <a id="bookmarkDrag" draggable="true" style="display:inline-block;background:#16A34A;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:grab;text-decoration:none;" href="javascript:void(0)">⭐ 按住我，拖到下方书签栏</a>
-          <span style="font-size:12px;color:var(--text3);">（松开即存好）</span>
-          <span style="font-size:12px;color:var(--text3);">或</span>
-          <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeBookmark()">复制代码，用 ☆ 存书签</button>
-        </div>
-        <div id="bookmarkHint" style="font-size:11px;color:var(--text3);line-height:1.7;"></div>
-        <div style="font-size:12px;font-weight:700;color:var(--text1);margin:8px 0 4px;">第 3 步（方式二）　没有书签栏时用 ☆ 收藏</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.7;">点上方「复制代码」→ 点地址栏右侧 <b>☆</b> → 名称填「餐谋长抓取」→ 在「网址」栏粘贴刚复制的代码 → 点「完成」。书签栏里就会出现它。</div>
-      </div>
+    <div style="font-size:12px;color:var(--text3);margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span>自动抓取脚本：</span><span id="scrapePluginState" style="font-weight:600;color:#B45309;">检测中…</span>
+      <button class="btn-blue-ghost" style="height:26px;font-size:12px;padding:0 10px;" onclick="installScraper()">首次安装</button>
     </div>
 
-    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:700;color:#1D4ED8;">⑤（推荐）抓取插件——粘贴淘宝口令也能全自动进店（其他用户装一次，永久自助使用）</div>
-      <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;line-height:1.8;">不装插件也能用（用上面④书签即可）；装了插件后，<b>直接粘贴淘宝口令（m.tb.cn 那种）也能全自动进店抓取</b>，无需复制地址栏。当前状态：<span id="scrapePluginState" style="color:#B45309;font-weight:600;">检测中…</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;">
-        <button class="btn-blue-ghost" style="height:34px;font-size:13px;" onclick="installTamper()">① 装 Tampermonkey 扩展</button>
-        <button class="btn-blue-ghost" style="height:34px;font-size:13px;" onclick="installScraper()">② 安装「餐谋长抓取」脚本</button>
-        <button class="btn-blue-ghost" style="height:34px;font-size:13px;" onclick="copyText('https://2169913411-afk.github.io/cmz-scraper.user.js')">复制脚本地址</button>
-      </div>
-      <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.9;">
-        <b style="color:var(--text1);">图文安装教程（约 2 分钟，一次性）：</b><br>
-        <b>第 1 步</b>　点上面「① 装 Tampermonkey 扩展」→ 浏览器会自动打开扩展商店（Edge 点「获取」→「添加扩展」；Chrome 点「添加至 Chrome」）。装好后浏览器<b>右上角出现黑色方块图标</b>。若商店打不开，可复制地址手动访问：<span style="color:#1D4ED8;">microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd</span><br>
-        <b>第 2 步</b>　点上面「② 安装『餐谋长抓取』脚本」→ 打开脚本安装页（地址：<span style="color:#1D4ED8;">2169913411-afk.github.io/cmz-scraper.user.js</span>）→ Tampermonkey 会自动弹出<b>「安装此脚本？」</b>页面 → 点绿色<b>「安装」</b>按钮（版本 1.0.3，含口令自动解析）。<br>
-        <b>第 3 步</b>　回到本页刷新，本行状态会变「✅ 已安装」。以后<b>粘贴口令 → 开始抓取</b>即全自动进店抓取并下载。<br>
-        <b>手动兜底</b>　若自动弹窗没出现：打开脚本地址 → Ctrl+A 全选、Ctrl+C 复制 → 点右上角 Tampermonkey 图标 → 「管理面板」→ 点「＋」新建脚本 → 全选删除默认内容 → Ctrl+V 粘贴 → Ctrl+S 保存。
-      </div>
-    </div>
+    <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:4px;" onclick="confirmScrape()">开始抓取</button>
 
-    <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:6px;" onclick="confirmScrape()">开始抓取</button>
-
-    <div id="scrapeFlow" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+    <div id="scrapeFlow" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
       <div id="scrapeStatus" style="display:none;font-size:13px;font-weight:600;line-height:1.8;border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#FFF7ED;border:1px solid #FED7AA;color:#B45309;"></div>
-      <div id="scrapeFlowHint" style="font-size:13px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-weight:600;">✅ 已打开店铺页。现在点一下浏览器书签栏里的「餐谋长抓取」书签，就会自动抓取并下载。</div>
-
-      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:700;">第 1 步　登录账号（一次性，如已登录可跳过）</div>
-        <div id="scrapeLoginTip" style="font-size:12px;color:var(--text2);margin:4px 0 8px;">请打开「淘宝闪购（原饿了么）登录」，用手机「饿了么」App 扫码登录</div>
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="openLogin()">打开登录页</button>
-      </div>
-
-      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:700;">第 2 步　打开店铺</div>
-        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">点下方打开店铺链接（口令链接请先用手机 App 打开，再把 h5.ele.me 链接粘贴到上方输入框）</div>
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="openShop()">打开店铺链接</button>
-      </div>
-
-      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:13px;font-weight:700;">第 3 步　点书签，自动抓取</div>
-        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">切到新打开的店铺页面，点一下浏览器书签栏里的「<b>餐谋长抓取</b>」，顶部会出现进度提示，菜单 Excel / 菜品图 zip 会自动下载。</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        已打开店铺页。装过「自动抓取脚本」会全自动抓取下载；未装则点一次浏览器书签栏「餐谋长抓取」。首次用手机「饿了么」App 扫码登录一次即可。
       </div>
     </div>
   </div>
