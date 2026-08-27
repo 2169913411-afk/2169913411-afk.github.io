@@ -1,3 +1,12 @@
+/* 零插件抓取书签：加载网站内的远程抓取脚本 */
+var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260827').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
+function copyScrapeBookmark(){
+  copyText(SCRAPE_BOOKMARK);
+  toast('抓取书签代码已复制');
+  var el=$('bookmarkHint');
+  if(el) el.innerHTML='<span style="color:#16A34A;">已复制。存书签步骤：Ctrl+D 新建书签 → 名称随意 → 「网址」栏粘贴这段代码 → 保存。之后在店铺页点它即可自动抓取。</span>';
+}
+
 function copyText(txt){
   if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){toast('复制成功');},function(){fallbackCopy(txt);}); }
   else fallbackCopy(txt);
@@ -271,6 +280,7 @@ function detectScraper(){
   if(installed){
     st.textContent='✅ 已安装';
     st.style.color='#16A34A';
+    $('scrapePluginState')&&(document.getElementById('scrapePluginState').style.color='#16A34A');
   }else{
     st.textContent='⚠️ 未安装';
     st.style.color='#B45309';
@@ -288,10 +298,10 @@ function confirmScrape(){
   saveState();
 
   var target=link||qr;
-  var isEle=/(h5\\.)?ele\\.me|i\\.ele\\.me|m\\.tb\\.cn|tb\\.cn|market\\.m\\.taobao/i.test(target);
+  var isEle=/(h5\.)?ele\.me|i\.ele\.me|m\.tb\.cn|tb\.cn|market\.m\.taobao/i.test(target);
   if(isEle){
     /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取；m.tb.cn/口令由抓取插件自动解析跳转 */
-    if(/h5\\.ele\\.me|ele\\.me/i.test(target) && target.indexOf('cmz_scrape')<0){
+    if(/h5\.ele\.me|ele\.me/i.test(target) && target.indexOf('cmz_scrape')<0){
       var sep=target.indexOf('?')>=0?'&':'?';
       target=target+sep+'cmz_scrape='+mode;
     }
