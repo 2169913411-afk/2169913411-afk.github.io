@@ -1,5 +1,5 @@
 /* ============================================================
-   餐谋长 · 淘宝口令自动解码（Cloudflare Worker 后端解析）
+   餐谋长 · 淘宝口令自动解码（腾讯云云函数 / Cloudflare Worker 后端解析）
    加载顺序在 app.js.3 之后，负责：
    1. 定义解码相关函数（decodeCfgUrl / saveDecodeCfg / updateDecodeCfg / decodeTaoKouLing）
    2. 包装 openScrape，打开商家调研时回填解码服务地址
@@ -11,7 +11,7 @@
   function saveDecodeCfg(){
     var v=(((($('decodeUrl')||{}).value)||'').trim()).replace(/\/+$/,'');
     localStorage.setItem('cmzDecodeUrl',v);
-    toast(v?'解码服务地址已保存':'已清空解码服务地址');
+    toast(v?'解码服务接口地址已保存':'已清空解码服务接口地址');
   }
   function updateDecodeCfg(){
     var i=$('decodeUrl');
@@ -23,9 +23,9 @@
     var st=$('decodeStatus');
     if(st) st.innerHTML='';
     if(!String(raw).trim()){ if(st) st.innerHTML='<span style="color:#DC2626;">请先粘贴淘宝口令到输入框</span>'; return; }
-    if(!url){ if(st) st.innerHTML='<span style="color:#DC2626;">请先在上方填入口令解码服务地址（你的 Cloudflare Worker）</span>'; return; }
+    if(!url){ if(st) st.innerHTML='<span style="color:#DC2626;">请先在上方填入口令解码服务接口地址（腾讯云云函数/API网关）</span>'; return; }
     if(st) st.innerHTML='<span style="color:#1D4ED8;">解码中，请稍候…</span>';
-    fetch(url+'/api/decode',{
+    fetch(url,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:String(raw)})
@@ -38,7 +38,7 @@
         if(st) st.innerHTML='<span style="color:#DC2626;">解码失败：'+(j&&j.error||'未知错误')+'</span>';
       }
     })['catch'](function(e){
-      if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查服务地址是否正确）</span>';
+      if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查接口地址是否正确）</span>';
     });
   }
   /* 暴露到全局 */
