@@ -1,5 +1,8 @@
-/* 餐谋长·运营助手 - 商家调研零插件抓取脚本
-   由「抓取书签」在店铺页动态加载执行：自动滚动加载全部菜品 -> 提取 -> 下载菜单CSV(Excel可打开)
+/* 餐谋长·运营助手 - 商家调研零插件抓取脚本 v2（抓全版）
+   由「抓取书签」在店铺页动态加载执行：
+   1) 依次点击左侧全部分类tab，触发各分组菜品渲染
+   2) 滚动到底加载全部菜品
+   3) 提取 分组/名称/价格/券后价/月售/描述 -> 下载CSV(Excel可打开)
    仅抓取用户端公开展示的店铺菜单数据，用于商家调研分析。 */
 (function(){
   'use strict';
@@ -38,22 +41,35 @@
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },400);
   }
+  function isPunish(){ return /punish|waimai-guide|x5secdata/i.test(location.href); }
   function parseMenu(){
     var items=[], seen={};
     document.querySelectorAll('.menuItem').forEach(function(item){
       var cate=item.getAttribute('data-cate-name')||'';
       var title=txt(item,'.menuItem--info-title')||txt(item,'.menuItem--info-title--warp');
+      var price=txt(item,'.menuItem--info-price-text')||numText(txt(item,'.menuItem--info-price'));
+      var use=txt(item,'.menuItem--info-useCouponPrice');
       var sales=txt(item,'.menuItem--info-sales');
-      var price=numText(txt(item,'.menuItem--info-price'));
-      var use=numText(txt(item,'.menuItem--info-useCouponPrice'));
       var desc=txt(item,'.menuItem--info-description');
       if(!title) return;
-      var key=title+'|'+price;
+      var key=title+'|'+cate;
       if(seen[key]) return; seen[key]=1;
       items.push({cate:cate,name:title,price:price,use:use,sales:sales,desc:desc});
     });
     return items;
   }
+  /* 依次点击左侧全部分类tab，触发各分组菜品渲染 */
+  async function clickAllTabs(){
+    var tabs=document.querySelectorAll('.sideList--item');
+    if(!tabs.length) return true;
+    for(var i=0;i<tabs.length;i++){
+      if(isPunish()) return false;
+      try{ tabs[i].click(); }catch(e){}
+      await sleep(900+Math.random()*500);
+    }
+    return true;
+  }
+  /* 滚动到最底部，直到菜品数量稳定（全部加载完成） */
   async function loadAll(){
     var sc=document.querySelector('.mor-comp-page-content');
     if(!sc){
@@ -63,51 +79,55 @@
         if(el.scrollHeight>el.clientHeight+200 && el.clientHeight>100){ sc=el; break; }
       }
     }
-    if(!sc) return;
-    var prev=0, stable=0;
-    for(var i=0;i<60 && stable<8; i++){
+    if(!sc) return true;
+    var prev=-1, stable=0;
+    for(var i=0;i<50 && stable<4; i++){
       sc.scrollTop=sc.scrollHeight;
-      await sleep(400+Math.floor(Math.random()*500));
-      if(/punish|waimai-guide|x5secdata/i.test(location.href)) return;
+      await sleep(700+Math.random()*500);
+      if(isPunish()) return false;
       var n=document.querySelectorAll('.menuItem').length;
       if(n===prev){ stable++; } else { stable=0; prev=n; }
     }
     sc.scrollTop=0;
+    return true;
   }
   (async function(){
-    if(/punish|waimai-guide|x5secdata/i.test(location.href)){
-      banner('⚠️ 当前页面是平台安全验证页。请先完成登录（手机「饿了么」App 扫码），再重新打开店铺后点书签。','#FEF3C7');
+    if(isPunish()){
+      banner('⚠️ '+BRAND+'：当前是平台安全验证页。请先用手机「饿了么」App 扫码登录后，再重新打开店铺点书签。','#FEF3C7');
       return;
     }
-    banner('⏳ '+BRAND+'：正在滚动加载店铺菜单，请稍候…');
+    banner('⏳ '+BRAND+'：正在展开全部菜单（遍历分类+滚动加载），请稍候…');
     var waited=0;
     while(waited<30000){
-      if(document.querySelectorAll('.menuItem,.food-item--wrap').length>0) break;
-      if(/punish|waimai-guide|x5secdata/i.test(location.href)){
-        banner('⚠️ 触发平台安全验证，请先登录后重试。','#FEF3C7');
+      if(document.querySelectorAll('.food-item--wrap,.menuItem,.sideList--item').length>0) break;
+      if(isPunish()){
+        banner('⚠️ '+BRAND+'：触发平台安全验证，请登录后重试。','#FEF3C7');
         return;
       }
       await sleep(500); waited+=500;
     }
-    await loadAll();
-    if(/punish|waimai-guide|x5secdata/i.test(location.href)){
-      banner('⚠️ 抓取中触发平台安全验证，已自动停止，请登录后重试。','#FEF3C7');
+    var ok=await clickAllTabs();
+    if(!ok){ banner('⚠️ '+BRAND+'：加载中触发安全验证，已停止。','#FEF3C7'); return; }
+    ok=await loadAll();
+    if(!ok){ banner('⚠️ '+BRAND+'：加载中触发安全验证，已停止。','#FEF3C7'); return; }
+    if(isPunish()){
+      banner('⚠️ '+BRAND+'：抓取中触发平台安全验证，已自动停止，请登录后重试。','#FEF3C7');
       return;
     }
     var items=parseMenu();
     if(!items.length){
-      banner('❌ 未识别到菜单。请确认当前页面是店铺「点餐」页后，再点一次书签。','#FEF2F2');
+      banner('❌ '+BRAND+'：未识别到菜单。请确认当前页面是店铺「点餐」页后，再点一次书签。','#FEF2F2');
       return;
     }
     var lines=['分组,菜品名称,现价(元),券后/预估到手(元),月售,说明'];
     items.forEach(function(x){
-      lines.push([escCSV(x.cate),escCSV(x.name),x.price||'',x.use||'',escCSV(x.sales),escCSV(x.desc)].join(','));
+      lines.push([escCSV(x.cate),escCSV(x.name),escCSV(x.price),escCSV(x.use),escCSV(x.sales),escCSV(x.desc)].join(','));
     });
     var shop='';
     var t=document.body.innerText||'';
     var m=t.match(/([^\n]{2,20}?\([^)]*店\))/)||t.match(/[^\n]{2,15}店/);
     if(m) shop=String(m[1]||'').replace(/[\\\/:*?"<>|\n\r]/g,' ').trim().slice(0,30);
     downloadCSV(lines.join('\n'),'抓取菜单_'+(shop||'店铺')+'_'+ts()+'.csv');
-    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品，CSV 已自动下载（可用 Excel 打开）。可关闭本页。','#F0FDF4');
+    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（已遍历全部 '+items.filter(function(x){return x.cate;}).length+' 个分组），CSV 已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
   })();
 })();
