@@ -4,7 +4,7 @@ function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
   var el=$('bookmarkHint');
-  if(el) el.innerHTML='<span style="color:#16A34A;">已复制。存书签：Ctrl+D 新建书签 → 名称随意 → 「网址」栏粘贴这段代码 → 保存。之后在店铺页点它即可自动抓取。</span>';
+  if(el) el.innerHTML='<span style="color:#16A34A;">已复制。现在点地址栏右侧 <b>☆</b> → 名称填「餐谋长抓取」→ 在「网址」栏粘贴这段代码 → 点「完成」。之后打开店铺页点一下这个书签，就会自动抓取下载。</span>';
 }
 /* 给「拖到书签栏」链接写入真实抓取代码（浏览器拖拽时会取 href 作为书签地址） */
 function setupBookmarkDrag(){
@@ -322,7 +322,7 @@ function openShop(){
   if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
   toast('该内容不是网址，请用手机 App 打开后把店铺链接粘贴到上方');
 }
-/* 抓取插件：安装引导 */
+/* 抓取插件：安装引导（已下线 UI 入口，保留函数兼容旧页面） */
 var SCRAPER_RAW='https://raw.githubusercontent.com/2169913411-afk/2169913411-afk.github.io/main/cmz-scraper.user.js';
 function installTamper(){
   var ua=navigator.userAgent;
@@ -330,7 +330,7 @@ function installTamper(){
   var is360=ua.indexOf('360')>-1;
   var url=isEdge?'https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd':'https://www.tampermonkey.net/';
   window.open(url,'_blank');
-  toast(isEdge?'已打开 Edge 扩展商店（国内可访问），点「获取」安装 Tampermonkey':'已打开 Tampermonkey 官网下载页。若打不开（国内网络），建议改用 Edge 浏览器，或直接用下方 ⑤ 零插件书签');
+  toast(isEdge?'已打开 Edge 扩展商店（国内可访问），点「获取」安装 Tampermonkey':'已打开 Tampermonkey 官网下载页。若打不开（国内网络），建议改用 Edge 浏览器，或直接用书签方案');
 }
 function installScraper(){
   window.open(SCRAPER_RAW,'_blank');
@@ -417,10 +417,10 @@ function _doScrape(target){
 
   var flow=$('scrapeFlow'); if(flow) flow.style.display='block';
   var hint=$('scrapeFlowHint');
-  if(hint) hint.innerHTML='✅ 已打开店铺页。已安装「抓取插件」时会<b>自动抓取并下载</b> Excel/zip（新窗口顶部会有进度提示）；若 30 秒内没有自动下载，请按下方第 1-3 步手动抓取。';
-  toast('已打开店铺，等待自动抓取…');
+  if(hint) hint.innerHTML='✅ 已打开店铺页。现在点一下浏览器书签栏里的「<b>餐谋长抓取</b>」书签，就会自动抓取并下载 Excel/zip（页面顶部有进度提示）。';
+  toast('已打开店铺，请点书签自动抓取');
 }
-/* 第3步（兜底）：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
+/* 兜底：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
 var SCRAPE_SCRIPT='';
 function loadScrapeScript(){
   if(SCRAPE_SCRIPT) return;
