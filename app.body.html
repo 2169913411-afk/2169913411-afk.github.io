@@ -273,6 +273,18 @@
       <input type="text" id="shopLink" placeholder="粘贴店铺链接 / 口令（h5.ele.me 可直接抓；#小程序:// 需先在手机微信复制链接）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
     </div>
     <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
+    <div id="taoHint" style="display:none;font-size:12px;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:6px 10px;margin:6px 0;line-height:1.7;">
+      检测到淘宝口令（m.tb.cn）。点下方「🔗 自动解码口令」可自动解析出店铺直链并填入；或先用手机 App 打开，把 h5.ele.me 链接粘贴回来。
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-blue-ghost" style="height:30px;font-size:12px;" onclick="decodeTaoKouLing()">🔗 自动解码口令</button>
+        <span id="decodeStatus" style="font-size:11px;color:var(--text3);"></span>
+      </div>
+    </div>
+    <div id="decodeCfg" style="font-size:11px;color:var(--text3);margin:2px 0 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <span>口令解码服务地址：</span>
+      <input id="decodeUrl" placeholder="https://你的worker名.你的子域.workers.dev" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;box-sizing:border-box;">
+      <button class="btn-mini" onclick="saveDecodeCfg()">保存</button>
+    </div>
 
     <div style="font-size:13px;color:var(--text1);font-weight:700;margin-top:6px;">② 外卖平台（决定登录方式）</div>
     <div class="plat-row" id="scrapePlatRow" style="margin:8px 0;">

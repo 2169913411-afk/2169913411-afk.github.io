@@ -1,0 +1,55 @@
+/* ============================================================
+   餐谋长 · 淘宝口令自动解码（Cloudflare Worker 后端解析）
+   加载顺序在 app.js.3 之后，负责：
+   1. 定义解码相关函数（decodeCfgUrl / saveDecodeCfg / updateDecodeCfg / decodeTaoKouLing）
+   2. 包装 openScrape，打开商家调研时回填解码服务地址
+   ============================================================ */
+(function(){
+  function decodeCfgUrl(){
+    return (localStorage.getItem('cmzDecodeUrl')||'').trim();
+  }
+  function saveDecodeCfg(){
+    var v=(((($('decodeUrl')||{}).value)||'').trim()).replace(/\/+$/,'');
+    localStorage.setItem('cmzDecodeUrl',v);
+    toast(v?'解码服务地址已保存':'已清空解码服务地址');
+  }
+  function updateDecodeCfg(){
+    var i=$('decodeUrl');
+    if(i&&document.activeElement!==i){ i.value=decodeCfgUrl(); }
+  }
+  function decodeTaoKouLing(){
+    var box=$('shopLink'); var raw=(box||{}).value||'';
+    var url=decodeCfgUrl();
+    var st=$('decodeStatus');
+    if(st) st.innerHTML='';
+    if(!String(raw).trim()){ if(st) st.innerHTML='<span style="color:#DC2626;">请先粘贴淘宝口令到输入框</span>'; return; }
+    if(!url){ if(st) st.innerHTML='<span style="color:#DC2626;">请先在上方填入口令解码服务地址（你的 Cloudflare Worker）</span>'; return; }
+    if(st) st.innerHTML='<span style="color:#1D4ED8;">解码中，请稍候…</span>';
+    fetch(url+'/api/decode',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:String(raw)})
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if(j&&j.ok&&j.url){
+        box.value=j.url;
+        if(st) st.innerHTML='<span style="color:#16A34A;">✅ 解码成功，已自动填入店铺直链，可点「打开店铺」</span>';
+        var th=$('taoHint'); if(th) th.style.display='none';
+      }else{
+        if(st) st.innerHTML='<span style="color:#DC2626;">解码失败：'+(j&&j.error||'未知错误')+'</span>';
+      }
+    })['catch'](function(e){
+      if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查服务地址是否正确）</span>';
+    });
+  }
+  /* 暴露到全局 */
+  window.decodeCfgUrl=decodeCfgUrl;
+  window.saveDecodeCfg=saveDecodeCfg;
+  window.updateDecodeCfg=updateDecodeCfg;
+  window.decodeTaoKouLing=decodeTaoKouLing;
+  /* 打开商家调研弹窗时回填解码服务地址（包装原 openScrape） */
+  var _origOpenScrape=window.openScrape;
+  window.openScrape=function(){
+    if(typeof _origOpenScrape==='function'){ _origOpenScrape(); }
+    try{ updateDecodeCfg(); }catch(e){}
+  };
+})();
