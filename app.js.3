@@ -349,23 +349,45 @@ function detectScraper(){
     st.style.color='#B45309';
   }
 }
-/* 解析 m.tb.cn 口令链接 -> 真实店铺链接（页面HTML内嵌 shopId，跨域用 CORS 代理抓取） */
+/* 商家调研：持久状态提示（解析中/成功/失败原因） */
+function setScrapeStatus(msg,type){
+  var el=$('scrapeStatus');
+  if(!el) return;
+  var colors={ok:'#16A34A',err:'#B91C1C',run:'#B45309'};
+  var bg={ok:'#F0FDF4',err:'#FEF2F2',run:'#FFF7ED'};
+  var border={ok:'#BBF7D0',err:'#FECACA',run:'#FED7AA'};
+  el.style.display='block';
+  el.style.color=colors[type]||'#1D4ED8';
+  el.style.background=bg[type]||'#EFF6FF';
+  el.style.borderColor=border[type]||'#BFDBFE';
+  el.innerHTML=msg;
+}
+function showScrapeFlow(){
+  var flow=$('scrapeFlow'); if(flow) flow.style.display='block';
+}
+/* 解析 m.tb.cn 口令链接 -> 真实店铺链接（页面HTML内嵌 shopId，跨域用 CORS 代理抓取，多候选+超时） */
 function resolveTaoLink(shortUrl){
+  var enc=encodeURIComponent(shortUrl);
   var proxies=[
-    'https://api.allorigins.win/raw?url='+encodeURIComponent(shortUrl),
-    'https://corsproxy.io/?url='+encodeURIComponent(shortUrl),
-    'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(shortUrl)
+    {url:'https://api.allorigins.win/raw?url='+enc, raw:true},
+    {url:'https://corsproxy.io/?url='+enc, raw:true},
+    {url:'https://api.codetabs.com/v1/proxy?quest='+enc, raw:true},
+    {url:'https://api.cors.lol/?url='+enc, raw:true},
+    {url:'https://r.jina.ai/'+shortUrl, raw:true}
   ];
   return new Promise(function(res){
     var i=0;
     function next(){
       if(i>=proxies.length){ res(''); return; }
       var p=proxies[i++];
-      fetch(p, {mode:'cors'}).then(function(r){ return r.text(); }).then(function(html){
+      var ctrl=('AbortController' in window)?new AbortController():null;
+      var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },9000);
+      fetch(p.url, {mode:'cors', signal:ctrl?ctrl.signal:undefined}).then(function(r){ return r.text(); }).then(function(html){
+        clearTimeout(timer);
         var m=(html||'').match(/shopId=([A-Za-z0-9]+)/);
         if(m && m[1]) res(makeShopUrl(m[1]));
         else next();
-      })['catch'](function(){ next(); });
+      })['catch'](function(){ clearTimeout(timer); next(); });
     }
     next();
   });
@@ -375,28 +397,38 @@ function makeShopUrl(shopId){
   var lng=localStorage.getItem('cmz_lng')||'121.353007';
   return 'https://h5.ele.me/2021001185671035/pages/ele-takeout-index/ele-takeout-index?from=mobile.default&psc=24901&type=1&scheme_type=SHOP_SCHEME&latitude='+lat+'&longitude='+lng+'&shopId='+shopId;
 }
-/* 开始抓取（自动模式） */
+/* 开始抓取（自动模式，带持久状态提示） */
 function confirmScrape(){
   var raw=($('shopLink')||{}).value||'';
   var link=cleanLink(raw);
   var qr=window.__scrapeQR||'';
   if(/小程序:\/\//.test(raw)||raw.indexOf('#小程序')>-1){
-    toast('这是微信小程序链接，电脑端无法直接解析。请用手机微信打开该链接 → 进入店铺 → 右上角分享 → 选「复制链接」→ 把复制的 https://h5.ele.me/... 链接粘贴回来');
+    setScrapeStatus('❌ 这是微信小程序链接，电脑端无法直接解析。<br>请用手机微信打开该链接 → 进入店铺 → 右上角分享 → 选「复制链接」→ 把复制的 <b>https://h5.ele.me/...</b> 链接粘贴回来；或直接上传店铺二维码。','err');
     if($('shopLink')) $('shopLink').focus();
     return;
   }
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
   if(link.indexOf('m.tb.cn')>-1){
-    toast('正在解析口令链接，获取店铺…');
+    showScrapeFlow();
+    setScrapeStatus('⏳ 正在解析口令链接（淘宝口令需通过网络中转解析，约 5-10 秒），请稍候…','run');
+    toast('正在解析口令链接…');
     resolveTaoLink(link).then(function(shopUrl){
-      if(shopUrl){ _doScrape(shopUrl); }
-      else { toast('口令解析失败，请改用店铺二维码，或先用手机打开口令后复制 h5.ele.me 链接'); }
+      if(shopUrl){
+        setScrapeStatus('✅ 口令解析成功，已定位到店铺，正在打开…','ok');
+        _doScrape(shopUrl);
+      }else{
+        setScrapeStatus('❌ 口令解析失败：电脑端解析淘宝口令的网络中转被限制。<br><b>请改用以下任一种：</b><br>① 点上方「① 店铺信息」上传店铺二维码，自动识别；<br>② 用手机打开该口令 → 进入店铺 → 右上角分享 → 复制链接 → 把 <b>h5.ele.me/...</b> 链接粘贴回上方输入框。','err');
+        toast('口令解析失败，请改用二维码或复制 h5.ele.me 链接');
+      }
     });
     return;
   }
-  _doScrape(link||qr);
+  if(/^https?:\/\//i.test(link)){ _doScrape(link); return; }
+  setScrapeStatus('⚠️ 无法识别该内容为店铺链接。请上传店铺二维码，或用手机打开口令后复制 <b>h5.ele.me/...</b> 链接粘贴回来。','err');
+  toast('无法识别该链接');
 }
 function _doScrape(target){
+  showScrapeFlow();
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
   state.scrapeRecords=state.scrapeRecords||[];
@@ -415,12 +447,12 @@ function _doScrape(target){
     window.open(target,'_blank');
   }
 
-  var flow=$('scrapeFlow'); if(flow) flow.style.display='block';
+  setScrapeStatus('✅ 已在浏览器打开店铺页（'+(target.indexOf('shopId=')>=0?'已定位到店铺':'已打开链接')+'）。<br>请按下方流程操作：① 确认已用手机 App 登录 → ② 点书签栏「<b>餐谋长抓取</b>」→ 自动抓取并下载。','ok');
   var hint=$('scrapeFlowHint');
   if(hint) hint.innerHTML='✅ 已打开店铺页。现在点一下浏览器书签栏里的「<b>餐谋长抓取</b>」书签，就会自动抓取并下载 Excel/zip（页面顶部有进度提示）。';
   toast('已打开店铺，请点书签自动抓取');
 }
-/* 兜底：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
+/* 第3步（兜底）：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
 var SCRAPE_SCRIPT='';
 function loadScrapeScript(){
   if(SCRAPE_SCRIPT) return;
