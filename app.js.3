@@ -76,7 +76,7 @@ function crc32(bytes){
   return (crc^0xFFFFFFFF)>>>0;
 }
 function utf8(s){ return new TextEncoder().encode(s); }
-function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
 function colName(i){ return String.fromCharCode(65+i); }
 function buildZip(files){
   var chunks=[],central=[],offset=0,i;
@@ -238,7 +238,7 @@ bindQrInput($('qrInput2'));
 function cleanLink(raw){
   var s=String(raw||'').trim();
   if(!s) return '';
-  var m=s.match(/https?:\/\/[^\s）)】》《<>"']+/);
+  var m=s.match(/https?:\/\/[^\s）)】》《<>\"']+/);
   if(m) return m[0].replace(/[，。、；;]+$/,'');
   return s;
 }
@@ -271,8 +271,12 @@ function openShop(){
 /* 抓取插件：安装引导 */
 var SCRAPER_RAW='https://raw.githubusercontent.com/2169913411-afk/2169913411-afk.github.io/main/cmz-scraper.user.js';
 function installTamper(){
-  window.open('https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo','_blank');
-  toast('已打开浏览器插件商店，点击「添加」安装 Tampermonkey');
+  var ua=navigator.userAgent;
+  var isEdge=ua.indexOf('Edg/')>-1;
+  var is360=ua.indexOf('360')>-1;
+  var url=isEdge?'https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd':'https://www.tampermonkey.net/';
+  window.open(url,'_blank');
+  toast(isEdge?'已打开 Edge 扩展商店（国内可访问），点「获取」安装 Tampermonkey':'已打开 Tampermonkey 官网下载页。若打不开（国内网络），建议改用 Edge 浏览器，或直接用下方 ⑤ 零插件书签');
 }
 function installScraper(){
   window.open(SCRAPER_RAW,'_blank');
