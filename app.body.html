@@ -1,0 +1,315 @@
+<!-- ============ 顶栏 ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="logo">餐</span>餐谋长·运营助手</div>
+    <div class="top-actions">
+      <span class="points-pill" id="pointsPill" onclick="openRecharge()">脑容量：0 积分</span>
+      <button class="btn-blue-ghost" onclick="openScrape()">商家调研</button>
+      <button class="btn-ghost" onclick="openHistory()">历史</button>
+      <button class="btn-ghost" onclick="openProfile()">个人中心</button>
+      <button class="btn-ghost" onclick="doLogout()">退出登录</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 主体布局 ============ -->
+<main class="layout">
+  <!-- 左栏：操作区 -->
+  <aside class="left-panel">
+    <div class="lp-title">外卖店铺AI运营诊断</div>
+    <div class="lp-sub">上传数据截图与文件，一键生成专业运营方案 + 商家沟通话术</div>
+
+    <!-- 平台选择 -->
+    <div class="section">
+      <div class="section-title">选择外卖平台</div>
+      <div class="plat-row" id="platRow">
+        <div class="plat-opt" data-plat="美团外卖">美团外卖</div>
+        <div class="plat-opt active" data-plat="淘宝闪购">淘宝闪购</div>
+      </div>
+    </div>
+
+    <!-- 模块1：门店二维码 -->
+    <div class="section">
+      <div class="section-title">1. 上传门店二维码 <span class="tag tag-req">必选</span></div>
+      <div class="upload-zone uz-small" id="qrZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM21 14v.01M14 21v.01M17 17h4"/></svg>
+        <div class="main">点击上传门店二维码</div>
+        <div class="sub">用于模拟顾客进店做前端排查，鼠标移入后 Ctrl+V 粘贴到本框（jpg/png）</div>
+        <div class="paste-hint">粘贴到：门店二维码</div>
+        <input type="file" id="qrInput" accept="image/*" class="hidden">
+      </div>
+      <div id="qrItem" class="file-item hidden" style="margin-top:10px;">
+        <span>🔳</span><span class="fname" id="qrName"></span>
+        <button class="del" onclick="removeQr()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+    </div>
+
+    <!-- 模块2：同行数据对比截图 -->
+    <div class="section">
+      <div class="section-title">2. 上传同行数据以及其他重要截图数据 <span class="tag tag-req">必选</span></div>
+      <div class="upload-zone uz-mid" id="peerZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L14 15"/></svg>
+        <div class="main">点击、拖拽或粘贴上传截图</div>
+        <div class="sub">同行对比数据 + 其他重要截图，鼠标移入后 Ctrl+V 粘贴到本框</div>
+        <div class="paste-hint">粘贴到：同行/重要截图</div>
+        <input type="file" id="peerInput" accept="image/*" multiple class="hidden">
+      </div>
+      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天流量数据：新客曝光/入店/下单、老客曝光/入店/下单、全部顾客曝光/入店/下单（曝光按“人”计）；其他重要截图可一并上传</div>
+      <div class="thumb-grid" id="peerThumbs"></div>
+    </div>
+
+    <!-- 模块3：门店数据文件 -->
+    <div class="section">
+      <div class="section-title">3. 上传门店数据文件 <span class="tag tag-req">必选</span></div>
+      <div class="upload-zone uz-mid" id="shopZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+        <div class="main">点击或拖拽上传经营数据Excel</div>
+        <div class="sub">支持 .xlsx / .xls，自动识别经营指标</div>
+        <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="shopItem" class="file-item hidden" style="margin-top:10px;">
+        <span>📊</span><span class="fname" id="shopName"></span><span class="fsize" id="shopSize"></span>
+        <button class="del" onclick="removeShop()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="shopRecog" class="recog-box hidden"></div>
+    </div>
+
+    <!-- 模块4：菜单数据文件 -->
+    <div class="section">
+      <div class="section-title">4. 上传菜单数据文件 <span class="tag tag-opt">非必选</span></div>
+      <div class="upload-zone uz-mid" id="menuZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7M21 15v0"/></svg>
+        <div class="main">点击或拖拽上传菜单Excel</div>
+        <div class="sub">支持 .xlsx / .xls，识别商品名称/分组/价格</div>
+        <input type="file" id="menuInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="menuItem" class="file-item hidden" style="margin-top:10px;">
+        <span>🍜</span><span class="fname" id="menuName"></span><span class="fsize" id="menuSize"></span>
+        <button class="del" onclick="removeMenu()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="menuRecog" class="recog-box hidden"></div>
+    </div>
+
+    <!-- 模块5：门店评价数据 -->
+    <div class="section">
+      <div class="section-title">5. 上传门店评价数据 <span class="tag tag-opt">非必选</span></div>
+      <div class="upload-zone uz-mid" id="reviewZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div class="main">点击或拖拽上传评价Excel</div>
+        <div class="sub">支持 .xlsx / .xls，自动筛选差评</div>
+        <input type="file" id="reviewInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="reviewItem" class="file-item hidden" style="margin-top:10px;">
+        <span>⭐</span><span class="fname" id="reviewName"></span><span class="fsize" id="reviewSize"></span>
+        <button class="del" onclick="removeReview()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="reviewRecog" class="recog-box hidden"></div>
+    </div>
+
+    <!-- 补充说明 -->
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">补充说明（可选）</div>
+      <textarea id="notesInput" placeholder="填写门店品类、商圈、近期特殊情况、想要重点分析的方向"></textarea>
+    </div>
+
+    <!-- 功能选择 -->
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">选择分析功能</div>
+      <div id="planList">
+        <label class="plan-opt">
+          <input type="radio" name="plan" value="38">
+          <div><div class="p-name">基础数据诊断</div><div class="p-desc">识别数据 + 简单诊断</div></div>
+          <span class="p-cost">38积分</span>
+        </label>
+        <label class="plan-opt">
+          <input type="radio" name="plan" value="58">
+          <div><div class="p-name">深度运营诊断 + 话术</div><div class="p-desc">全维度诊断 + 商家沟通话术</div></div>
+          <span class="p-cost">58积分</span>
+        </label>
+        <label class="plan-opt active">
+          <input type="radio" name="plan" value="88" checked>
+          <span class="reco">推荐</span>
+          <div><div class="p-name">菜单全量优化 + 导出</div><div class="p-desc">商品标题/描述/定价优化 + 导出Excel + 同步话术</div></div>
+          <span class="p-cost">88积分</span>
+        </label>
+      </div>
+      <div class="balance-tip" id="balanceTip">当前可用积分：0，本次操作将消耗 88 积分</div>
+      <button class="btn-primary" id="startBtn" onclick="onStart()">开始AI分析</button>
+    </div>
+  </aside>
+
+  <!-- 右栏：结果区 -->
+  <section class="right-panel">
+    <div class="result-head">
+      <h2>运营诊断报告</h2>
+      <div class="head-actions">
+        <button class="btn-mini" onclick="downloadReport()">下载报告</button>
+        <button class="btn-mini" onclick="copyFull()">复制全文</button>
+      </div>
+    </div>
+    <div id="resultArea"></div>
+  </section>
+</main>
+
+<!-- ============ 完整度预检弹窗 ============ -->
+<div class="mask hidden" id="precheckMask">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head"><h3>数据完整度提示</h3><button class="modal-close" onclick="closeModal('precheckMask')">✕</button></div>
+    <div id="precheckBody"></div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal('precheckMask')">返回补充上传</button>
+      <button class="btn-danger" onclick="proceedAnalysis()">无视警告，继续分析</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 充值中心 ============ -->
+<div class="mask hidden" id="rechargeMask">
+  <div class="modal">
+    <div class="modal-head"><h3>充值脑容量</h3><button class="modal-close" onclick="closeModal('rechargeMask')">✕</button></div>
+    <div class="balance-row">
+      <span>当前可用积分：<b class="num" id="rechargeBalance">0</b></span>
+      <span class="shield">🛡️ 永久有效</span>
+    </div>
+    <div class="pkg-grid" id="packageGrid"></div>
+    <div class="compliance">积分永久有效，仅限平台内AI诊断消耗，不支持提现或退款。充值即代表同意 <a onclick="openRules()">《积分使用规则》</a></div>
+    <button class="pay-btn" id="payBtn" onclick="doPay()">立即充值 ¥0</button>
+  </div>
+</div>
+
+<!-- ============ 余额不足 ============ -->
+<div class="mask hidden" id="insufficientMask">
+  <div class="modal confirm-box">
+    <div class="modal-head"><h3>脑容量不足</h3><button class="modal-close" onclick="closeModal('insufficientMask')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">您的可用积分不足，本次操作需消耗 <b class="num" id="needPoints">0</b> 积分。</p>
+    <button class="pay-btn" style="margin-bottom:8px;" onclick="quickRecharge()">一键补充 4990积分 ¥299</button>
+    <div style="text-align:center;font-size:12px;color:var(--text3);"><a style="color:var(--primary);cursor:pointer;" onclick="openRecharge()">查看全部套餐</a></div>
+  </div>
+</div>
+
+<!-- ============ 积分规则 ============ -->
+<div class="mask hidden" id="rulesMask">
+  <div class="modal confirm-box">
+    <div class="modal-head"><h3>积分使用规则</h3><button class="modal-close" onclick="closeModal('rulesMask')">✕</button></div>
+    <div style="font-size:13px;color:var(--text2);line-height:2;">
+      <p><b>积分获取：</b>用户通过平台充值套餐获取积分，包含基础积分与赠送积分，积分统一计入账户总额。</p>
+      <p><b>有效期：</b>本平台积分永久有效，不设过期时间，可长期使用。</p>
+      <p><b>使用范围：</b>积分仅限在「餐谋长·运营助手」平台内兑换AI诊断、菜单优化等增值服务，不得用于其他用途。</p>
+      <p><b>不可提现退款：</b>积分属于平台虚拟服务权益，不支持折现、转账、提现。除法律法规另有规定外，充值后不支持退款。</p>
+      <p><b>使用规则：</b>积分消耗按次扣除，不同功能对应不同消耗额度，以页面公示为准。</p>
+      <p><b>禁止滥用：</b>严禁利用平台漏洞、恶意刷取积分。平台有权对异常账户进行冻结或清零处理。</p>
+    </div>
+    <div class="modal-btns" style="margin-top:16px;"><button class="btn-secondary" onclick="closeModal('rulesMask')">我知道了</button></div>
+  </div>
+</div>
+
+<!-- ============ 个人中心 ============ -->
+<div class="mask hidden" id="profileMask">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head"><h3>个人中心</h3><button class="modal-close" onclick="closeModal('profileMask')">✕</button></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="basic" onclick="switchTab('basic')">基本资料</div>
+      <div class="tab" data-tab="apiset" onclick="switchTab('apiset')">AI模型设置</div>
+      <div class="tab" data-tab="records" onclick="switchTab('records')">积分记录</div>
+    </div>
+    <div id="tab-basic" class="profile-form">
+      <div class="avatar-row">
+        <div class="avatar-circle" id="avatarPreview">👤</div>
+        <div>选择头像</div>
+      </div>
+      <div class="avatar-pick" id="avatarPick" style="margin-bottom:14px;"></div>
+      <div class="row"><label>昵称</label><input id="nickInput" placeholder="请输入昵称"></div>
+      <div class="modal-btns" style="margin-top:16px;"><button class="btn-primary enabled" style="width:auto;height:38px;font-size:14px;padding:0 24px;" onclick="saveProfile()">保存</button></div>
+    </div>
+    <div id="tab-apiset" class="profile-form hidden">
+      <div style="font-size:12px;color:#166534;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:8px 10px;margin-bottom:12px;">✅ AI模型已内置配置，打开即可直接分析，一般无需修改。下方留作高级自定义。</div>
+      <div class="row"><label>API Key（智谱/GLM等）</label><input id="modelApiKey" type="password" placeholder="sk-... 或 智谱API Key"></div>
+      <div class="row"><label>接口地址</label><input id="modelBaseUrl" placeholder="https://open.bigmodel.cn/api/paas/v4"></div>
+      <div class="row"><label>模型名称</label><input id="modelName" placeholder="glm-4.5-air"></div>
+      <div class="row"><label>图片识别模型</label><input id="modelVision" placeholder="glm-4v-flash"></div>
+      <div class="row"><label>超时（秒）</label><input id="modelTimeout" placeholder="180"></div>
+      <div class="modal-btns" style="margin-top:16px;">
+        <button class="btn-secondary" onclick="testModel()">测试连接</button>
+        <button class="btn-primary enabled" style="width:auto;height:38px;font-size:14px;padding:0 24px;" onclick="saveApi()">保存</button>
+      </div>
+      <div id="modelStatus" style="font-size:12px;color:var(--text3);margin-top:10px;"></div>
+    </div>
+    <div id="tab-records" class="hidden">
+      <div id="recordsList" style="font-size:13px;color:var(--text2);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 历史记录 ============ -->
+<div class="mask hidden" id="historyMask">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-head"><h3>历史分析记录</h3><button class="modal-close" onclick="closeModal('historyMask')">✕</button></div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- ============ 确认弹窗 ============ -->
+<div class="mask hidden" id="confirmMask">
+  <div class="modal confirm-box">
+    <div class="modal-head"><h3>确认分析</h3><button class="modal-close" onclick="closeModal('confirmMask')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);">本次操作将消耗 <b class="num" id="confirmPoints">0</b> 积分，确认开始分析吗？</p>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn-secondary" onclick="closeModal('confirmMask')">取消</button>
+      <button class="btn-danger" onclick="doAnalysis()">确认开始</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 完整度检查中 ============ -->
+<div class="mask hidden" id="checkingMask">
+  <div class="modal confirm-box" style="text-align:center;">
+    <div class="spinner" style="margin:0 auto 16px;"></div>
+    <p style="font-size:13px;color:var(--text1);">正在识别数据完整性…</p>
+  </div>
+</div>
+
+<!-- ============ 商家调研（进用户端抓数据） ============ -->
+<div class="mask hidden" id="scrapeMask">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head"><h3>商家调研 · 店铺数据采集</h3><button class="modal-close" onclick="closeModal('scrapeMask')">✕</button></div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      <div style="font-weight:700;color:var(--text1);font-size:13px;">① 上传店铺二维码 或 粘贴店铺链接（二选一即可）</div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <div class="upload-zone" style="flex:1;height:88px;" id="qrZone" onclick="document.getElementById('qrInput').click()">
+          <div class="main" style="font-size:12px;">点击上传店铺二维码图片</div>
+          <div class="sub" style="font-size:11px;">支持 png / jpg，自动识别链接</div>
+          <input type="file" id="qrInput" accept="image/*" class="hidden">
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+          <input type="text" id="shopLink" placeholder="或直接粘贴店铺链接，例如 https://h5.ele.me/…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:12px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
+          <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
+          <div id="taoHint" style="display:none;font-size:11px;color:#B45309;">⚠️ 这是淘宝口令链接（m.tb.cn），网页无法直接解析。请复制口令发给我，我会自动解析并抓取。</div>
+        </div>
+      </div>
+      <div style="font-weight:700;color:var(--text1);font-size:13px;margin-top:14px;">② 选择抓取内容</div>
+      <label style="display:flex;align-items:center;gap:6px;margin:8px 0 2px;font-size:13px;"><input type="radio" name="scrapeMode" value="menu" checked> 仅菜单 —— 生成 Excel（分组 / 菜品名称 / 现价 / 原价 / 月售 / 有无图片）</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;"><input type="radio" name="scrapeMode" value="img"> 仅菜品图 —— 生成 zip 压缩包（全部菜品原图，文件名带分组+菜名）</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;"><input type="radio" name="scrapeMode" value="all"> 全部 —— Excel + 菜品图，一起打包成 zip</label>
+      <div style="margin-top:12px;font-size:12px;color:var(--text2);">③ 说明（可选，店铺名称 / 特殊分组等）</div>
+      <textarea id="scrapeNotes" style="width:100%;height:48px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;margin-top:6px;" placeholder="例如：赣味小灶（凌空SOHO店），全部分组"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-primary enabled" style="flex:2;height:40px;" onclick="confirmScrape()">确认抓取</button>
+      <button class="btn-blue-ghost" style="flex:1;height:40px;" onclick="openEleH5()">打开饿了么H5登录</button>
+    </div>
+    <div id="scrapeTaskMsg" style="display:none;margin-top:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:12px;color:#166534;font-weight:700;margin-bottom:4px;">✅ 抓取任务已生成，一键复制发给助手即可开始</div>
+      <div id="scrapeTaskMsgText" style="font-size:11px;color:var(--text2);word-break:break-all;line-height:1.6;"></div>
+      <button class="btn-blue-ghost" style="margin-top:8px;height:28px;padding:0 12px;font-size:12px;" onclick="copyTaskMsg()">一键复制任务信息</button>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text3);">点「确认抓取」后会保存任务并打开店铺页面；请在打开的页面登录并进入店铺，然后把复制的任务信息发给助手即可自动采集打包（单店约2-3分钟）。</div>
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">采集完成后：把助手生成的 <b>Excel/zip</b> 拖到下方导入，即可存入「实抓记录」用于下载与分析。</div>
+      <div class="upload-zone" style="height:64px;" id="scrapeImportZone" onclick="document.getElementById('scrapeImportInput').click()">
+        <div class="main" style="font-size:12px;">点击导入实抓结果文件（.xlsx / .zip）</div>
+        <input type="file" id="scrapeImportInput" accept=".xlsx,.xls,.zip" class="hidden">
+      </div>
+      <div id="scrapeRecordList" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
