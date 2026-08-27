@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         餐谋长·商家调研抓取助手（淘宝闪购/饿了么）
 // @namespace    canzhang-scraper
-// @version      1.0.1
+// @version      1.0.2
 // @description  进入淘宝闪购（饿了么）店铺页后自动抓取菜单/菜品图并下载 Excel/zip；自动解析淘宝口令进店。网页点「开始抓取」后全自动，无需 F12。
 // @match        https://h5.ele.me/*
 // @match        https://*.ele.me/*
@@ -44,6 +44,10 @@
     b.style.color = '#1D4ED8';
     b.style.borderBottom = '2px solid #2563EB';
     b.innerHTML = html;
+  }
+  function removeBanner(){
+    var b = document.getElementById('cmz-banner');
+    if(b) b.remove();
   }
 
   /* ---------- 下载 ---------- */
@@ -155,9 +159,9 @@
     document.querySelectorAll('.menuItem').forEach(function(item){
       var cate = item.getAttribute('data-cate-name') || '';
       var title = txt(item, '.menuItem--info-title') || txt(item, '.menuItem--info-title--warp');
-      var sales = txt(item, '.menuItem--info-sales');
-      var price = numText(txt(item, '.menuItem--info-price'));
-      var use   = numText(txt(item, '.menuItem--info-useCouponPrice'));
+      var sales = txt(item, '.menuItem--info-sales');               // 月售 400+
+      var price = numText(txt(item, '.menuItem--info-price'));      // 现价
+      var use   = numText(txt(item, '.menuItem--info-useCouponPrice')); // 券后/预估到手
       var desc  = txt(item, '.menuItem--info-description');
       var img=''; var im = item.querySelector('.menuItem--image-img');
       if(im) img = im.getAttribute('src') || '';
@@ -173,6 +177,7 @@
   async function loadAll(){
     var sc = document.querySelector('.mor-comp-page-content');
     if(!sc){
+      // 备选：找任意可滚动大容器
       var all=document.querySelectorAll('*');
       for(var i=0;i<all.length;i++){
         var el=all[i];
@@ -181,9 +186,11 @@
     }
     if(!sc) return;
     var prev=0, stable=0;
-    for(var i=0;i<50 && stable<6; i++){
+    for(var i=0;i<60 && stable<8; i++){
       sc.scrollTop = sc.scrollHeight;
-      await sleep(450);
+      await sleep(400 + Math.floor(Math.random()*500)); // 随机间隔，模拟真人滚动，降低风控概率
+      // 若被风控跳转，立即停止
+      if(/punish|waimai-guide|x5secdata/i.test(location.href)) return;
       var n = document.querySelectorAll('.menuItem').length;
       if(n===prev){ stable++; } else { stable=0; prev=n; }
     }
@@ -223,16 +230,32 @@
   if(host.indexOf('ele.me') >= 0 && mode){
     (async function(){
       try{ localStorage.setItem('cmz_mode', mode); }catch(e){}
+
+      /* 风控检测：若已跳转到安全验证页，明确提示登录 */
+      if(/punish|waimai-guide|x5secdata/i.test(location.href)){
+        banner('⚠️ 触发平台安全验证。请先完成登录：打开登录页后用手机 App 扫码，再重新点「开始抓取」。若仍出现，请稍等几分钟再试。', '#FEF3C7');
+        return;
+      }
+
       banner('⏳ 正在识别店铺菜单，请稍候…（自动抓取中，无需操作）');
+      // 等待菜单出现
       var waited=0;
       while(waited<30000){
         if(document.querySelectorAll('.menuItem, .food-item--wrap').length>0) break;
+        if(/punish|waimai-guide|x5secdata/i.test(location.href)){
+          banner('⚠️ 触发平台安全验证。请先完成登录（手机 App 扫码）后重新抓取。', '#FEF3C7');
+          return;
+        }
         await sleep(500); waited+=500;
       }
       await loadAll();
+      if(/punish|waimai-guide|x5secdata/i.test(location.href)){
+        banner('⚠️ 抓取过程中触发平台安全验证，已自动停止。请先完成登录后重新点「开始抓取」。', '#FEF3C7');
+        return;
+      }
       var items = parseMenu();
       if(!items.length){
-        banner('❌ 未识别到菜单，请确认当前页面是店铺「点餐」页。', '#FEF2F2');
+        banner('❌ 未识别到菜单，请确认当前页面是店铺「点餐」页。若是口令链接，请先让本插件自动跳转后再试。', '#FEF2F2');
         return;
       }
       banner('✅ 识别到 ' + items.length + ' 个菜品，正在生成文件…');
@@ -244,6 +267,7 @@
       }catch(e){}
       var fnBase = (shopName||'店铺').replace(/\s+/g,'') + '_' + ts();
 
+      /* 菜单 Excel */
       if(mode==='menu' || mode==='all'){
         var rows=[['分组','菜品名称','现价(元)','券后/预估到手(元)','月售','说明','有无图片']];
         items.forEach(function(x){
@@ -253,6 +277,7 @@
         downloadBlob(new Blob([xlsx],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), '抓取菜单_'+fnBase+'.xlsx');
       }
 
+      /* 菜品图 zip */
       if(mode==='img' || mode==='all'){
         var imgs = items.filter(function(x){ return x.img; });
         banner('✅ 菜单已生成。正在下载 ' + imgs.length + ' 张菜品图（zip 打包中）…');
@@ -260,6 +285,7 @@
         for(var i=0;i<imgs.length;i++){
           try{
             var it=imgs[i];
+            // 原图：去掉缩略图处理参数
             var u=it.img.split('?')[0];
             var blob;
             try{ blob = await gmFetch(u, 'blob'); }
