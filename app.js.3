@@ -64,7 +64,7 @@ function crc32(bytes){
   return (crc^0xFFFFFFFF)>>>0;
 }
 function utf8(s){ return new TextEncoder().encode(s); }
-function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
 function colName(i){ return String.fromCharCode(65+i); }
 function buildZip(files){
   var chunks=[],central=[],offset=0,i;
@@ -225,11 +225,21 @@ $('qrInput').addEventListener('change',function(){
   };
   rd.readAsDataURL(f);
 });
+/* 清洗粘贴文本，提取真正的店铺链接/口令（防止把上次的任务文本反复贴回导致重复累积） */
+function cleanLink(raw){
+  var s=String(raw||'').trim();
+  if(!s) return '';
+  /* 如果粘贴的是整段任务文本，提取其中第一个 http(s) 链接 */
+  var m=s.match(/https?:\/\/[^\s）)】》《<>"']+/);
+  if(m) return m[0].replace(/[，。、；;]+$/,'');
+  /* 其他情况原样返回（可能是口令原文） */
+  return s;
+}
 /* 确认抓取 */
 function confirmScrape(){
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
   var note=($('scrapeNotes')||{}).value||'';
-  var link=($('shopLink')||{}).value||''.trim();
+  var link=cleanLink(($('shopLink')||{}).value);
   var qr=window.__scrapeQR||'';
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
@@ -241,7 +251,12 @@ function confirmScrape(){
   var box=$('scrapeTaskMsg'), txt=$('scrapeTaskMsgText');
   if(box&&txt){ txt.textContent=msg; box.style.display='block'; }
   copyText(msg);
-  if(link) window.open(link,'_blank');
+  /* 生成后清空输入框与识别结果，防止反复点击重复累积 */
+  if($('shopLink')) $('shopLink').value='';
+  window.__scrapeQR='';
+  if($('qrResult')) $('qrResult').innerHTML='';
+  /* 只有纯 http 链接才尝试打开；口令类由助手解析 */
+  if(/^https?:\/\//i.test(link||'')) window.open(link,'_blank');
 }
 function copyTaskMsg(){
   var txt=$('scrapeTaskMsgText').textContent||'';
