@@ -26,3 +26,11 @@ function detectScraper(){
     }
   }
 }
+/* v0.28：Lucide 图标初始化（页面结构渲染完成后调用） */
+function initLucide(){
+  if(window.lucide){
+    try{ lucide.createIcons(); }catch(e){ console.error('lucide init',e); }
+  }
+}
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(initLucide, 60); });
+setTimeout(initLucide, 800);
