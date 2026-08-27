@@ -72,6 +72,12 @@ input,textarea,select{font-family:inherit;}
 .uz-small{height:88px;}
 .uz-mid{height:100px;}
 .uz-big{height:120px;}
+/* 二维码上传区：横排图标+文字 */
+.uz-qr{flex-direction:row;gap:14px;justify-content:center;align-items:center;height:96px;}
+.uz-qr>i,.uz-qr>.lucide{width:34px;height:34px;stroke:var(--primary);stroke-width:1.5;}
+.uz-qr .uz-body{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;}
+.uz-qr .uz-body .main{font-size:14px;color:var(--text1);font-weight:600;}
+.uz-qr .uz-body .sub{font-size:11px;color:var(--text3);}
 
 /* 上传后条目/识别结果 */
 .file-item{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);padding:10px 12px;}

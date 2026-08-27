@@ -1,5 +1,8 @@
-/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.1（支持 URL 参数自动模式：菜单/图片/全部）
-   修复：菜品图为 CSS background-image（饿了么 H5 菜单图是背景图而非 <img>），新增背景图解析 + 取原图下载
+/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.2
+   v3.2 更新：
+   - 抓取完成后不再自动下载，改为顶部下载面板（用户点击下载，可自选保存位置 showSaveFilePicker）
+   - 菜品图文件名去掉分组前缀，只保留菜品名
+   v3.1：修复菜品图（CSS background-image 解析 + 取高清原图）
    由「餐谋长抓取」书签在店铺页动态加载执行：
    1) 读取 URL 参数 cmz_scrape=menu|img|all（网站在打开店铺时已自动写入）
    2) 依次点击左侧全部分类tab + 滚动到底，加载全部菜品
@@ -41,9 +44,30 @@
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },400);
   }
-  function downloadCSV(text, name){
-    downloadBlob(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'}), name);
+  /* 保存文件：优先系统「另存为」自选保存位置；不可用则退回浏览器默认下载 */
+  async function saveAs(blob, suggestedName){
+    if(window.showSaveFilePicker){
+      try{
+        var handle=await window.showSaveFilePicker({suggestedName:suggestedName});
+        var w=await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        return true;
+      }catch(e){
+        if(e&&e.name==='AbortError') return false; // 用户取消
+      }
+    }
+    downloadBlob(blob, suggestedName);
+    return true;
   }
+  window.__cmzSave=async function(key){
+    var r=window.__cmzResult; if(!r) return;
+    if(key==='menu'&&r.menuText){
+      await saveAs(new Blob(['\ufeff'+r.menuText],{type:'text/csv;charset=utf-8'}), '抓取菜单_'+r.fnBase+'.csv');
+    }else if(key==='zip'&&r.zip){
+      await saveAs(r.zip, '菜品图_'+r.fnBase+'.zip');
+    }
+  };
   function isPunish(){ return /punish|waimai-guide|x5secdata/i.test(location.href); }
   function getParam(name){
     var m=location.href.match(new RegExp('[?&#]'+name+'=([^&#]*)'));
@@ -143,17 +167,17 @@
     sc.scrollTop=0;
     return true;
   }
-  /* 下载图片 zip */
-  async function grabImgs(items, fnBase){
+  /* 下载图片并打包 zip（返回 {ok, zip}，不自动下载） */
+  async function buildImgsZip(items){
     var imgs=items.filter(function(x){ return x.img; });
-    if(!imgs.length) return 0;
+    if(!imgs.length) return {ok:0, zip:null};
     banner('⏳ '+BRAND+'：正在下载 '+imgs.length+' 张菜品图并打包…');
     try{ await loadJS('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }
-    catch(e){ banner('❌ '+BRAND+'：压缩组件加载失败，图片未打包。','#FEF2F2'); return -1; }
-    if(typeof JSZip==='undefined'){ banner('❌ '+BRAND+'：压缩组件不可用。','#FEF2F2'); return -1; }
-    var zip=new JSZip(), ok=0, fail=0;
+    catch(e){ return {ok:-1, zip:null}; }
+    if(typeof JSZip==='undefined') return {ok:-1, zip:null};
+    var zip=new JSZip(), ok=0;
     for(var i=0;i<imgs.length;i++){
-      if(isPunish()) return -2;
+      if(isPunish()) return {ok:-2, zip:null};
       try{
         var it=imgs[i];
         var u=(it.img.split('?')[0])||it.img;
@@ -161,17 +185,25 @@
         if(!r.ok) throw new Error('http'+r.status);
         var blob=await r.blob();
         var ext='jpg'; var mm=u.match(/\.(jpe?g|png|webp|gif)$/i); if(mm) ext=mm[1].toLowerCase();
-        var name=(it.cate||'未分组')+'_'+(it.name||('img'+i)).replace(/[\\\/:*?"<>|\r\n]/g,' ').slice(0,30)+'.'+ext;
+        /* v3.2：文件名只保留菜品名，不带分组前缀 */
+        var name=(it.name||('img'+i)).replace(/[\\\/:*?"<>|\r\n]/g,' ').slice(0,40)+'.'+ext;
         zip.file(name, blob);
         ok++;
-      }catch(e){ fail++; }
+      }catch(e){}
       if(i%5===0) banner('⏳ '+BRAND+'：图片下载中 '+i+'/'+imgs.length+'…');
     }
-    if(ok){
-      var z=await zip.generateAsync({type:'blob'});
-      downloadBlob(z, '菜品图_'+fnBase+'.zip');
-    }
-    return ok;
+    var z=ok?await zip.generateAsync({type:'blob'}):null;
+    return {ok:ok, zip:z};
+  }
+  /* 抓取完成：显示下载面板（用户点按钮时自选保存位置） */
+  function showDownloadPanel(r){
+    window.__cmzResult=r;
+    var parts=[];
+    parts.push('✅ '+BRAND+'：识别到 <b>'+r.itemsCount+'</b> 个菜品（覆盖 '+r.cateCount+' 个分类）');
+    if(r.menuText) parts.push('<button style="margin:0 6px;padding:7px 16px;border:none;border-radius:8px;background:#165DFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(22,93,255,.3);" onclick="window.__cmzSave(\'menu\')">下载菜单（Excel）</button>');
+    if(r.zip) parts.push('<button style="margin:0 6px;padding:7px 16px;border:none;border-radius:8px;background:#FF7D00;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(255,125,0,.3);" onclick="window.__cmzSave(\'zip\')">下载菜品图包（zip·'+r.imgCount+'张）</button>');
+    parts.push('<span style="font-size:11px;opacity:.7;">点按钮下载可自选保存位置</span>');
+    banner(parts.join(' '),'#F0FDF4');
   }
   (async function(){
     if(isPunish()){
@@ -209,22 +241,23 @@
     var m=t.match(/([^\n]{2,20}?\([^)]*店\))/)||t.match(/[^\n]{2,15}店/);
     if(m) shop=String(m[1]||'').replace(/[\\\/:*?"<>|\n\r]/g,' ').trim().slice(0,30);
     var fnBase=(shop||'店铺').replace(/\s+/g,'')+'_'+ts();
+    var cateSet={}; items.forEach(function(x){ if(x.cate) cateSet[x.cate]=1; });
+    var result={menuText:null, zip:null, imgCount:0, itemsCount:items.length, cateCount:Object.keys(cateSet).length, fnBase:fnBase, shop:shop};
     /* 菜单 */
     if(mode==='menu'||mode==='all'){
       var lines=['分组,菜品名称,现价(元),券后/预估到手(元),月售,说明,有无图片'];
       items.forEach(function(x){
         lines.push([escCSV(x.cate),escCSV(x.name),escCSV(x.price),escCSV(x.use),escCSV(x.sales),escCSV(x.desc),x.img?'有':''].join(','));
       });
-      downloadCSV(lines.join('\n'),'抓取菜单_'+fnBase+'.csv');
+      result.menuText=lines.join('\n');
     }
     /* 图片 */
-    var imgsResult=0;
     if(mode==='img'||mode==='all'){
-      imgsResult=await grabImgs(items, fnBase);
+      var g=await buildImgsZip(items);
+      if(g.ok===-2){ banner('⚠️ '+BRAND+'：图片下载中触发安全验证，菜单部分可点上方按钮下载。','#FEF3C7'); }
+      result.zip=g.ok>0?g.zip:null;
+      result.imgCount=g.ok>0?g.ok:0;
     }
-    if(imgsResult===-2){ banner('⚠️ '+BRAND+'：图片下载中触发安全验证，菜单部分已完成。','#FEF3C7'); return; }
-    var doneImg=imgsResult>0?('，图片 '+imgsResult+' 张已打包'):(imgsResult===-1?'，图片打包失败(网络/组件)':(imgsResult===0?'，菜品图未识别到(本页菜品无图)':''));
-    var cateSet={}; items.forEach(function(x){ if(x.cate) cateSet[x.cate]=1; });
-    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（覆盖 '+Object.keys(cateSet).length+' 个分类）'+doneImg+'。文件已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
+    showDownloadPanel(result);
   })();
 })();
