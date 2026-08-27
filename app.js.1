@@ -79,8 +79,6 @@ function refreshTip(){
   updateStartBtn();
 }
 function updateStartBtn(){
-  var has=state.qr&&state.qr.file && (state.peer.length>0 || state.shop) && state.shop;
-  // 必选：二维码 + (同行对比截图 或 门店数据文件) + 门店数据文件；至少二维码+门店文件
   var ready = !!(state.qr && state.qr.file && state.shop && state.shop.file);
   $('startBtn').classList.toggle('enabled', ready);
 }
@@ -230,8 +228,6 @@ function setupZone(zoneId,inputId,handler){
     if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length) handler(e.dataTransfer.files);
   });
 }
-var state_upload={qr:null,peer:[],shop:null,menu:null,review:null};
-// 统一并入 state 命名空间（沿用上方 state.qr 等）
 state.qr=null; state.peer=[]; state.shop=null; state.menu=null; state.review=null;
 
 function fileToDataUrl(file,maxEdge){
@@ -288,7 +284,7 @@ setupZone('peerZone','peerInput',function(files){
   Promise.all(tasks).then(renderPeerThumbs);
 });
 
-/* 粘贴图片：鼠标悬停在哪个上传框，就粘贴到哪个框；无悬停时，二维码未设则作二维码、否则作同行截图 */
+/* 粘贴图片：鼠标悬停在哪个上传框，就粘贴到哪个框 */
 var pasteTarget=null;
 function bindPasteZone(el,key){
   if(!el) return;
@@ -297,7 +293,42 @@ function bindPasteZone(el,key){
 }
 bindPasteZone($('qrZone'),'qr');
 bindPasteZone($('peerZone'),'peer');
+bindPasteZone($('qrZone2'),'qr2');
+/* 通用二维码识别（图片 → 文本内容） */
+function recognizeQrFromDataUrl(dataUrl, onResult){
+  var img=new Image();
+  img.onload=function(){
+    try{
+      var c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+      var ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
+      var id=ctx.getImageData(0,0,c.width,c.height);
+      var code=null;
+      try{ if(window.jsQR) code=jsQR(id.data,id.width,id.height); }catch(e){}
+      if(onResult) onResult(code?String(code.data).trim():'');
+    }catch(e){ if(onResult) onResult(''); }
+  };
+  img.onerror=function(){ if(onResult) onResult(''); };
+  img.src=dataUrl;
+}
 function handlePastedImage(f,target){
+  if(target==='qr2'){
+    fileToDataUrl(f,0).then(function(d){
+      recognizeQrFromDataUrl(d,function(txt){
+        if(txt){
+          var isUrl=/^https?:\/\//i.test(txt);
+          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#16A34A;">✅ 已识别'+(isUrl?'链接':'内容')+'：'+esc(txt.slice(0,60))+'</span>';
+          window.__scrapeQR=txt;
+          if(isUrl&&$('shopLink')) $('shopLink').value=txt;
+          toast('已粘贴二维码并识别'+(isUrl?'链接':'内容'));
+        }else{
+          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
+          window.__scrapeQR='';
+          toast('二维码未能识别，请改为粘贴链接');
+        }
+      });
+    });
+    return;
+  }
   if(target==='peer'){
     if(state.peer.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
     fileToDataUrl(f,0).then(function(d){
@@ -350,7 +381,6 @@ function readSheetArray(file){
           return resolve(rows);
         }catch(e){}
       }
-      // 原生兜底
       return readXlsxManual(buf).then(resolve);
     })['catch'](function(){ resolve([]); });
   });
@@ -430,7 +460,6 @@ function cleanHead(r){ return r.map(function(c){ return String(c==null?'':c).rep
 
 /* 门店数据文件：识别列 + 汇总 */
 function parseShopFile(rows){
-  // 找表头行：含"有效订单"或"日期"的行
   var headIdx=-1, head=null;
   for(var i=0;i<Math.min(rows.length,10);i++){
     var r=rows[i]||[];
@@ -443,7 +472,6 @@ function parseShopFile(rows){
     var idx=head.findIndex(function(x){ return x===need || x.indexOf(need)>-1; });
     if(idx>-1) colMap[need]=idx;
   });
-  // 汇总每日行（含流量/转化/复购指标聚合）
   var sum={valid_orders:0,gmv:0,income:0,packing_fee:0,subsidy:0,
     exp:0,newExp:0,oldExp:0,enter:0,newEnter:0,oldEnter:0,order:0,newOrder:0,oldOrder:0,
     avgPaySum:0,avgIncSum:0};
@@ -475,10 +503,8 @@ function parseShopFile(rows){
   var subsidyRate=sum.gmv?sum.subsidy/sum.gmv:0;
   var shopName='';
   if(colMap['门店名称']!=null&&rows[headIdx+1]) shopName=String(rows[headIdx+1][colMap['门店名称']]||'');
-  // 识别项清单（过滤纯信息列）
   var recognized=Object.keys(colMap).filter(function(k){return k!=='日期'&&k!=='门店名称'&&k!=='门店地址'&&k!=='首次营业时间';});
   var hasFlow=!!colMap['曝光人数'];
-  // 流量转化（本店，聚合口径，全部由前端计算）
   var flow=null;
   if(hasFlow){
     flow={
