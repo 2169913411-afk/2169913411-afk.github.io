@@ -62,7 +62,7 @@ function crc32(bytes){
   return (crc^0xFFFFFFFF)>>>0;
 }
 function utf8(s){ return new TextEncoder().encode(s); }
-function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
+function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function colName(i){ return String.fromCharCode(65+i); }
 function buildZip(files){
   var chunks=[],central=[],offset=0,i;
@@ -236,29 +236,57 @@ function cleanLink(raw){
   if(m) return m[0].replace(/[，。、；;]+$/,'');
   return s;
 }
-/* 确认抓取 */
+/* 商家调研：平台选择 */
+function pickScrapePlat(el){
+  document.querySelectorAll('#scrapePlatRow .plat-opt').forEach(function(o){ o.classList.remove('active'); });
+  el.classList.add('active');
+  var tips={'淘宝闪购':'请准备手机「淘宝」App 扫码登录淘宝闪购','饿了么':'请准备手机「饿了么」App 扫码登录饿了么','美团外卖':'请准备手机「美团」App 扫码登录美团外卖'};
+  var p=el.getAttribute('data-plat');
+  var t=$('scrapePlatTip'); if(t) t.textContent=tips[p]||'';
+  var l=$('scrapeLoginTip'); if(l) l.textContent=(tips[p]||'')+'（第 1 步登录账号）';
+}
+function scrapePlat(){
+  var o=document.querySelector('#scrapePlatRow .plat-opt.active');
+  return o?o.getAttribute('data-plat'):'淘宝闪购';
+}
+/* 第1步：打开对应平台登录页 */
+function openLogin(){
+  var urls={'淘宝闪购':'https://login.taobao.com/member/login.jhtml','饿了么':'https://h5.ele.me/','美团外卖':'https://passport.meituan.com/account/unitivelogin'};
+  window.open(urls[scrapePlat()]||urls['淘宝闪购'],'_blank');
+  toast('已打开登录页，请用手机 App 扫码登录');
+}
+/* 第2步：打开店铺 */
+function openShop(){
+  var link=cleanLink(($('shopLink')||{}).value)||window.__scrapeQR||'';
+  if(!link){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
+  if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
+  toast('该内容不是网址，请用手机 App 打开后把店铺链接粘贴到上方');
+}
+/* 开始抓取 */
 function confirmScrape(){
-  var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
-  var note=($('scrapeNotes')||{}).value||'';
   var link=cleanLink(($('shopLink')||{}).value);
   var qr=window.__scrapeQR||'';
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
+  var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
+  var note=($('scrapeNotes')||{}).value||'';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
   state.scrapeRecords=state.scrapeRecords||[];
   state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:note,link:link||qr,t:nowStr(),status:'待抓取'});
-  saveState(); renderScrapeRecords();
-  var msg='【商家调研抓取任务】\n抓取内容：'+mname+'\n店铺链接：'+(link||qr)+'\n'+(note?'说明：'+note+'\n':'')+'请开始抓取';
-  var box=$('scrapeTaskMsg'), txt=$('scrapeTaskMsgText');
-  if(box&&txt){ txt.textContent=msg; box.style.display='block'; }
-  copyText(msg);
-  if($('shopLink')) $('shopLink').value='';
-  window.__scrapeQR='';
-  if($('qrResult')) $('qrResult').innerHTML='';
-  if(/^https?:\/\//i.test(link||'')) window.open(link,'_blank');
+  saveState();
+  var flow=$('scrapeFlow'); if(flow) flow.style.display='block';
+  toast('已生成抓取任务，请按下方三步操作');
+  openLogin();
 }
-function copyTaskMsg(){
-  var txt=$('scrapeTaskMsgText').textContent||'';
-  if(txt) copyText(txt);
+/* 第3步：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
+var SCRAPE_SCRIPT='';
+function loadScrapeScript(){
+  if(SCRAPE_SCRIPT) return;
+  fetch('scrape-script.js').then(function(r){return r.text();}).then(function(t){ SCRAPE_SCRIPT=t; }).catch(function(){});
+}
+function copyScrapeScript(){
+  if(!SCRAPE_SCRIPT){ loadScrapeScript(); toast('抓取脚本加载中，请稍后重试'); return; }
+  copyText(SCRAPE_SCRIPT);
+  var st=$('scrapeScriptStatus'); if(st) st.innerHTML='<span style="color:#16A34A;">已复制。切到店铺页面 → 按 F12（Mac：Cmd+Option+J）→ 粘贴 → 回车，即可自动下载菜单 Excel</span>';
 }
 function arrayBufferToBase64(buf){
   var bytes=new Uint8Array(buf), binary='';
@@ -279,7 +307,7 @@ function renderScrapeRecords(){
       '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
   }).join(''):'<p style="font-size:12px;color:var(--text3);text-align:center;padding:14px 0;">暂无实抓记录</p>';
 }
-$('scrapeImportInput').addEventListener('change',function(){
+if($('scrapeImportInput')) $('scrapeImportInput').addEventListener('change',function(){
   var f=this.files&&this.files[0]; this.value='';
   if(!f) return;
   var ext=(f.name||'').split('.').pop().toLowerCase();
@@ -353,6 +381,7 @@ document.querySelectorAll('.plan-opt input[name=plan]').forEach(function(r){
   });
   updateBalanceUI();
   refreshTip();
+  loadScrapeScript();
   document.querySelectorAll('.mask').forEach(function(m){
     m.addEventListener('click',function(e){ if(e.target===m) m.classList.add('hidden'); });
   });
