@@ -290,7 +290,7 @@
 
     <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
-        <span style="font-size:13px;font-weight:700;">④ 抓取插件（首次需安装，之后全自动）</span>
+        <span style="font-size:13px;font-weight:700;">④ 全自动插件（可选 · 装后粘贴链接自动进店抓取）</span>
         <span id="scrapePluginState" style="font-size:12px;font-weight:600;color:var(--text3);">检测中…</span>
       </div>
       <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;">安装后：粘贴链接 → 点「开始抓取」→ 自动进店 → 自动下载 Excel/zip，全程不用 F12。</div>
@@ -298,6 +298,16 @@
         <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="installTamper()">① 安装浏览器插件（Tampermonkey）</button>
         <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="installScraper()">② 安装抓取脚本</button>
       </div>
+    </div>
+
+    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#166534;">⑤ 零插件方案（推荐 · 不用装任何插件）</div>
+      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;">只需把下面的「抓取书签」存到浏览器书签栏（一次，10秒）。之后：<b>打开店铺页 → 点一下书签</b>，自动滚动加载并下载菜单 CSV（Excel 可直接打开）。适合抓菜单；菜品图打包需用上方插件。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeBookmark()">① 复制抓取书签代码</button>
+        <span style="font-size:11px;color:var(--text3);">② 存书签：新建书签 → 网址粘贴这段代码 → 保存</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;">代码是加载我们网站的抓取脚本（scrape-inject.js），在店铺页点一下即自动执行，不采集个人信息。</div>
     </div>
 
     <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:6px;" onclick="confirmScrape()">开始抓取</button>
