@@ -432,15 +432,18 @@ function confirmScrape(){
     _doScrape(normalizeShopUrl(link));
     return;
   }
-  /* ② 淘宝口令 m.tb.cn：电脑端无法自动解析（平台强制跳"请在手机上扫码"），自动打开口令页，引导复制地址栏链接 */
+  /* ② 淘宝口令 m.tb.cn：若已装抓取插件（油猴）则全自动（插件自动识别shopId跳转+抓取）；未装则引导复制地址栏 */
   if(link && isTaoKouLing(link)){
     showScrapeFlow();
-    setScrapeStatus('正在打开淘宝口令页，定位店铺…','run');
-    toast('已打开口令页，请复制地址栏链接粘贴回来');
+    var hasPlugin=document.documentElement.getAttribute('data-cmz-scraper')==='installed';
+    if(hasPlugin){
+      setScrapeStatus('已检测到抓取插件，正在打开口令页 → 插件会自动识别店铺并进店抓取，<b>无需手动操作</b>。请保持本页打开，等自动下载即可。','run');
+      toast('已打开口令页，插件将自动进店抓取');
+    }else{
+      setScrapeStatus('正在打开淘宝口令页…<br><b>提示：</b>未检测到抓取插件。打开后请复制地址栏链接（含 shopId=…）粘贴回来点「开始抓取」；或先安装下方 <b>④ 抓取插件</b>（油猴脚本），即可实现口令全自动抓取。','run');
+      toast('已打开口令页，请复制地址栏链接粘贴回来');
+    }
     window.open(link,'_blank');
-    setTimeout(function(){
-      setScrapeStatus('<b>新页面已打开（显示"请在手机上扫码"是正常的，别管它）。</b><br>现在只需 1 步：<br>① 点新页面的<b>地址栏</b>，全选复制整条链接（Ctrl+A 再 Ctrl+C，Mac 用 Cmd+A/Cmd+C），它长这样：<b>market.m.taobao.com/...shopId=…</b><br>② 回到本页，把链接<b>粘贴到上方输入框</b>，再点「开始抓取」→ 系统会自动构造店铺直链并进店抓取。','run');
-    }, 3000);
     return;
   }
   if(/^https?:\/\//i.test(link)){ _doScrape(link); return; }
