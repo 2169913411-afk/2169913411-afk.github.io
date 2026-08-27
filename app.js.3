@@ -333,8 +333,8 @@ function openShop(){
   if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
   toast('该内容不是网址，请用手机 App 打开后把店铺链接粘贴到上方');
 }
-/* 抓取插件：安装引导 */
-var SCRAPER_RAW='https://raw.githubusercontent.com/2169913411-afk/2169913411-afk.github.io/main/cmz-scraper.user.js';
+/* 抓取插件：安装引导（脚本源用本站同域地址，避免 raw.githubusercontent 国内打不开） */
+var SCRAPER_RAW='https://2169913411-afk.github.io/cmz-scraper.user.js';
 function installTamper(){
   var ua=navigator.userAgent;
   var isEdge=ua.indexOf('Edg/')>-1;
@@ -345,7 +345,7 @@ function installTamper(){
 }
 function installScraper(){
   window.open(SCRAPER_RAW,'_blank');
-  toast('已打开抓取脚本，Tampermonkey 会自动弹出安装，点「安装」即可');
+  toast('已打开抓取脚本安装页，Tampermonkey 会弹出「安装」按钮，点安装即可；若 3 秒内没弹出，请复制该页源码 → Tampermonkey 面板 → 新建脚本 → 粘贴保存');
 }
 function detectScraper(){
   var st=$('scrapePluginState');
