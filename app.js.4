@@ -3,15 +3,19 @@
    加载顺序在 app.js.3 之后，负责：
    1. 定义解码相关函数（decodeCfgUrl / saveDecodeCfg / updateDecodeCfg / decodeTaoKouLing）
    2. 包装 openScrape，打开商家调研时回填解码服务地址
+   3. 内置默认解码服务地址（腾讯云云函数，其他用户零配置）
    ============================================================ */
 (function(){
+  /* 默认解码服务地址（腾讯云云函数，国内可访问；可在设置里覆盖） */
+  var DEFAULT_DECODE_URL='https://1475030627-37d6yqessz.ap-guangzhou.tencentscf.com';
   function decodeCfgUrl(){
-    return (localStorage.getItem('cmzDecodeUrl')||'').trim();
+    var v=(localStorage.getItem('cmzDecodeUrl')||'').trim();
+    return v || DEFAULT_DECODE_URL;
   }
   function saveDecodeCfg(){
     var v=(((($('decodeUrl')||{}).value)||'').trim()).replace(/\/+$/,'');
     localStorage.setItem('cmzDecodeUrl',v);
-    toast(v?'解码服务接口地址已保存':'已清空解码服务接口地址');
+    toast(v?'解码服务地址已保存':'已清空解码服务地址');
   }
   function updateDecodeCfg(){
     var i=$('decodeUrl');
@@ -38,7 +42,7 @@
         if(st) st.innerHTML='<span style="color:#DC2626;">解码失败：'+(j&&j.error||'未知错误')+'</span>';
       }
     })['catch'](function(e){
-      if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查接口地址是否正确）</span>';
+      if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查服务地址是否正确）</span>';
     });
   }
   /* 暴露到全局 */
