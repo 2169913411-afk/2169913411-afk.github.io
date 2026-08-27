@@ -21,8 +21,8 @@
     <div class="section">
       <div class="section-title">选择外卖平台</div>
       <div class="plat-row" id="platRow">
-        <div class="plat-opt" data-plat="美团外卖">美团外卖</div>
-        <div class="plat-opt active" data-plat="淘宝闪购">淘宝闪购（原饿了么）</div>
+        <div class="plat-opt" data-plat="美团外卖"><span class="plat-logo pl-mt">美团</span><span>美团外卖</span></div>
+        <div class="plat-opt active" data-plat="淘宝闪购"><span class="plat-logo pl-tb">闪购</span><span>淘宝闪购</span></div>
       </div>
     </div>
 
@@ -45,10 +45,12 @@
 
     <div class="section">
       <div class="section-title">2. 上传同行数据以及其他重要截图数据 <span class="tag tag-req">必选</span></div>
-      <div class="upload-zone uz-mid" id="peerZone">
+      <div class="upload-zone uz-qr" id="peerZone">
         <i data-lucide="images"></i>
-        <div class="main">点击、拖拽或粘贴上传截图</div>
-        <div class="sub">同行对比数据 + 其他重要截图，鼠标移入后 Ctrl+V 粘贴到本框</div>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传截图</div>
+          <div class="sub">同行对比数据 + 其他重要截图，鼠标移入后 Ctrl+V 粘贴到本框</div>
+        </div>
         <div class="paste-hint">粘贴到：同行/重要截图</div>
         <input type="file" id="peerInput" accept="image/*" multiple class="hidden">
       </div>
@@ -58,10 +60,12 @@
 
     <div class="section">
       <div class="section-title">3. 上传门店数据文件 <span class="tag tag-req">必选</span></div>
-      <div class="upload-zone uz-mid" id="shopZone">
+      <div class="upload-zone uz-qr" id="shopZone">
         <i data-lucide="file-spreadsheet"></i>
-        <div class="main">点击或拖拽上传经营数据Excel</div>
-        <div class="sub">支持 .xlsx / .xls，自动识别经营指标</div>
+        <div class="uz-body">
+          <div class="main">点击或拖拽上传经营数据Excel</div>
+          <div class="sub">支持 .xlsx / .xls，自动识别经营指标</div>
+        </div>
         <div class="paste-hint">粘贴到：门店数据文件</div>
         <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
       </div>
@@ -74,10 +78,12 @@
 
     <div class="section">
       <div class="section-title">4. 上传菜单数据文件 <span class="tag tag-opt">非必选</span></div>
-      <div class="upload-zone uz-mid" id="menuZone">
+      <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
-        <div class="main">点击或拖拽上传菜单Excel</div>
-        <div class="sub">支持 .xlsx / .xls，识别商品名称/分组/价格</div>
+        <div class="uz-body">
+          <div class="main">点击或拖拽上传菜单Excel</div>
+          <div class="sub">支持 .xlsx / .xls，识别商品名称/分组/价格</div>
+        </div>
         <div class="paste-hint">粘贴到：菜单数据文件</div>
         <input type="file" id="menuInput" accept=".xlsx,.xls" class="hidden">
       </div>
@@ -90,10 +96,12 @@
 
     <div class="section">
       <div class="section-title">5. 上传门店评价数据 <span class="tag tag-opt">非必选</span></div>
-      <div class="upload-zone uz-mid" id="reviewZone">
+      <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
-        <div class="main">点击或拖拽上传评价Excel</div>
-        <div class="sub">支持 .xlsx / .xls，自动筛选差评</div>
+        <div class="uz-body">
+          <div class="main">点击或拖拽上传评价Excel</div>
+          <div class="sub">支持 .xlsx / .xls，自动筛选差评</div>
+        </div>
         <div class="paste-hint">粘贴到：评价数据文件</div>
         <input type="file" id="reviewInput" accept=".xlsx,.xls" class="hidden">
       </div>
@@ -290,13 +298,13 @@
 
     <div style="font-size:13px;color:var(--text1);font-weight:700;">② 外卖平台</div>
     <div class="plat-row" id="scrapePlatRow" style="margin:8px 0;">
-      <div class="plat-opt active" data-plat="淘宝闪购（原饿了么）" onclick="pickScrapePlat(this)">淘宝闪购（原饿了么）</div>
-      <div class="plat-opt" data-plat="美团外卖" onclick="pickScrapePlat(this)">美团外卖</div>
+      <div class="plat-opt active" data-plat="淘宝闪购" onclick="pickScrapePlat(this)"><span class="plat-logo pl-tb">闪购</span><span>淘宝闪购</span></div>
+      <div class="plat-opt" data-plat="美团外卖" onclick="pickScrapePlat(this)"><span class="plat-logo pl-mt">美团</span><span>美团外卖</span></div>
     </div>
 
     <div style="font-size:13px;color:var(--text1);font-weight:700;">③ 抓取内容</div>
     <div style="display:flex;gap:12px;margin:8px 0 10px;font-size:13px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .15s;"><input type="radio" name="scrapeMode" value="menu" checked> 只抓菜单<span style="font-size:11px;color:var(--text3);">Excel 表格</span></label>
+      <label style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .15s;"><input type="radio" name="scrapeMode" value="menu" checked> 只抓菜单<br style="display:none"><span style="font-size:11px;color:var(--text3);">Excel 表格</span></label>
       <label style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .15s;"><input type="radio" name="scrapeMode" value="img"> 只抓菜品图<span style="font-size:11px;color:var(--text3);">zip 压缩包</span></label>
       <label style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .15s;"><input type="radio" name="scrapeMode" value="all"> 全部打包<span style="font-size:11px;color:var(--text3);">菜单＋图片</span></label>
     </div>
