@@ -288,33 +288,29 @@
       <label style="display:flex;align-items:center;gap:5px;"><input type="radio" name="scrapeMode" value="all"> 全部打包（zip）</label>
     </div>
 
-    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
-        <span style="font-size:13px;font-weight:700;">④ 全自动插件（可选 · 装后粘贴链接自动进店抓取）</span>
-        <span id="scrapePluginState" style="font-size:12px;font-weight:600;color:var(--text3);">检测中…</span>
-      </div>
-      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;">安装后：粘贴链接 → 点「开始抓取」→ 自动进店 → 自动下载 Excel/zip，全程不用 F12。</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="installTamper()">① 安装浏览器插件（Tampermonkey）</button>
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="installScraper()">② 安装抓取脚本</button>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px;">💡 国内网络打不开 Chrome 商店属正常：点「①」会自动按你的浏览器打开可访问的下载页（Edge 商店 / 官网）；装不了就直接用下方 ⑤ 零插件书签，效果一样。</div>
-    </div>
-
     <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:700;color:#166534;">⑤ 零插件方案（推荐 · 无需安装，任何电脑都能用）</div>
-      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;">不用装任何插件。把下面这个按钮<b>拖到浏览器书签栏</b>（或点复制代码存成书签），一次设置永久有效。之后<b>打开店铺页 → 点一下书签</b>，自动滚动并下载菜单 CSV（Excel 可直接打开）。</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <a id="bookmarkDrag" draggable="true" style="display:inline-block;background:#16A34A;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:grab;text-decoration:none;" href="javascript:void(0)">⭐ 把「餐谋长抓取」拖到书签栏</a>
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeBookmark()">复制书签代码（备用）</button>
+      <div style="font-size:13px;font-weight:700;color:#166534;">④ 首次使用 · 先存好「抓取书签」（一次性约1分钟，之后每次抓取都用它）</div>
+      <div style="font-size:12px;color:var(--text2);margin:4px 0 10px;line-height:1.8;">不用安装任何插件，任何电脑都能用。存好后，以后每次抓取只需：<b>打开店铺页 → 点一下书签</b> → 自动抓取并下载菜单 Excel / 菜品图 zip。</div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text1);margin-bottom:4px;">第 1 步　让浏览器显示「书签栏」</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.7;">打开 Chrome 后按 <b>Ctrl + Shift + B</b>（Mac 用 <b>Cmd + Shift + B</b>），地址栏下方会出现一行书签栏；如果地址栏右边有 <b>☆</b> 也可以不用书签栏（见第 3 步）。</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text1);margin-bottom:4px;">第 2 步　把「餐谋长抓取」放进去（二选一）</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+          <a id="bookmarkDrag" draggable="true" style="display:inline-block;background:#16A34A;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:grab;text-decoration:none;" href="javascript:void(0)">⭐ 按住我，拖到下方书签栏</a>
+          <span style="font-size:12px;color:var(--text3);">（松开即存好）</span>
+          <span style="font-size:12px;color:var(--text3);">或</span>
+          <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeBookmark()">复制代码，用 ☆ 存书签</button>
+        </div>
+        <div id="bookmarkHint" style="font-size:11px;color:var(--text3);line-height:1.7;"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--text1);margin:8px 0 4px;">第 3 步（方式二）　没有书签栏时用 ☆ 收藏</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;">点上方「复制代码」→ 点地址栏右侧 <b>☆</b> → 名称填「餐谋长抓取」→ 在「网址」栏粘贴刚复制的代码 → 点「完成」。书签栏里就会出现它。</div>
       </div>
-      <div id="bookmarkHint" style="font-size:11px;color:var(--text3);margin-top:8px;"></div>
     </div>
 
     <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:6px;" onclick="confirmScrape()">开始抓取</button>
 
     <div id="scrapeFlow" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-      <div id="scrapeFlowHint" style="font-size:13px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-weight:600;">✅ 已打开店铺页。已安装「抓取插件」时会自动抓取并下载；若未安装，请按下方第 3 步手动抓取。</div>
+      <div id="scrapeFlowHint" style="font-size:13px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-weight:600;">✅ 已打开店铺页。现在点一下浏览器书签栏里的「餐谋长抓取」书签，就会自动抓取并下载。</div>
 
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;">第 1 步　登录账号（一次性，如已登录可跳过）</div>
@@ -324,15 +320,13 @@
 
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;">第 2 步　打开店铺</div>
-        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">点下方打开店铺链接（口令链接会自动解析成 h5.ele.me 店铺链接）</div>
+        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">点下方打开店铺链接（口令链接请先用手机 App 打开，再把 h5.ele.me 链接粘贴到上方输入框）</div>
         <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="openShop()">打开店铺链接</button>
       </div>
 
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <div style="font-size:13px;font-weight:700;">第 3 步　手动抓取（兜底，未装插件时用）</div>
-        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">在店铺页面按 <b>F12</b>（Mac：<b>Cmd+Option+J</b>）打开控制台 → 粘贴脚本 → 回车，自动抓取并下载 Excel / zip</div>
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeScript()">一键复制抓取脚本</button>
-        <div id="scrapeScriptStatus" style="font-size:11px;color:var(--text3);margin-top:4px;"></div>
+        <div style="font-size:13px;font-weight:700;">第 3 步　点书签，自动抓取</div>
+        <div style="font-size:12px;color:var(--text2);margin:4px 0 8px;">切到新打开的店铺页面，点一下浏览器书签栏里的「<b>餐谋长抓取</b>」，顶部会出现进度提示，菜单 Excel / 菜品图 zip 会自动下载。</div>
       </div>
     </div>
   </div>
