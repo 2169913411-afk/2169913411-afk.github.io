@@ -183,6 +183,7 @@ function loadHistory(i){
 /* ---------- 扫码实抓（进用户端抓数据） ---------- */
 function openScrape(){
   renderScrapeRecords();
+  detectScraper();
   openModal('scrapeMask');
 }
 function openEleH5(){
@@ -253,7 +254,29 @@ function openShop(){
   if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
   toast('该内容不是网址，请用手机 App 打开后把店铺链接粘贴到上方');
 }
-/* 开始抓取 */
+/* 抓取插件：安装引导 */
+var SCRAPER_RAW='https://raw.githubusercontent.com/2169913411-afk/2169913411-afk.github.io/main/cmz-scraper.user.js';
+function installTamper(){
+  window.open('https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo','_blank');
+  toast('已打开浏览器插件商店，点击「添加」安装 Tampermonkey');
+}
+function installScraper(){
+  window.open(SCRAPER_RAW,'_blank');
+  toast('已打开抓取脚本，Tampermonkey 会自动弹出安装，点「安装」即可');
+}
+function detectScraper(){
+  var st=$('scrapePluginState');
+  if(!st) return;
+  var installed=document.documentElement.getAttribute('data-cmz-scraper')==='installed';
+  if(installed){
+    st.textContent='✅ 已安装';
+    st.style.color='#16A34A';
+  }else{
+    st.textContent='⚠️ 未安装';
+    st.style.color='#B45309';
+  }
+}
+/* 开始抓取（自动模式） */
 function confirmScrape(){
   var link=cleanLink(($('shopLink')||{}).value);
   var qr=window.__scrapeQR||'';
@@ -261,15 +284,28 @@ function confirmScrape(){
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
   state.scrapeRecords=state.scrapeRecords||[];
-  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:'',link:link||qr,t:nowStr(),status:'待抓取'});
+  state.scrapeRecords.unshift({id:'t'+Date.now(),type:'task',mode:mode,mname:mname,note:'',link:link||qr,t:nowStr(),status:'已开始'});
   saveState();
+
+  var target=link||qr;
+  var isEle=/(h5\\.)?ele\\.me|i\\.ele\\.me|m\\.tb\\.cn|tb\\.cn|market\\.m\\.taobao/i.test(target);
+  if(isEle){
+    /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取；m.tb.cn/口令由抓取插件自动解析跳转 */
+    if(/h5\\.ele\\.me|ele\\.me/i.test(target) && target.indexOf('cmz_scrape')<0){
+      var sep=target.indexOf('?')>=0?'&':'?';
+      target=target+sep+'cmz_scrape='+mode;
+    }
+    window.open(target,'_blank');
+  }else{
+    window.open(target,'_blank');
+  }
+
   var flow=$('scrapeFlow'); if(flow) flow.style.display='block';
   var hint=$('scrapeFlowHint');
-  if(hint) hint.innerHTML='已自动打开登录页（第 1 步）。请用手机 App 扫码登录，登录成功后<b>回到本窗口</b>，依次点「打开店铺链接」→「一键复制抓取脚本」即可抓取';
-  toast('已自动打开登录页，登录后回到本窗口继续');
-  openLogin();
+  if(hint) hint.innerHTML='✅ 已打开店铺页。已安装「抓取插件」时会<b>自动抓取并下载</b> Excel/zip（新窗口顶部会有进度提示）；若 30 秒内没有自动下载，请按下方第 1-3 步手动抓取。';
+  toast('已打开店铺，等待自动抓取…');
 }
-/* 第3步：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
+/* 第3步（兜底）：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
 var SCRAPE_SCRIPT='';
 function loadScrapeScript(){
   if(SCRAPE_SCRIPT) return;
@@ -293,7 +329,7 @@ function renderScrapeRecords(){
     var action='';
     if(r.type==='menu') action='<button class="btn-blue-ghost" style="padding:2px 8px;font-size:11px;" onclick="useScrapeMenu('+i+')">导入分析</button> <button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载</button>';
     else if(r.type==='zip') action='<button class="btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="downloadScrape('+i+')">下载zip</button>';
-    else action='<span style="color:var(--text3);font-size:11px;">待抓取</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" onclick="window.open(\''+r.link+'\')">打开店铺</a>':'');
+    else action='<span style="color:var(--text3);font-size:11px;">已开始</span>'+((r.link||'').indexOf('http')===0?' <a style="color:var(--primary);font-size:11px;cursor:pointer;" onclick="window.open(\''+r.link+'\')">打开店铺</a>':'');
     return '<div class="hist-item"><div><div class="h-name">'+esc(r.mname||r.name||'实抓记录')+'</div>'+
       '<div style="font-size:11px;color:var(--text3);">'+(r.note?esc(r.note):'')+(r.count?' ｜ 商品 '+r.count+' 项':'')+(r.size?' ｜ '+r.size:'')+'</div></div>'+
       '<span style="display:flex;gap:4px;align-items:center;font-size:11px;color:var(--text3);">'+esc(r.t)+' '+action+'</span></div>';
