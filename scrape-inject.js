@@ -127,7 +127,9 @@
     var t=document.body.innerText||'';
     var m=t.match(/([^\n]{2,20}?\([^)]*店\))/)||t.match(/[^\n]{2,15}店/);
     if(m) shop=String(m[1]||'').replace(/[\\\/:*?"<>|\n\r]/g,' ').trim().slice(0,30);
+    var cateSet={}; items.forEach(function(x){ if(x.cate) cateSet[x.cate]=1; });
+    var cateCount=Object.keys(cateSet).length;
     downloadCSV(lines.join('\n'),'抓取菜单_'+(shop||'店铺')+'_'+ts()+'.csv');
-    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（已遍历全部 '+items.filter(function(x){return x.cate;}).length+' 个分组），CSV 已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
+    banner('✅ '+BRAND+'：识别到 '+items.length+' 个菜品（覆盖 '+cateCount+' 个分类），CSV 已自动下载，可用 Excel 打开。可关闭本页。','#F0FDF4');
   })();
 })();
