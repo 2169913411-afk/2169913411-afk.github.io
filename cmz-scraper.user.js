@@ -1,11 +1,14 @@
 // ==UserScript==
 // @name         餐谋长·商家调研抓取助手（淘宝闪购/饿了么）
 // @namespace    canzhang-scraper
-// @version      1.0.2
+// @version      1.0.3
 // @description  进入淘宝闪购（饿了么）店铺页后自动抓取菜单/菜品图并下载 Excel/zip；自动解析淘宝口令进店。网页点「开始抓取」后全自动，无需 F12。
 // @match        https://h5.ele.me/*
 // @match        https://*.ele.me/*
 // @match        https://market.m.taobao.com/*
+// @match        https://m.tb.cn/*
+// @match        https://tb.cn/*
+// @match        https://*.tb.cn/*
 // @match        https://2169913411-afk.github.io/*
 // @grant        GM_xmlhttpRequest
 // @run-at       document-idle
@@ -211,6 +214,27 @@
   /* 站点自身：标记插件已安装，供网页识别 */
   if(host.indexOf('2169913411-afk.github.io') >= 0){
     try{ document.documentElement.setAttribute('data-cmz-scraper', 'installed'); }catch(e){}
+    return;
+  }
+
+  /* 淘宝口令短链 m.tb.cn / tb.cn：直接抓取响应提取 shopId → 自动进入店铺并抓取（GM_xmlhttpRequest 不受 CORS 限制） */
+  if(host.indexOf('tb.cn') >= 0 && host.indexOf('market.') < 0){
+    banner('🔗 正在解析口令，识别店铺…');
+    GM_xmlhttpRequest({
+      method:'GET', url:location.href, responseType:'text', timeout:15000,
+      onload:function(r){
+        var m=(r.responseText||'').match(/shopId=([A-Za-z0-9]+)/);
+        if(m && m[1]){
+          var _mode='menu';
+          try{ _mode=localStorage.getItem('cmz_mode')||'menu'; }catch(e){}
+          banner('✅ 已识别店铺，正在进入并自动抓取（模式：'+_mode+'）…');
+          location.replace(buildShopUrl(m[1], _mode));
+        }else{
+          banner('❌ 未能从口令中解析出店铺。请复制地址栏链接（含 shopId=…）粘贴到网站，或用手机打开口令后把 h5.ele.me 链接粘贴回来。','#FEF2F2');
+        }
+      },
+      onerror:function(){ banner('❌ 口令解析失败（网络原因）。请复制地址栏链接（含 shopId=…）粘贴到网站。','#FEF2F2'); }
+    });
     return;
   }
 
