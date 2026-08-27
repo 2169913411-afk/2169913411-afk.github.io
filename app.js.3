@@ -1,5 +1,5 @@
 /* 零插件抓取书签：加载网站内的远程抓取脚本 */
-var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260827').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
+var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260827.2').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
 function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
@@ -76,7 +76,7 @@ function crc32(bytes){
   return (crc^0xFFFFFFFF)>>>0;
 }
 function utf8(s){ return new TextEncoder().encode(s); }
-function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
 function colName(i){ return String.fromCharCode(65+i); }
 function buildZip(files){
   var chunks=[],central=[],offset=0,i;
@@ -91,7 +91,7 @@ function buildZip(files){
     chunks.push(new Uint8Array(lh.buffer),name,data);
     var ch=new DataView(new ArrayBuffer(46));
     ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true);
-    ch.setUint8(8,0x0800); ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0,true);
+    ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0,true);
     ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
     ch.setUint16(28,name.length,true); ch.setUint16(30,0,true); ch.setUint16(32,0,true);
     ch.setUint16(34,0,true); ch.setUint16(36,0,true); ch.setUint32(38,0,true); ch.setUint32(42,offset,true);
@@ -288,6 +288,19 @@ function cleanLink(raw){
   if(m) return m[0].replace(/[，。、；;]+$/,'');
   return s;
 }
+/* 从任意链接提取 shopId（兼容 h5.ele.me / market.m.taobao.com 跳转页等） */
+function extractShopId(url){
+  var m=String(url||'').match(/[?&]shopId=([A-Za-z0-9]+)/);
+  return m?m[1]:'';
+}
+/* 将带 shopId 的任意链接规范化为标准 h5.ele.me 店铺直链；无 shopId 则原样返回 */
+function normalizeShopUrl(url){
+  var sid=extractShopId(url);
+  if(!sid) return url;
+  return makeShopUrl(sid);
+}
+/* 判断是否为淘宝口令/短链（m.tb.cn / tb.cn） */
+function isTaoKouLing(s){ return /m\.tb\.cn|tb\.cn|market\.m\.taobao/i.test(s); }
 /* 商家调研：平台选择 */
 function pickScrapePlat(el){
   document.querySelectorAll('#scrapePlatRow .plat-opt').forEach(function(o){ o.classList.remove('active'); });
@@ -311,12 +324,10 @@ function openLogin(){
 function openShop(){
   var link=cleanLink(($('shopLink')||{}).value)||window.__scrapeQR||'';
   if(!link){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
-  if(link.indexOf('m.tb.cn')>-1){
-    toast('正在解析口令链接，获取店铺…');
-    resolveTaoLink(link).then(function(shopUrl){
-      if(shopUrl){ window.open(shopUrl,'_blank'); }
-      else { toast('口令解析失败，请改用店铺二维码'); }
-    });
+  if(link && extractShopId(link)){ window.open(normalizeShopUrl(link),'_blank'); return; }
+  if(link && isTaoKouLing(link)){
+    toast('已打开口令页，请复制地址栏链接粘贴回来');
+    window.open(link,'_blank');
     return;
   }
   if(/^https?:\/\//i.test(link)){ window.open(link,'_blank'); return; }
@@ -407,19 +418,19 @@ function confirmScrape(){
     return;
   }
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
-  if(link.indexOf('m.tb.cn')>-1){
+  /* ① 粘贴内容里带 shopId（h5.ele.me / market.m.taobao 跳转页 / 任意带 shopId 链接）→ 直接构造店铺直链 */
+  if(link && extractShopId(link)){
     showScrapeFlow();
-    setScrapeStatus('⏳ 正在解析口令链接（淘宝口令需通过网络中转解析，约 8-15 秒），请稍候…','run');
-    toast('正在解析口令链接…');
-    resolveTaoLink(link).then(function(shopUrl){
-      if(shopUrl){
-        setScrapeStatus('✅ 口令解析成功，已定位到店铺，正在打开…','ok');
-        _doScrape(shopUrl);
-      }else{
-        setScrapeStatus('❌ 口令解析失败：电脑端解析淘宝口令的网络中转被限制。<br><b>请改用以下任一种：</b><br>① 点上方「① 店铺信息」上传店铺二维码，自动识别；<br>② 用手机打开该口令 → 进入店铺 → 右上角分享 → 复制链接 → 把 <b>h5.ele.me/...</b> 链接粘贴回上方输入框。','err');
-        toast('口令解析失败，请改用二维码或复制 h5.ele.me 链接');
-      }
-    });
+    setScrapeStatus('✅ 已识别店铺ID，正在构造店铺直链并打开…','ok');
+    _doScrape(normalizeShopUrl(link));
+    return;
+  }
+  /* ② 淘宝口令 m.tb.cn：电脑端无法自动解析（平台强制跳"请在手机上扫码"），自动打开口令页，引导复制地址栏链接 */
+  if(link && isTaoKouLing(link)){
+    showScrapeFlow();
+    setScrapeStatus('⏳ 已自动打开淘宝口令页。<br><b>淘宝限制电脑端自动解析</b>，请这样操作（只需 1 步）：<br>① 在新打开的页面，点一下地址栏，<b>全选复制整条链接</b>（里面含 shopId=…）；<br>② 回到本页，把它<b>粘贴到上方输入框</b>，再点「开始抓取」→ 系统会自动构造店铺直链并进店抓取。','run');
+    toast('已打开口令页，请复制地址栏链接粘贴回来');
+    window.open(link,'_blank');
     return;
   }
   if(/^https?:\/\//i.test(link)){ _doScrape(link); return; }
@@ -428,6 +439,8 @@ function confirmScrape(){
 }
 function _doScrape(target){
   showScrapeFlow();
+  /* 任何带 shopId 的非 ele.me 链接（如 market.m.taobao 跳转页）统一规范化为 h5.ele.me 直链 */
+  if(extractShopId(target) && !/h5\.ele\.me|ele\.me/i.test(target)) target=normalizeShopUrl(target);
   var mode=(document.querySelector('input[name=scrapeMode]:checked')||{}).value||'menu';
   var mname=mode==='menu'?'仅菜单':(mode==='img'?'仅菜品图':'全部打包');
   state.scrapeRecords=state.scrapeRecords||[];
@@ -436,7 +449,7 @@ function _doScrape(target){
 
   var isEle=/(h5\.)?ele\.me|i\.ele\.me|m\.tb\.cn|tb\.cn|market\.m\.taobao/i.test(target);
   if(isEle){
-    /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取；m.tb.cn/口令由 resolveTaoLink 解析后进店 */
+    /* 饿了么/淘宝闪购体系：h5.ele.me 加模式参数直接自动抓取 */
     if(/h5\.ele\.me|ele\.me/i.test(target) && target.indexOf('cmz_scrape')<0){
       var sep=target.indexOf('?')>=0?'&':'?';
       target=target+sep+'cmz_scrape='+mode;
