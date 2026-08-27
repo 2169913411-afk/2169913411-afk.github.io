@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>餐谋长·运营助手 - 外卖店铺AI运营诊断</title>
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="app.css?v=20260827.1">
 <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
@@ -12,6 +15,8 @@
 <div id="__appRoot" style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#94A3B8;font-size:14px;">正在加载餐谋长·运营助手…</div>
 <script>
 (function(){
+  /* 资源版本号：每次部署新版本时改这里即可，避免浏览器/CDN缓存旧文件 */
+  var V='20260827.1';
   var root=document.getElementById('__appRoot');
   function loadScript(src){
     return new Promise(function(res,rej){
@@ -22,11 +27,11 @@
       document.body.appendChild(s);
     });
   }
-  fetch('app.body.html').then(function(r){ return r.text(); }).then(function(html){
+  fetch('app.body.html?v='+V).then(function(r){ return r.text(); }).then(function(html){
     root.outerHTML=html;
-    return loadScript('app.js.1')
-      .then(function(){ return loadScript('app.js.2'); })
-      .then(function(){ return loadScript('app.js.3'); });
+    return loadScript('app.js.1?v='+V)
+      .then(function(){ return loadScript('app.js.2?v='+V); })
+      .then(function(){ return loadScript('app.js.3?v='+V); });
   })['catch'](function(e){
     console.error('LOAD_ERROR',e);
     if(root) root.textContent='加载失败，请刷新重试';
