@@ -300,14 +300,14 @@
       </div>
     </div>
 
-    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:700;color:#166534;">⑤ 零插件方案（推荐 · 不用装任何插件）</div>
-      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;">只需把下面的「抓取书签」存到浏览器书签栏（一次，10秒）。之后：<b>打开店铺页 → 点一下书签</b>，自动滚动加载并下载菜单 CSV（Excel 可直接打开）。适合抓菜单；菜品图打包需用上方插件。</div>
+    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#166534;">⑤ 零插件方案（推荐 · 无需安装，任何电脑都能用）</div>
+      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;">不用装任何插件。把下面这个按钮<b>拖到浏览器书签栏</b>（或点复制代码存成书签），一次设置永久有效。之后<b>打开店铺页 → 点一下书签</b>，自动滚动并下载菜单 CSV（Excel 可直接打开）。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeBookmark()">① 复制抓取书签代码</button>
-        <span style="font-size:11px;color:var(--text3);">② 存书签：新建书签 → 网址粘贴这段代码 → 保存</span>
+        <a id="bookmarkDrag" draggable="true" style="display:inline-block;background:#16A34A;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:grab;text-decoration:none;" href="javascript:void(0)">⭐ 把「餐谋长抓取」拖到书签栏</a>
+        <button class="btn-blue-ghost" style="height:32px;font-size:13px;" onclick="copyScrapeBookmark()">复制书签代码（备用）</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px;">代码是加载我们网站的抓取脚本（scrape-inject.js），在店铺页点一下即自动执行，不采集个人信息。</div>
+      <div id="bookmarkHint" style="font-size:11px;color:var(--text3);margin-top:8px;"></div>
     </div>
 
     <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:6px;" onclick="confirmScrape()">开始抓取</button>
