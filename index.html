@@ -13,17 +13,24 @@
 <script>
 (function(){
   var root=document.getElementById('__appRoot');
+  function loadScript(src){
+    return new Promise(function(res,rej){
+      var s=document.createElement('script');
+      s.src=src;
+      s.onload=function(){ res(); };
+      s.onerror=function(){ rej(new Error('脚本加载失败: '+src)); };
+      document.body.appendChild(s);
+    });
+  }
   fetch('app.body.html').then(function(r){ return r.text(); }).then(function(html){
     root.outerHTML=html;
-    var parts=['app.js.1','app.js.2','app.js.3'];
-    var chain=Promise.resolve();
-    parts.forEach(function(p){
-      chain=chain.then(function(){ return fetch(p); })
-                 .then(function(r){ return r.text(); })
-                 .then(function(code){ try{ (0,eval)(code); }catch(e){ console.error('EVAL_'+p,e); } });
-    });
-    return chain;
-  })['catch'](function(e){ console.error('LOAD_ERROR',e); if(root) root.textContent='加载失败，请刷新重试'; });
+    return loadScript('app.js.1')
+      .then(function(){ return loadScript('app.js.2'); })
+      .then(function(){ return loadScript('app.js.3'); });
+  })['catch'](function(e){
+    console.error('LOAD_ERROR',e);
+    if(root) root.textContent='加载失败，请刷新重试';
+  });
 })();
 </script>
 </body>
