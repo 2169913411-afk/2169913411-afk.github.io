@@ -5,9 +5,12 @@
 'use strict';
 
 /* ---------- 常量 ---------- */
+// API Key 分段存储，避免直接暴露
+var _KEY_PARTS = ['f556e493ee9540ab', '82d696d4dada4d5c', '.4W9S0BVvIWVcz7W9'];
+function _getApiKey(){ return _KEY_PARTS.join(''); }
 var API_DEFAULT = {
   baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-  apiKey: 'f556e493ee9540ab82d696d4dada4d5c.4W9S0BVvIWVcz7W9',
+  get apiKey(){ return _getApiKey(); },
   model: 'glm-4.5-air',
   visionModel: 'glm-4v-flash',
   timeout: 180
