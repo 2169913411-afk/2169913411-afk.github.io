@@ -4328,13 +4328,20 @@ document.querySelectorAll('.plan-opt').forEach(function(opt){
 /* ---------- 初始化 ---------- */
 (function init(){
   if(!state.platform) state.platform='淘宝闪购';
-  // 确保notesText函数已定义
-  if(typeof state.notesText !== 'function'){
-    state.notesText = function(){ return ($('notesInput')||{}).value ? $('notesInput').value.trim() : ''; };
-  }
+  // 确保notesText函数已定义（JSON.stringify会忽略函数，所以每次加载后都要重新定义）
+  state.notesText = function(){ 
+    var input = document.getElementById('notesInput');
+    return input && input.value ? input.value.trim() : ''; 
+  };
   document.querySelectorAll('.plat-opt').forEach(function(el){
     el.classList.toggle('active',el.getAttribute('data-plat')===state.platform);
   });
+  // 确保档位选择的active类是正确的
+  var checkedPlan = document.querySelector('input[name=plan]:checked');
+  if(checkedPlan){
+    document.querySelectorAll('.plan-opt').forEach(function(o){ o.classList.remove('active'); });
+    checkedPlan.closest('.plan-opt').classList.add('active');
+  }
   updateBalanceUI();
   refreshTip();
   updatePlanRequirements();
