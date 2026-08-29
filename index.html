@@ -1283,8 +1283,26 @@ h1,h2,h3,.lp-title{
       <div class="thumb-grid" id="overviewThumbs"></div>
     </div>
 
+    <div class="section" id="shopSection">
+      <div class="section-title">3. 门店数据Excel <span class="tag tag-req" id="shopTag">需上传</span></div>
+      <div class="upload-zone uz-qr" id="shopZone">
+        <i data-lucide="store"></i>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传门店数据Excel</div>
+          <div class="sub">包含日期、有效订单、收入、营业额、曝光、进店、下单转化等核心经营数据</div>
+        </div>
+        <div class="paste-hint">粘贴到：门店数据Excel</div>
+        <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="shopItem" class="file-item hidden" style="margin-top:10px;">
+        <span>🏪</span><span class="fname" id="shopName"></span><span class="fsize" id="shopSize"></span>
+        <button class="del" onclick="removeShop()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="shopRecog" class="recog-box hidden"></div>
+    </div>
+
     <div class="section" id="menuSection">
-      <div class="section-title">3. 商品销售Excel <span class="tag tag-req" id="menuTag">需上传</span></div>
+      <div class="section-title">4. 商品销售Excel <span class="tag tag-req" id="menuTag">需上传</span></div>
       <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
         <div class="uz-body">
@@ -1302,7 +1320,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="orderSection">
-      <div class="section-title">4. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
+      <div class="section-title">5. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
       <div class="upload-zone uz-qr" id="orderZone">
         <i data-lucide="file-text"></i>
         <div class="uz-body">
@@ -1320,7 +1338,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="reviewSection">
-      <div class="section-title">5. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
+      <div class="section-title">6. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
         <div class="uz-body">
@@ -1338,7 +1356,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="peerSection">
-      <div class="section-title">6. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
+      <div class="section-title">7. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="peerZone">
         <i data-lucide="users"></i>
         <div class="uz-body">
@@ -1351,22 +1369,8 @@ h1,h2,h3,.lp-title{
       <div class="thumb-grid" id="peerThumbs"></div>
     </div>
 
-    <div class="section" id="roiSection">
-      <div class="section-title">7. 推广ROI数据 <span class="tag tag-opt" id="roiTag">可选</span></div>
-      <div class="upload-zone uz-qr" id="roiZone">
-        <i data-lucide="trending-up"></i>
-        <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传推广ROI数据</div>
-          <div class="sub">各个推广渠道消耗、产出、ROI投产数据（截图或Excel）</div>
-        </div>
-        <div class="paste-hint">粘贴到：推广ROI数据</div>
-        <input type="file" id="roiInput" accept="image/*,.xlsx,.xls" multiple class="hidden">
-      </div>
-      <div class="thumb-grid" id="roiThumbs"></div>
-    </div>
-
     <div class="section" id="costSection">
-      <div class="section-title">8. 商品成本Excel <span class="tag tag-opt" id="costTag">可选</span></div>
+      <div class="section-title">7. 商品成本Excel <span class="tag tag-opt" id="costTag">可选</span></div>
       <div class="upload-zone uz-qr" id="costZone">
         <i data-lucide="calculator"></i>
         <div class="uz-body">
@@ -2165,7 +2169,7 @@ function refreshTip(){
   updateStartBtn();
 }
 function updateStartBtn(){
-  var ready = !!((state.overview && state.overview.length>0) && state.menu && state.menu.file);
+  var ready = !!((state.overview && state.overview.length>0) && state.shop && state.shop.file && state.menu && state.menu.file);
   $('startBtn').classList.toggle('enabled', ready);
 }
 function getPlan(){
@@ -2179,22 +2183,22 @@ function updatePlanRequirements(){
   var planId = plan.cost;
   
   // 定义各档位的必须文件（按照餐谋长业务规则）
-  // qr=门店二维码截图, overview=经营概览截图, menu=商品销售Excel
-  // order=商家订单Excel, review=用户评价Excel, peer=商圈同行对比数据, roi=推广ROI数据, cost=商品成本Excel
+  // qr=门店二维码截图, overview=经营概览截图, shop=门店数据Excel, menu=商品销售Excel
+  // order=商家订单Excel, review=用户评价Excel, peer=商圈同行对比数据, cost=商品成本Excel
   var requirements = {
     38: { 
-      required: ['qr', 'overview'], 
+      required: ['qr', 'overview', 'shop'], 
       optional: [], 
-      disabled: ['menu', 'order', 'review', 'peer', 'roi', 'cost']
+      disabled: ['menu', 'order', 'review', 'peer', 'cost']
     },
     58: { 
-      required: ['qr', 'overview', 'menu'], 
-      optional: ['roi'], 
-      disabled: ['order', 'review', 'peer', 'cost']
+      required: ['qr', 'overview', 'shop', 'menu'], 
+      optional: ['cost'], 
+      disabled: ['order', 'review', 'peer']
     },
     88: { 
-      required: ['qr', 'overview', 'menu', 'order', 'review', 'peer'], 
-      optional: ['roi', 'cost'], 
+      required: ['qr', 'overview', 'shop', 'menu', 'order', 'review', 'peer'], 
+      optional: ['cost'], 
       disabled: []
     }
   };
@@ -2205,11 +2209,11 @@ function updatePlanRequirements(){
   var materialNames = {
     qr: '门店二维码截图',
     overview: '经营概览截图',
+    shop: '门店数据Excel',
     menu: '商品销售Excel',
     order: '商家订单Excel',
     review: '用户评价Excel',
     peer: '商圈同行对比数据',
-    roi: '推广ROI数据',
     cost: '商品成本Excel'
   };
   
@@ -2238,7 +2242,7 @@ function updatePlanRequirements(){
     }
   }
   
-  var allMaterials = ['qr', 'overview', 'menu', 'order', 'review', 'peer', 'roi', 'cost'];
+  var allMaterials = ['qr', 'overview', 'shop', 'menu', 'order', 'review', 'peer', 'cost'];
   allMaterials.forEach(function(m){
     var isRequired = req.required.indexOf(m) > -1;
     var isDisabled = req.disabled.indexOf(m) > -1;
