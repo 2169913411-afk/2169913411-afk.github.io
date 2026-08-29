@@ -3411,11 +3411,17 @@ function buildStructured(){
     };
   }
   if(!data.flow) data.flow={}; // 无文件流量列时由 vision 填充
-  data.frontend_experience={has_qr:!!(state.qr&&state.qr.file)};
+  // 二维码：支持上传二维码图片或手动输入店铺链接，只要其中一个存在即认为有前端体验数据
+  data.frontend_experience={has_qr:!!(state.qr&&(state.qr.file||state.qr.decoded))};
+  // 如果有手动输入的店铺链接，记录下来，AI可以使用
+  if(state.qr&&state.qr.decoded){
+    data.frontend_experience.shop_link = state.qr.decoded;
+    data.frontend_experience.has_shop_link = true;
+  }
   
   // 添加数据上传状态标记，AI必须严格根据此标记决定是否分析对应模块
   data.data_availability={
-    qr_screenshot: !!(state.qr&&state.qr.file),
+    qr_screenshot: !!(state.qr&&(state.qr.file||state.qr.decoded)),
     overview_screenshots: !!(state.overview&&state.overview.length>0),
     shop_excel: !!(state.shop&&state.shop.parsed&&state.shop.parsed.ok),
     menu_excel: !!(state.menu&&state.menu.parsed&&state.menu.parsed.ok),
@@ -3969,8 +3975,9 @@ var LLM_SYSTEM=[
 '',
 '# 七、固定提示话术模板，条件触发直接调用',
 '- 无商圈同行对比："未上传商圈同行对比数据，流量、转化、客单价仅展示原始数值，无法判断店铺在本地商圈的强弱水平。"',
-'- 无推广ROI数据："未上传推广消耗与ROI投产数据，仅可以输出推广方向性建议，不能给出调高/调低具体预算的数值建议。"',
 '- 商品文件输出前置说明："下面为优化后的商品文件，无需调整的菜品保持原有信息不变，仅对需要优化的菜品做调整。"',
+'- ⚠️ 重要：绝对禁止在报告中出现"缺少推广ROI数据"、"无法评估推广效果"、"未上传推广消耗与ROI投产数据"这类提示性内容。推广数据是可选素材，没有上传就直接跳过推广模块，不要在报告中提及。',
+'- ⚠️ 重要：门店经营数据Excel是核心数据源，包含日期、有效订单、收入、营业额、曝光、进店、下单转化、新客、老客等所有核心经营数据。必须充分、深入地分析这些数据，包括：趋势分析（近7天/近30天变化趋势）、新老客对比分析、转化率漏斗分析、复购率分析、客单价分析等。绝对不能说"缺少门店经营数据"或不分析这些数据。',
 '',
 '# 八、外卖代运营业务知识库（内置业务认知）',
 '## 8.1 业务认知',
@@ -4213,11 +4220,16 @@ var LLM_SYSTEM=[
 '- 如果某个模块的数据完全缺失（data_availability中对应字段为false），直接跳过该模块，不要在报告中出现该模块的标题、内容或任何相关提及。',
 '- 如果某个模块的数据部分缺失，可以简要说明"缺少XX数据，本模块仅基于已有数据分析"，但不要展开分析缺失数据相关的内容。',
 '- 绝对禁止在报告中出现"建议上传XX数据"、"缺少XX数据可能影响分析"、"无法进行XX分析"这类提示性内容（数据缺失说明只在分析前的预检环节显示，不进入最终报告）。',
+'- ⚠️ 特别强调：推广ROI数据是可选素材，没有上传就直接跳过推广模块，绝对禁止在报告中出现"缺少推广ROI数据"、"无法评估推广效果"、"未上传推广消耗与ROI投产数据"这类提示性内容。',
+'- ⚠️ 特别强调：门店经营数据Excel是核心数据源（data_availability.shop_excel为true），包含日期、有效订单、收入、营业额、曝光、进店、下单转化、新客、老客、复购率等所有核心经营数据。必须充分、深入地分析这些数据，包括：趋势分析（近7天/近30天变化趋势）、新老客对比分析、转化率漏斗分析、复购率分析、客单价分析、订单量分析、收入分析等。绝对不能说"缺少门店经营数据"或不分析这些数据。',
 '- 低档档位（38积分）禁止输出高档档位（58/88积分）才有的分析内容，即使意外收到了高档位素材也必须严格遵守档位深度隔离。',
 '',
 '## 10.15 前端体验分析限制铁则',
-'- 前端体验分析（店铺头图、门店公告、商品排序、价格活动展示、销量标签、菜品信息、下单路径等）必须基于二维码截图的视觉识别结果（frontend_experience字段）。',
-'- 如果 data_availability.frontend_experience_recognized 为 false（没有上传二维码截图，或视觉识别失败/不完整），绝对不要给出任何前端体验相关的分析或建议，包括但不限于：',
+'- 前端体验分析（店铺头图、门店公告、商品排序、价格活动展示、销量标签、菜品信息、下单路径等）可以基于以下两种数据源：',
+'  1. 二维码截图的视觉识别结果（frontend_experience字段）',
+'  2. 手动输入的店铺链接（frontend_experience.shop_link字段）+ 扫码抓取的线上门店数据（scraped_shop_data字段）',
+'- 如果 data_availability.frontend_experience_recognized 为 false，但是有手动输入的店铺链接（frontend_experience.has_shop_link为true）或扫码抓取的线上门店数据（data_availability.shop_data_scraped为true），可以基于店铺链接和抓取到的门店数据进行前端体验分析，包括：菜单结构分析、商品排序分析、价格带分析、月售分析、招牌商品分析、商品图片分析、商品描述分析等。',
+'- 如果既没有二维码截图，也没有手动输入的店铺链接，也没有扫码抓取的线上门店数据，绝对不要给出任何前端体验相关的分析或建议，包括但不限于：',
 '  - 优化店铺头图',
 '  - 优化门店公告',
 '  - 优化商品排序',
