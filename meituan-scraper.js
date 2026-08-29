@@ -14,9 +14,9 @@
   /* ---------- 配置 ---------- */
   var CONFIG = {
     maxImages: 200,        // 最大下载图片数量
-    scrollStep: 400,       // 滚动步长
-    maxScrolls: 80,        // 最大滚动次数
-    scrollWait: 350,       // 滚动后等待时间(ms)
+    scrollStep: 150,       // 滚动步长（减小步长，更细致地滚动）
+    maxScrolls: 120,       // 最大滚动次数
+    scrollWait: 800,       // 滚动后等待时间（增加等待时间，让页面渲染内容）
     imageTimeout: 10000    // 单张图片下载超时(ms)
   };
 
@@ -226,9 +226,11 @@
 
   /* ---------- 滚动收集所有菜品 ---------- */
   async function collectProducts(){
-    // 找到菜品滚动容器
+    // 找到菜品滚动容器（优先使用#scrollArea，这是美团H5的真正滚动容器）
     var scrollContainer = null;
     var possibleContainers = [
+      document.getElementById('scrollArea'),
+      document.querySelector('.scrollArea_gqUOEn'),
       document.getElementById('spu-list-dhxu28d'),
       document.querySelector('.spuListWrapper_L2kZtu'),
       document.querySelector('[class*=spu-list]'),
