@@ -1211,7 +1211,34 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section">
-      <div class="section-title">1. 上传门店二维码 <span class="tag tag-req">必选</span></div>
+      <div class="section-title" style="font-size:14px;">第一步：选择分析档位</div>
+      <div id="planListTop">
+        <label class="plan-opt" data-plan="38">
+          <input type="radio" name="planTop" value="38">
+          <div><div class="p-name">基础数据诊断</div><div class="p-desc">识别数据 + 简单诊断</div></div>
+          <span class="p-cost">38积分</span>
+        </label>
+        <label class="plan-opt" data-plan="58">
+          <input type="radio" name="planTop" value="58">
+          <div><div class="p-name">深度运营诊断 + 话术</div><div class="p-desc">全维度诊断 + 商家沟通话术</div></div>
+          <span class="p-cost">58积分</span>
+        </label>
+        <label class="plan-opt active" data-plan="88">
+          <input type="radio" name="planTop" value="88" checked>
+          <span class="reco">推荐</span>
+          <div><div class="p-name">菜单全量优化 + 导出</div><div class="p-desc">商品标题/描述/定价优化 + 导出Excel + 同步话术</div></div>
+          <span class="p-cost">88积分</span>
+        </label>
+      </div>
+      <div class="plan-requirement-tip" id="planRequirementTip" style="margin-top:10px;padding:10px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E40AF;line-height:1.6;">
+        <b>当前档位（菜单全量优化+导出）需要：</b><br>
+        ✅ 必选：门店数据文件、菜单数据文件<br>
+        ⚪ 可选：门店二维码、同行数据截图、评价数据
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">1. 上传门店二维码 <span class="tag tag-opt" id="qrTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="qrZone">
         <i data-lucide="qr-code"></i>
         <div class="uz-body">
@@ -1228,7 +1255,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section">
-      <div class="section-title">2. 上传同行数据以及其他重要截图数据 <span class="tag tag-req">必选</span></div>
+      <div class="section-title">2. 上传同行数据以及其他重要截图数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="peerZone">
         <i data-lucide="images"></i>
         <div class="uz-body">
@@ -1243,7 +1270,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section">
-      <div class="section-title">3. 上传门店数据文件 <span class="tag tag-req">必选</span></div>
+      <div class="section-title">3. 上传门店数据文件 <span class="tag tag-req" id="shopTag">必选</span></div>
       <div class="upload-zone uz-qr" id="shopZone">
         <i data-lucide="file-spreadsheet"></i>
         <div class="uz-body">
@@ -1261,7 +1288,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section">
-      <div class="section-title">4. 上传菜单数据文件 <span class="tag tag-opt">非必选</span></div>
+      <div class="section-title">4. 上传菜单数据文件 <span class="tag tag-req" id="menuTag">必选</span></div>
       <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
         <div class="uz-body">
@@ -2091,8 +2118,85 @@ function updateStartBtn(){
   $('startBtn').classList.toggle('enabled', ready);
 }
 function getPlan(){
-  var r=document.querySelector('input[name=plan]:checked'); return r?PLANS[r.value]:null;
+  var r=document.querySelector('input[name=planTop]:checked') || document.querySelector('input[name=plan]:checked'); return r?PLANS[r.value]:null;
 }
+
+// 根据档位更新必须/非必须文件
+function updatePlanRequirements(){
+  var plan = getPlan();
+  if(!plan) return;
+  var planId = plan.cost;
+  
+  // 定义各档位的必须文件
+  var requirements = {
+    38: { shop: true, menu: false, peer: false, qr: false, review: false },
+    58: { shop: true, menu: false, peer: true, qr: false, review: false },
+    88: { shop: true, menu: true, peer: false, qr: false, review: false }
+  };
+  
+  var req = requirements[planId] || requirements[88];
+  
+  // 更新标签
+  function updateTag(id, isRequired){
+    var tag = document.getElementById(id);
+    if(tag){
+      tag.textContent = isRequired ? '必选' : '非必选';
+      tag.className = 'tag ' + (isRequired ? 'tag-req' : 'tag-opt');
+    }
+  }
+  
+  updateTag('shopTag', req.shop);
+  updateTag('menuTag', req.menu);
+  updateTag('peerTag', req.peer);
+  updateTag('qrTag', req.qr);
+  updateTag('reviewTag', req.review);
+  
+  // 更新需求提示
+  var tip = document.getElementById('planRequirementTip');
+  if(tip){
+    var requiredItems = [];
+    var optionalItems = [];
+    if(req.shop) requiredItems.push('门店数据文件'); else optionalItems.push('门店数据文件');
+    if(req.menu) requiredItems.push('菜单数据文件'); else optionalItems.push('菜单数据文件');
+    if(req.peer) requiredItems.push('同行数据截图'); else optionalItems.push('同行数据截图');
+    if(req.qr) requiredItems.push('门店二维码'); else optionalItems.push('门店二维码');
+    if(req.review) requiredItems.push('评价数据'); else optionalItems.push('评价数据');
+    
+    tip.innerHTML = '<b>当前档位（' + plan.name + '）需要：</b><br>' +
+      '✅ 必选：' + requiredItems.join('、') + '<br>' +
+      '⚪ 可选：' + optionalItems.join('、');
+  }
+  
+  // 同步底部的档位选择
+  var bottomRadio = document.querySelector('input[name=plan][value="'+planId+'"]');
+  if(bottomRadio) bottomRadio.checked = true;
+  
+  // 更新底部档位的active状态
+  document.querySelectorAll('#planList .plan-opt').forEach(function(opt){
+    opt.classList.toggle('active', opt.querySelector('input').value == planId);
+  });
+}
+
+// 监听顶部档位选择变化
+document.addEventListener('change', function(e){
+  if(e.target.name === 'planTop'){
+    updatePlanRequirements();
+    updateBalanceTip();
+  }
+});
+
+// 监听底部档位选择变化
+document.addEventListener('change', function(e){
+  if(e.target.name === 'plan'){
+    var planId = e.target.value;
+    var topRadio = document.querySelector('input[name=planTop][value="'+planId+'"]');
+    if(topRadio) topRadio.checked = true;
+    document.querySelectorAll('#planListTop .plan-opt').forEach(function(opt){
+      opt.classList.toggle('active', opt.querySelector('input').value == planId);
+    });
+    updatePlanRequirements();
+  }
+});
 var selectedPkg='p3';
 function renderPackages(){
   var grid=$('packageGrid'); grid.innerHTML='';
@@ -4422,6 +4526,7 @@ setTimeout(initLucide, 800);
     renderEmpty();
     if((state.history||[]).length>0) collapseNews();
     setInterval(function(){ renderEmpty(); }, 4000);
+    setTimeout(function(){ updatePlanRequirements(); }, 1000);
   }
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', init);
