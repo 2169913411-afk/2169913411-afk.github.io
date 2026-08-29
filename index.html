@@ -2777,27 +2777,59 @@ function removeShop(){ state.shop=null; RECOGNIZED.shop=null; $('shopItem').clas
 
 /* 商品销售数据文件：识别 商品名称/是否招牌/销售额/销量，并合计相同商品 */
 function parseMenuFile(rows){
-  var headIdx=-1, head=null;
-  for(var i=0;i<Math.min(rows.length,8);i++){
+  // 增强表头识别：搜索前15行，支持更多关键词
+  var headIdx=-1, head=null, headScore=0;
+  for(var i=0;i<Math.min(rows.length,15);i++){
     var h=cleanHead(rows[i]||[]);
-    if(h.some(function(x){return x.indexOf('商品名称')>-1||x.indexOf('菜名')>-1||x.indexOf('名称')>-1||x.indexOf('品名')>-1;})){ headIdx=i; head=h; break; }
+    var score=0;
+    // 计算表头行的匹配分数
+    h.forEach(function(cell){
+      if(!cell) return;
+      if(cell.indexOf('商品名称')>-1||cell.indexOf('菜名')>-1||cell.indexOf('品名')>-1) score+=10;
+      else if(cell.indexOf('名称')>-1) score+=5;
+      if(cell.indexOf('销量')>-1||cell.indexOf('月售')>-1||cell.indexOf('售出')>-1) score+=8;
+      if(cell.indexOf('销售额')>-1||cell.indexOf('营业额')>-1||cell.indexOf('收入')>-1||cell.indexOf('金额')>-1) score+=8;
+      if(cell.indexOf('招牌')>-1||cell.indexOf('推荐')>-1) score+=5;
+      if(cell.indexOf('价格')>-1||cell.indexOf('售价')>-1||cell.indexOf('单价')>-1) score+=3;
+      if(cell.indexOf('分类')>-1||cell.indexOf('分组')>-1||cell.indexOf('类目')>-1) score+=3;
+    });
+    // 必须至少有一个高置信度的商品名称列
+    var hasNameCol=h.some(function(x){return x.indexOf('商品名称')>-1||x.indexOf('菜名')>-1||x.indexOf('品名')>-1||(x.indexOf('名称')>-1&&x.indexOf('门店')<0&&x.indexOf('店铺')<0&&x.indexOf('商家')<0);});
+    if(score>headScore&&hasNameCol){ headIdx=i; head=h; headScore=score; }
   }
   if(headIdx<0) return {ok:false,msg:'未识别到商品名称表头'};
+  
   function findCol(keys){
     for(var i=0;i<head.length;i++){ for(var j=0;j<keys.length;j++){ if(head[i]&&head[i].indexOf(keys[j])>-1) return i; } }
     return -1;
   }
-  var idxName=findCol(['商品名称','菜名','品名','名称']);
-  var idxSales=findCol(['月售','销量','售出','销售数量']);
-  var idxAmount=findCol(['销售额','营业额','收入','实收','销售金额','金额']);
-  var idxSignature=findCol(['是否招牌','招牌','招牌菜','推荐','是否推荐']);
+  // 商品名称列：优先匹配"商品名称"、"菜名"、"品名"，排除"门店名称"、"店铺名称"等
+  var idxName=-1;
+  for(var i=0;i<head.length;i++){
+    var cell=head[i]||'';
+    if(cell.indexOf('商品名称')>-1||cell.indexOf('菜名')>-1||cell.indexOf('品名')>-1){ idxName=i; break; }
+  }
+  if(idxName<0){
+    for(var i=0;i<head.length;i++){
+      var cell=head[i]||'';
+      if(cell.indexOf('名称')>-1&&cell.indexOf('门店')<0&&cell.indexOf('店铺')<0&&cell.indexOf('商家')<0&&cell.indexOf('城市')<0&&cell.indexOf('区域')<0){ idxName=i; break; }
+    }
+  }
+  var idxSales=findCol(['月售','销量','售出','销售数量','销售件数']);
+  var idxAmount=findCol(['销售额','营业额','收入','实收','销售金额','金额','销售实收']);
+  var idxSignature=findCol(['是否招牌','招牌','招牌菜','推荐','是否推荐','是否热销']);
   if(idxName<0) return {ok:false,msg:'未找到商品名称列'};
+  
   var products=[];
   for(var r=headIdx+1;r<rows.length;r++){
     var row=rows[r]||[];
     if(!row.some(function(c){return c!=null&&String(c).trim()!=='';})) continue;
     var name=String(row[idxName]==null?'':row[idxName]).trim();
-    if(!name||name.indexOf('说明')>-1) continue;
+    if(!name||name.indexOf('说明')>-1||name.indexOf('合计')>-1||name.indexOf('总计')>-1||name.indexOf('汇总')>-1) continue;
+    // 过滤掉明显不是商品名称的值（如城市名、纯数字等）
+    if(/^(上海|北京|广州|深圳|杭州|南京|成都|武汉|西安|重庆|天津|苏州|长沙|郑州|青岛|大连|宁波|厦门|福州|济南|合肥|南昌|昆明|贵阳|南宁|海口|三亚|兰州|西宁|银川|乌鲁木齐|呼和浩特|拉萨|石家庄|太原|沈阳|长春|哈尔滨)$/.test(name)) continue;
+    if(/^\d+$/.test(name)&&name.length<3) continue; // 纯数字且长度小于3，可能是序号
+    
     var sRaw=idxSales>-1?(row[idxSales]==null?'':String(row[idxSales]).trim()):'';
     var sNum=0;
     if(sRaw){ var sm=sRaw.match(/(\d+(?:\.\d+)?)/); if(sm) sNum=parseFloat(sm[1]); }
@@ -2807,10 +2839,52 @@ function parseMenuFile(rows){
     var isSignature=false;
     if(idxSignature>-1){
       var sigVal=row[idxSignature]==null?'':String(row[idxSignature]).trim();
-      isSignature = sigVal==='是'||sigVal==='招牌'||sigVal==='推荐'||sigVal==='1'||sigVal==='true'||sigVal==='是招牌';
+      isSignature = sigVal==='是'||sigVal==='招牌'||sigVal==='推荐'||sigVal==='1'||sigVal==='true'||sigVal==='是招牌'||sigVal==='热销'||sigVal==='是推荐';
     }
     products.push({name:name,sales:sNum,amount:aNum,isSignature:isSignature});
-    if(products.length>=500) break;
+    if(products.length>=1000) break;
+  }
+  
+  // 如果识别到的商品数量太少（比如只有1个），且原始行数很多，可能是表头识别错误，尝试其他列
+  if(products.length<=3&&rows.length>50){
+    // 尝试在所有列中寻找可能的商品名称列（值多样性高的列）
+    var colDiversity=[];
+    for(var c=0;c<head.length;c++){
+      var values={};
+      for(var r=headIdx+1;r<Math.min(rows.length,headIdx+100);r++){
+        var v=String(rows[r]&&rows[r][c]!=null?rows[r][c]:'').trim();
+        if(v) values[v]=true;
+      }
+      colDiversity.push({col:c,count:Object.keys(values).length,header:head[c]||''});
+    }
+    colDiversity.sort(function(a,b){return b.count-a.count;});
+    // 选择多样性最高且不是纯数字的列作为商品名称列
+    for(var i=0;i<colDiversity.length;i++){
+      var cand=colDiversity[i];
+      if(cand.count>10&&!/^\d+$/.test(cand.header)&&cand.header.indexOf('日期')<0&&cand.header.indexOf('时间')<0&&cand.header.indexOf('订单')<0&&cand.header.indexOf('编号')<0&&cand.header.indexOf('ID')<0){
+        // 重新用这个列识别商品
+        var newProducts=[];
+        for(var r=headIdx+1;r<rows.length;r++){
+          var row=rows[r]||[];
+          if(!row.some(function(c){return c!=null&&String(c).trim()!=='';})) continue;
+          var name=String(row[cand.col]==null?'':row[cand.col]).trim();
+          if(!name||name.indexOf('说明')>-1||name.indexOf('合计')>-1||name.indexOf('总计')>-1) continue;
+          var sRaw=idxSales>-1?(row[idxSales]==null?'':String(row[idxSales]).trim()):'';
+          var sNum=0;
+          if(sRaw){ var sm=sRaw.match(/(\d+(?:\.\d+)?)/); if(sm) sNum=parseFloat(sm[1]); }
+          var aRaw=idxAmount>-1?(row[idxAmount]==null?'':String(row[idxAmount]).trim()):'';
+          var aNum=0;
+          if(aRaw){ var am=aRaw.match(/(\d+(?:\.\d+)?)/); if(am) aNum=parseFloat(am[1]); }
+          newProducts.push({name:name,sales:sNum,amount:aNum,isSignature:false});
+          if(newProducts.length>=1000) break;
+        }
+        if(newProducts.length>products.length){
+          products=newProducts;
+          idxName=cand.col;
+          break;
+        }
+      }
+    }
   }
   
   // 合计相同商品的销量和销售额
@@ -3115,7 +3189,8 @@ function buildStructured(){
     var total=state.review.parsed.total||0;
     var orders=(data.shop_base&&data.shop_base.valid_orders)||0;
     // 优先用门店数据文件中的"差评订单数"（平台统计口径，准确），评价文件中的差评数仅作列表展示
-    var shopBadOrders=(data.shop_base&&data.shop_base.bad_orders!=null)?data.shop_base.bad_orders:bad.length;
+    // 修复：如果门店数据文件中没有差评订单数（为0或null），且评价文件中有差评，则使用评价文件中的差评数
+    var shopBadOrders=(data.shop_base&&data.shop_base.bad_orders!=null&&data.shop_base.bad_orders>0)?data.shop_base.bad_orders:bad.length;
     data.bad_reviews={
       total:bad.length,
       by_orders:shopBadOrders,
@@ -3619,6 +3694,39 @@ var LLM_SYSTEM=[
 '- 可以把相关联的问题合并分析（比如流量不足和菜单排序问题合并分析）。',
 '- 可以根据门店的实际情况增加或减少分析模块，不要为了凑模块而输出无意义的内容。',
 '- 下面的「分模块分析逻辑」只是分析时的参考框架，不是必须严格遵守的输出模板。',
+'',
+'## 10.5 数据引用准确性铁则（必须严格执行）',
+'- 所有数据必须从结构化数据中准确引用，禁止编造、篡改、错误引用数据。',
+'- 转化率、复购率等百分比数据，必须准确引用结构化数据中的数值，禁止自行计算或估算。',
+'- 老客转化率、新客转化率等细分指标，必须从flow.new_customer和flow.old_customer中准确引用，禁止混淆。',
+'- 差评率必须使用bad_reviews.by_orders_rate字段，禁止自行计算或使用0%等错误值。',
+'- 如果结构化数据中某个字段为null或缺失，必须明确说明"缺少XX数据"，禁止编造数据或使用0代替。',
+'- 引用数据时必须带上具体数值，比如"老客下单转化率32.8%"，而不是笼统地说"老客转化率较高"。',
+'',
+'## 10.6 前端体验诊断要求',
+'- 如果上传了门店二维码截图，必须进行前端体验诊断，禁止说"缺少前端体验详细数据，本模块暂不分析"。',
+'- 前端体验诊断必须基于二维码截图的视觉识别结果（frontend_experience字段），分析维度包括：店铺头图、门店公告、起送价、配送费、评分、菜品分组、商品排序、商品展示效果、商品销量标签等。',
+'- 如果视觉识别结果不完整或缺失，必须明确说明"前端体验视觉识别不完整，仅基于已有信息分析"，禁止直接跳过该模块。',
+'- 前端体验诊断必须给出具体的、可落地的优化建议，禁止输出"提升服务、加强管理"这类空话。',
+'',
+'## 10.7 活动建议针对性要求',
+'- 所有活动建议必须基于门店的实际数据进行测算，禁止输出通用的、与门店数据无关的活动建议。',
+'- 满减活动档位必须结合门店的客单价（shop_base.avg_pay）、订单结构、补贴率（shop_base.subsidy_rate）进行测算，禁止输出通用的"满25减5、满40减8"。',
+'- 活动力度必须考虑门店的成本结构、毛利率、平台扣点，禁止不考虑成本盲目报活动。',
+'- 必须分析门店现有的活动参与情况（activity字段），诊断现有活动是否合理，再给出优化建议。',
+'- 二级端口活动（神枪手/拼好饭/超抢手/爆品团）必须从现有菜单中挑选或组合产品，给出建议到手价，并说明选品理由、成本测算、预期效果。',
+'- 如果缺少成本数据，必须明确说明"缺少商品成本数据，活动力度仅为方向性建议，实际执行前请核算成本"。',
+'',
+'## 10.8 反模板化检查清单（输出前必须自检）',
+'- [ ] 每个结论是否都有对应的具体数据支撑？',
+'- [ ] 是否根据门店的核心问题重点分析，而不是每个模块都写一样多？',
+'- [ ] 活动建议是否结合了门店的客单价、补贴率、成本结构？',
+'- [ ] 是否准确引用了结构化数据中的数值，没有编造或错误引用？',
+'- [ ] 是否进行了多数据源交叉分析，而不是孤立地看单个数据？',
+'- [ ] 前端体验诊断是否基于二维码截图进行了分析，而不是直接跳过？',
+'- [ ] 输出结构是否根据门店实际情况灵活调整，而不是严格按照固定模板？',
+'- [ ] 是否避免了"提升服务、加强管理、做好品控"这类无执行动作的空话？',
+'- 如果以上任何一项不满足，必须重新修改输出内容。',
 '',
 '## 分模块分析逻辑（参考框架，非固定输出模板）',
 '### 1. 核心问题总结',
