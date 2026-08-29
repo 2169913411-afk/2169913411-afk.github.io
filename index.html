@@ -1223,12 +1223,41 @@ h1,h2,h3,.lp-title{
       </div>
     </div>
 
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">第一步：选择分析档位</div>
+      <div id="planList">
+        <label class="plan-opt" data-plan="38">
+          <input type="radio" name="plan" value="38">
+          <div><div class="p-name">基础数据诊断</div><div class="p-desc">识别数据 + 简单诊断</div></div>
+          <span class="p-cost">38积分</span>
+        </label>
+        <label class="plan-opt" data-plan="58">
+          <input type="radio" name="plan" value="58">
+          <div><div class="p-name">深度运营诊断 + 话术</div><div class="p-desc">全维度诊断 + 商家沟通话术</div></div>
+          <span class="p-cost">58积分</span>
+        </label>
+        <label class="plan-opt active" data-plan="88">
+          <input type="radio" name="plan" value="88" checked>
+          <span class="reco">推荐</span>
+          <div><div class="p-name">菜单全量优化 + 导出</div><div class="p-desc">商品标题/描述/定价优化 + 导出Excel + 同步话术</div></div>
+          <span class="p-cost">88积分</span>
+        </label>
+      </div>
+      <div class="plan-requirement-tip" id="planRequirementTip" style="margin-top:10px;padding:10px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E40AF;line-height:1.6;">
+        <b>当前档位（菜单全量优化+导出）需要：</b><br>
+        ✅ 必选：门店数据文件、菜单数据文件<br>
+        ⚪ 可选：门店二维码、同行数据截图、评价数据
+      </div>
+      <div class="balance-tip" id="balanceTip" style="margin-top:10px;">当前可用积分：0，本次操作将消耗 88 积分</div>
+      <button class="btn-primary" id="startBtn" onclick="onStart()" style="margin-top:10px;width:100%;">开始AI分析</button>
+    </div>
+
     <div class="section" id="qrSection">
       <div class="section-title">1. 门店二维码截图 <span class="tag tag-opt" id="qrTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="qrZone">
         <i data-lucide="qr-code"></i>
         <div class="uz-body">
-          <div class="main">点击上传门店二维码</div>
+          <div class="main">点击、拖拽或粘贴上传门店二维码</div>
           <div class="sub">模拟普通消费者进店视角，支持 Ctrl+V 粘贴（jpg/png）</div>
         </div>
         <div class="paste-hint">粘贴到：门店二维码截图</div>
@@ -1260,7 +1289,7 @@ h1,h2,h3,.lp-title{
       <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
         <div class="uz-body">
-          <div class="main">点击或拖拽上传商品销售Excel</div>
+          <div class="main">点击、拖拽或粘贴上传商品销售Excel</div>
           <div class="sub">菜品名称、售价、销量、销售额、成本、分类，用于菜品诊断和优化</div>
         </div>
         <div class="paste-hint">粘贴到：商品销售Excel</div>
@@ -1278,7 +1307,7 @@ h1,h2,h3,.lp-title{
       <div class="upload-zone uz-qr" id="orderZone">
         <i data-lucide="file-text"></i>
         <div class="uz-body">
-          <div class="main">点击或拖拽上传商家订单Excel</div>
+          <div class="main">点击、拖拽或粘贴上传商家订单Excel</div>
           <div class="sub">订单明细，用于核算平台扣点、补贴、实付金额、单店真实收益</div>
         </div>
         <div class="paste-hint">粘贴到：商家订单Excel</div>
@@ -1296,7 +1325,7 @@ h1,h2,h3,.lp-title{
       <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
         <div class="uz-body">
-          <div class="main">点击或拖拽上传用户评价Excel</div>
+          <div class="main">点击、拖拽或粘贴上传用户评价Excel</div>
           <div class="sub">存储全部好评、差评、追评内容，用于差评归类、问题拆解、回复模板</div>
         </div>
         <div class="paste-hint">粘贴到：用户评价Excel</div>
@@ -1340,30 +1369,6 @@ h1,h2,h3,.lp-title{
     <div class="section">
       <div class="section-title" style="font-size:14px;">补充说明（可选）</div>
       <textarea id="notesInput" placeholder="填写门店品类、商圈、近期特殊情况、想要重点分析的方向"></textarea>
-    </div>
-
-    <div class="section">
-      <div class="section-title" style="font-size:14px;">选择分析功能</div>
-      <div id="planList">
-        <label class="plan-opt" data-plan="38">
-          <input type="radio" name="plan" value="38">
-          <div><div class="p-name">基础数据诊断</div><div class="p-desc">识别数据 + 简单诊断</div></div>
-          <span class="p-cost">38积分</span>
-        </label>
-        <label class="plan-opt" data-plan="58">
-          <input type="radio" name="plan" value="58">
-          <div><div class="p-name">深度运营诊断 + 话术</div><div class="p-desc">全维度诊断 + 商家沟通话术</div></div>
-          <span class="p-cost">58积分</span>
-        </label>
-        <label class="plan-opt active" data-plan="88">
-          <input type="radio" name="plan" value="88" checked>
-          <span class="reco">推荐</span>
-          <div><div class="p-name">菜单全量优化 + 导出</div><div class="p-desc">商品标题/描述/定价优化 + 导出Excel + 同步话术</div></div>
-          <span class="p-cost">88积分</span>
-        </label>
-      </div>
-      <div class="balance-tip" id="balanceTip">当前可用积分：0，本次操作将消耗 88 积分</div>
-      <button class="btn-primary" id="startBtn" onclick="onStart()">开始AI分析</button>
     </div>
   </aside>
 
@@ -2476,7 +2481,12 @@ function bindPasteZone(el,key){
   el.addEventListener('mouseleave',function(){ if(pasteTarget===key){ pasteTarget=null; el.classList.remove('paste-target'); } });
 }
 bindPasteZone($('qrZone'),'qr');
+bindPasteZone($('overviewZone'),'overview');
+bindPasteZone($('menuZone'),'menu');
+bindPasteZone($('orderZone'),'order');
+bindPasteZone($('reviewZone'),'review');
 bindPasteZone($('peerZone'),'peer');
+bindPasteZone($('roiZone'),'roi');
 bindPasteZone($('qrZone2'),'qr2');
 /* 通用二维码识别（图片 → 文本内容） */
 function recognizeQrFromDataUrl(dataUrl, onResult){
@@ -2513,32 +2523,66 @@ function handlePastedImage(f,target){
     });
     return;
   }
+  // 通用图片粘贴处理
+  var targetNames = {
+    qr: '门店二维码截图',
+    overview: '经营概览截图',
+    peer: '商圈同行对比数据',
+    roi: '推广ROI数据'
+  };
+  var targetName = targetNames[target] || '门店二维码';
+  
+  if(target==='overview'){
+    if(!state.overview) state.overview=[];
+    if(state.overview.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
+    fileToDataUrl(f,0).then(function(d){
+      state.overview.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
+      renderOverviewThumbs();
+      toast('已粘贴到「经营概览截图」');
+    });
+    return;
+  }
+  if(target==='roi'){
+    if(!state.roi) state.roi=[];
+    if(state.roi.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
+    fileToDataUrl(f,0).then(function(d){
+      state.roi.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
+      renderRoiThumbs();
+      toast('已粘贴到「推广ROI数据」');
+    });
+    return;
+  }
   if(target==='peer'){
     if(state.peer.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
     fileToDataUrl(f,0).then(function(d){
       state.peer.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
       renderPeerThumbs();
-      toast('已粘贴到「同行数据以及重要截图」');
+      toast('已粘贴到「商圈同行对比数据」');
     });
     return;
   }
-  if(!state.qr){
-    fileToDataUrl(f,0).then(function(d){
-      state.qr={file:f,dataUrl:d,name:f.name||('粘贴图片_'+Date.now()+'.png')};
-      if($('qrName')) $('qrName').textContent=state.qr.name;
-      if($('qrItem')) $('qrItem').classList.remove('hidden');
-      if($('qrZone')) $('qrZone').classList.add('hidden');
-      updateStartBtn();
-      toast('已粘贴为门店二维码');
-    });
-  } else {
-    if(state.peer.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
-    fileToDataUrl(f,0).then(function(d){
-      state.peer.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
-      renderPeerThumbs();
-      toast('已粘贴为同行/重要截图');
-    });
+  if(target==='qr' || !target){
+    if(!state.qr){
+      fileToDataUrl(f,0).then(function(d){
+        state.qr={file:f,dataUrl:d,name:f.name||('粘贴图片_'+Date.now()+'.png')};
+        if($('qrName')) $('qrName').textContent=state.qr.name;
+        if($('qrItem')) $('qrItem').classList.remove('hidden');
+        if($('qrZone')) $('qrZone').classList.add('hidden');
+        updateStartBtn();
+        toast('已粘贴为门店二维码');
+      });
+    } else {
+      if(state.peer.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
+      fileToDataUrl(f,0).then(function(d){
+        state.peer.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
+        renderPeerThumbs();
+        toast('已粘贴为同行/重要截图');
+      });
+    }
+    return;
   }
+  // 对于Excel类型的上传区域，提示用户图片不适用
+  toast('该区域主要上传Excel文件，图片请粘贴到截图类区域');
 }
 document.addEventListener('paste',function(e){
   var items=(e.clipboardData&&e.clipboardData.items)||[];
