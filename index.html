@@ -253,6 +253,9 @@ textarea::placeholder{color:var(--text3);}
 .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:16px;}
 .tab{padding:8px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;}
 .tab.active{color:var(--primary);font-weight:700;border-bottom-color:var(--primary);}
+.record-filter-btn{padding:6px 14px;font-size:12px;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .2s ease;}
+.record-filter-btn:hover{border-color:var(--primary);color:var(--primary);}
+.record-filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600;}
 .avatar-circle{width:40px;height:40px;border-radius:50%;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;}
 .avatar-circle img{width:100%;height:100%;object-fit:cover;}
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:rgba(29,33,41,.92);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.2);}
@@ -1503,7 +1506,12 @@ h1,h2,h3,.lp-title{
       <div id="modelStatus" style="font-size:12px;color:var(--text3);margin-top:10px;"></div>
     </div>
     <div id="tab-records" class="hidden">
-      <div id="recordsList" style="font-size:13px;color:var(--text2);"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="record-filter-btn active" data-filter="all" onclick="filterRecords('all')">全部记录</button>
+        <button class="record-filter-btn" data-filter="consume" onclick="filterRecords('consume')">消费记录</button>
+        <button class="record-filter-btn" data-filter="recharge" onclick="filterRecords('recharge')">充值记录</button>
+      </div>
+      <div id="recordsList" style="font-size:13px;color:var(--text2);max-height:400px;overflow-y:auto;"></div>
     </div>
   </div>
 </div>
@@ -2394,12 +2402,48 @@ function switchTab(t){
   var tabs=document.querySelectorAll('#profileMask .tab');
   tabs.forEach(function(tb){ tb.classList.toggle('active',tb.getAttribute('data-tab')===t); });
 }
+var currentRecordFilter='all';
+function filterRecords(filter){
+  currentRecordFilter=filter;
+  var btns=document.querySelectorAll('.record-filter-btn');
+  btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')===filter); });
+  renderRecords();
+}
 function renderRecords(){
-  var list=state.pointsLog.slice(0,50);
-  $('recordsList').innerHTML=list.length?
-    '<table style="width:100%;font-size:12px;border-collapse:collapse;"><tr style="color:var(--text3);text-align:left;"><th style="padding:6px;">时间</th><th>变动</th><th>说明</th><th>余额</th></tr>'+
-    list.map(function(r){return '<tr style="border-top:1px solid var(--border);"><td style="padding:6px;">'+r.t+'</td><td class="num">'+r.delta+'</td><td>'+r.note+'</td><td class="num">'+r.balance+'</td></tr>';}).join('')+
-    '</table>' : '暂无记录';
+  var allList=state.pointsLog.slice(0,100);
+  var list=allList;
+  if(currentRecordFilter==='consume'){
+    list=allList.filter(function(r){ return r.delta && r.delta.charAt(0)==='-'; });
+  }else if(currentRecordFilter==='recharge'){
+    list=allList.filter(function(r){ return r.delta && r.delta.charAt(0)==='+'; });
+  }
+  if(!list.length){
+    var emptyText=currentRecordFilter==='consume'?'暂无消费记录':currentRecordFilter==='recharge'?'暂无充值记录':'暂无记录';
+    $('recordsList').innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text3);font-size:13px;">'+emptyText+'</div>';
+    return;
+  }
+  $('recordsList').innerHTML=
+    '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
+    '<tr style="color:var(--text3);text-align:left;background:#F7F8FA;">'+
+    '<th style="padding:10px 8px;font-weight:600;">时间</th>'+
+    '<th style="padding:10px 8px;font-weight:600;">类型</th>'+
+    '<th style="padding:10px 8px;font-weight:600;">项目说明</th>'+
+    '<th style="padding:10px 8px;font-weight:600;text-align:right;">变动积分</th>'+
+    '<th style="padding:10px 8px;font-weight:600;text-align:right;">余额</th>'+
+    '</tr>'+
+    list.map(function(r){
+      var isConsume=r.delta && r.delta.charAt(0)==='-';
+      var typeText=isConsume?'<span style="color:#DC2626;background:#FEF2F2;padding:2px 8px;border-radius:4px;font-size:11px;">消费</span>':'<span style="color:#16A34A;background:#F0FDF4;padding:2px 8px;border-radius:4px;font-size:11px;">充值</span>';
+      var deltaColor=isConsume?'#DC2626':'#16A34A';
+      return '<tr style="border-top:1px solid var(--border);">'+
+        '<td style="padding:10px 8px;color:var(--text3);font-size:11px;">'+r.t+'</td>'+
+        '<td style="padding:10px 8px;">'+typeText+'</td>'+
+        '<td style="padding:10px 8px;color:var(--text1);">'+r.note+'</td>'+
+        '<td class="num" style="padding:10px 8px;text-align:right;font-weight:600;color:'+deltaColor+';">'+r.delta+'</td>'+
+        '<td class="num" style="padding:10px 8px;text-align:right;color:var(--text2);">'+r.balance+'</td>'+
+        '</tr>';
+    }).join('')+
+    '</table>';
 }
 function saveApi(){
   state.api.apiKey=$('modelApiKey').value.trim();
