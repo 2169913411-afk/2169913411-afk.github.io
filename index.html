@@ -2749,6 +2749,8 @@ function handleShopFile(f){
   $('shopName').textContent=f.name; $('shopSize').textContent=fmtSize(f.size);
   $('shopItem').classList.remove('hidden'); $('shopZone').classList.add('hidden');
   $('shopRecog').classList.add('hidden');
+  // 上传后隐藏"需上传"标签
+  var shopTag=$('shopTag'); if(shopTag) shopTag.style.display='none';
   readSheetArray(f).then(function(rows){
     var res=parseShopFile(rows);
     state.shop={file:f,rows:rows,parsed:res};
@@ -2771,7 +2773,7 @@ function handleShopFile(f){
     updateStartBtn();
   });
 }
-function removeShop(){ state.shop=null; RECOGNIZED.shop=null; $('shopItem').classList.add('hidden'); $('shopZone').classList.remove('hidden'); $('shopRecog').classList.add('hidden'); updateStartBtn(); }
+function removeShop(){ state.shop=null; RECOGNIZED.shop=null; $('shopItem').classList.add('hidden'); $('shopZone').classList.remove('hidden'); $('shopRecog').classList.add('hidden'); var shopTag=$('shopTag'); if(shopTag) shopTag.style.display=''; updateStartBtn(); }
 
 /* 菜单数据文件：识别 商品名称/菜单分组/价格/描述 */
 function parseMenuFile(rows){
@@ -3079,6 +3081,7 @@ function completenessCheck(){
   var materialStatus={
     qr:!!(state.qr&&state.qr.file),
     overview:!!(state.overview&&state.overview.length),
+    shop:!!(state.shop&&state.shop.parsed&&state.shop.parsed.ok),
     menu:!!(state.menu&&state.menu.parsed&&state.menu.parsed.ok),
     order:!!(state.order&&state.order.parsed&&state.order.parsed.ok),
     review:!!(state.review&&state.review.parsed&&state.review.parsed.ok),
@@ -3176,7 +3179,19 @@ function doAnalysis(){
 }
 function renderLoading(msg){
   var area=$('resultArea');
-  area.innerHTML='<div class="loading-box"><div class="spinner"></div><div class="lm">'+(msg||'AI正在解析店铺数据，生成外卖运营方案，请稍候')+'</div><div class="ls">解析时长约30-90秒，无需重复点击</div></div>';
+  area.innerHTML='<div class="loading-box"><div class="spinner"></div><div class="lm">'+(msg||'AI正在解析店铺数据，生成外卖运营方案，请稍候')+'</div><div class="ls" id="loadingTimer">已用时 0 秒</div></div>';
+  // 动态计时
+  var startTime=Date.now();
+  if(window._loadingTimer) clearInterval(window._loadingTimer);
+  window._loadingTimer=setInterval(function(){
+    var timerEl=$('loadingTimer');
+    if(timerEl){
+      var elapsed=Math.floor((Date.now()-startTime)/1000);
+      timerEl.textContent='已用时 '+elapsed+' 秒';
+    }else{
+      clearInterval(window._loadingTimer);
+    }
+  },1000);
 }
 
 /* ---------- 主分析流程 ---------- */
