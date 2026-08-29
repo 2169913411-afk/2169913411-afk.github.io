@@ -2416,8 +2416,9 @@ function parseJson(txt){
 /* ---------- 上传 ---------- */
 function setupZone(zoneId,inputId,handler){
   var zone=$(zoneId), input=$(inputId);
-  zone.addEventListener('click',function(){ input.click(); });
-  input.addEventListener('change',function(){ handler(input.files); input.value=''; });
+  zone.addEventListener('click',function(e){ if(e.target!==input) input.click(); });
+  input.addEventListener('change',function(e){ e.stopPropagation(); handler(input.files); input.value=''; });
+  input.addEventListener('click',function(e){ e.stopPropagation(); });
   zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave',function(){ zone.classList.remove('drag'); });
   zone.addEventListener('drop',function(e){
