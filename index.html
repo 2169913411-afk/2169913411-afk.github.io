@@ -30,7 +30,7 @@ input,textarea,select{font-family:inherit;}
 .hidden{display:none !important;}
 /* 文件上传input覆盖整个上传区域，确保点击能正常触发 */
 .upload-zone{position:relative;overflow:hidden;}
-.upload-zone input[type="file"].hidden{display:block !important;position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:10;}
+.upload-zone input[type="file"]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:10;}
 
 /* Lucide 图标统一：16px、和文字垂直居中、间距 gap */
 .lucide{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;vertical-align:-3px;flex-shrink:0;}
@@ -1263,7 +1263,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">模拟普通消费者进店视角，支持 Ctrl+V 粘贴（jpg/png）</div>
         </div>
         <div class="paste-hint">粘贴到：门店二维码截图</div>
-        <input type="file" id="qrInput" accept="image/*" class="hidden">
+        <input type="file" id="qrInput" accept="image/*">
       </div>
       <div id="qrItem" class="file-item hidden" style="margin-top:10px;">
         <span>🔳</span><span class="fname" id="qrName"></span>
@@ -1280,7 +1280,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">包含曝光、入店、下单转化、客单价，同时读取商圈同行指标</div>
         </div>
         <div class="paste-hint">粘贴到：经营概览截图</div>
-        <input type="file" id="overviewInput" accept="image/*" multiple class="hidden">
+        <input type="file" id="overviewInput" accept="image/*" multiple>
       </div>
       <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天经营概览：曝光人数、入店人数、下单人数、入店转化率、下单转化率、有效订单、客单价；截图内需包含商圈同行对比数据</div>
       <div class="thumb-grid" id="overviewThumbs"></div>
@@ -1295,7 +1295,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">包含日期、有效订单、收入、营业额、曝光、进店、下单转化等核心经营数据</div>
         </div>
         <div class="paste-hint">粘贴到：门店数据Excel</div>
-        <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
+        <input type="file" id="shopInput" accept=".xlsx,.xls">
       </div>
       <div id="shopItem" class="file-item hidden" style="margin-top:10px;">
         <span>🏪</span><span class="fname" id="shopName"></span><span class="fsize" id="shopSize"></span>
@@ -1313,7 +1313,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">菜品名称、售价、销量、销售额、成本、分类，用于菜品诊断和优化</div>
         </div>
         <div class="paste-hint">粘贴到：商品销售Excel</div>
-        <input type="file" id="menuInput" accept=".xlsx,.xls" class="hidden">
+        <input type="file" id="menuInput" accept=".xlsx,.xls">
       </div>
       <div id="menuItem" class="file-item hidden" style="margin-top:10px;">
         <span>🍜</span><span class="fname" id="menuName"></span><span class="fsize" id="menuSize"></span>
@@ -1331,7 +1331,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">订单明细，用于核算平台扣点、补贴、实付金额、单店真实收益</div>
         </div>
         <div class="paste-hint">粘贴到：商家订单Excel</div>
-        <input type="file" id="orderInput" accept=".xlsx,.xls" class="hidden">
+        <input type="file" id="orderInput" accept=".xlsx,.xls">
       </div>
       <div id="orderItem" class="file-item hidden" style="margin-top:10px;">
         <span>📋</span><span class="fname" id="orderName"></span><span class="fsize" id="orderSize"></span>
@@ -1349,7 +1349,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">存储全部好评、差评、追评内容，用于差评归类、问题拆解、回复模板</div>
         </div>
         <div class="paste-hint">粘贴到：用户评价Excel</div>
-        <input type="file" id="reviewInput" accept=".xlsx,.xls" class="hidden">
+        <input type="file" id="reviewInput" accept=".xlsx,.xls">
       </div>
       <div id="reviewItem" class="file-item hidden" style="margin-top:10px;">
         <span>⭐</span><span class="fname" id="reviewName"></span><span class="fsize" id="reviewSize"></span>
@@ -1367,7 +1367,7 @@ h1,h2,h3,.lp-title{
           <div class="sub">商品名称、批发价/成本价，用于精确计算外卖毛利率（未上传则AI自动估算）</div>
         </div>
         <div class="paste-hint">粘贴到：商品成本Excel</div>
-        <input type="file" id="costInput" accept=".xlsx,.xls" class="hidden">
+        <input type="file" id="costInput" accept=".xlsx,.xls">
       </div>
       <div id="costItem" class="file-item hidden" style="margin-top:10px;">
         <span>💰</span><span class="fname" id="costName"></span><span class="fsize" id="costSize"></span>
@@ -1591,7 +1591,7 @@ h1,h2,h3,.lp-title{
       <div class="upload-zone" style="flex:0 0 128px;height:80px;margin:0;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
         <div class="main" style="font-size:12px;">上传二维码</div>
         <div class="sub" style="font-size:11px;">或 Ctrl+V 粘贴</div>
-        <input type="file" id="qrInput2" accept="image/*" class="hidden">
+        <input type="file" id="qrInput2" accept="image/*">
       </div>
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
         <input type="text" id="shopLink" placeholder="粘贴店铺链接 / 淘宝口令（h5.ele.me 可直接抓；口令点「自动解码」）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
@@ -1878,7 +1878,7 @@ var __meituanOcrInterval = setInterval(function(){
       '<div class="upload-zone" style="flex:0 0 120px;height:80px;margin:0;cursor:pointer;" id="meituanScreenshotZone" onclick="document.getElementById(\'meituanScreenshotInput\').click()">' +
       '<div class="main" style="font-size:12px;">上传长截图</div>' +
       '<div class="sub" style="font-size:11px;">或 Ctrl+V 粘贴</div>' +
-      '<input type="file" id="meituanScreenshotInput" accept="image/*" class="hidden" multiple></div>' +
+      '<input type="file" id="meituanScreenshotInput" accept="image/*" multiple></div>' +
       '<div style="flex:1;display:flex;flex-direction:column;gap:6px;">' +
       '<div id="meituanScreenshotList" style="font-size:11px;color:#4E5969;max-height:60px;overflow-y:auto;">暂无截图</div>' +
       '<button style="background:#E8F0FE;color:#165DFF;border:1px solid #C6D9FF;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;height:32px;" onclick="recognizeMeituanScreenshots()">🤖 AI识别菜品</button>' +
