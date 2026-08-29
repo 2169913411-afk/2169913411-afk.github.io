@@ -575,6 +575,210 @@ function copyMeituanScraper(){
   if(st) st.textContent='✅ 已复制，请到美团店铺页面F12控制台粘贴执行';
   toast('美团抓取脚本已复制');
 }
+/* ========== 美团长截图AI识别 ========== */
+var meituanScreenshots=[];
+(function(){
+  // 长截图上传
+  document.addEventListener('change',function(e){
+    if(e.target && e.target.id==='meituanScreenshotInput'){
+      var files=e.target.files;
+      for(var i=0;i<files.length;i++){
+        (function(file){
+          var reader=new FileReader();
+          reader.onload=function(ev){
+            meituanScreenshots.push({name:file.name,data:ev.target.result});
+            renderMeituanScreenshots();
+          };
+          reader.readAsDataURL(file);
+        })(files[i]);
+      }
+    }
+  });
+  // 粘贴上传
+  document.addEventListener('paste',function(e){
+    if(e.clipboardData && e.clipboardData.items){
+      for(var i=0;i<e.clipboardData.items.length;i++){
+        var item=e.clipboardData.items[i];
+        if(item.type.indexOf('image')>-1){
+          var file=item.getAsFile();
+          var reader=new FileReader();
+          reader.onload=function(ev){
+            meituanScreenshots.push({name:'粘贴截图_'+(meituanScreenshots.length+1)+'.png',data:ev.target.result});
+            renderMeituanScreenshots();
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  });
+})();
+function renderMeituanScreenshots(){
+  var el=$('meituanScreenshotList');
+  if(!el) return;
+  el.innerHTML=meituanScreenshots.length?meituanScreenshots.map(function(s,i){
+    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'+
+      '<span style="color:#16A34A;">✅</span>'+
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.name+'</span>'+
+      '<button style="background:none;border:none;color:#F53F3F;cursor:pointer;font-size:12px;" onclick="removeMeituanScreenshot('+i+')">删除</button>'+
+      '</div>';
+  }).join(''):'<span style="color:var(--text3);">暂无截图</span>';
+}
+function removeMeituanScreenshot(i){
+  meituanScreenshots.splice(i,1);
+  renderMeituanScreenshots();
+}
+function setMeituanOcrStatus(msg,type){
+  var el=$('meituanOcrStatus');
+  if(!el) return;
+  el.style.display='block';
+  el.textContent=msg;
+  el.style.background=type==='ok'?'#F0FDF4':type==='err'?'#FEF2F2':'#FFF7ED';
+  el.style.borderColor=type==='ok'?'#BBF7D0':type==='err'?'#FECACA':'#FED7AA';
+  el.style.color=type==='ok'?'#16A34A':type==='err'?'#DC2626':'#B45309';
+}
+async function recognizeMeituanScreenshots(){
+  if(meituanScreenshots.length===0){
+    toast('请先上传长截图');
+    return;
+  }
+  setMeituanOcrStatus('🤖 AI正在识别菜品数据，请稍候...','run');
+  try{
+    var apiCfg=state.api||{};
+    var apiKey=apiCfg.apiKey||'f556e493ee9540ab82d696d4dada4d5c.4W9S0BVvIWVcz7W9';
+    var baseUrl=apiCfg.baseUrl||'https://open.bigmodel.cn/api/paas/v4';
+    var model=apiCfg.visionModel||'glm-4v-flash';
+    
+    // 构建提示词
+    var prompt='请识别这张美团外卖店铺菜单长截图中的所有菜品信息。\n'+
+      '对每个菜品提取：菜品名称、价格（元）、月售、分组名称。\n'+
+      '注意：\n'+
+      '1. 价格提取实际支付价格（划线价旁边的价格）\n'+
+      '2. 月售提取数字（如"月售100+"提取100）\n'+
+      '3. 分组名称是左侧分类栏中的分类名\n'+
+      '4. 如果一个菜品在多个分组出现，只记录一次\n'+
+      '5. 只提取真实菜品，不要提取广告、活动入口等\n\n'+
+      '请严格按以下JSON格式返回（不要输出其他内容）：\n'+
+      '{"dishes":[{"name":"菜品名","price":12.5,"sales":100,"category":"分组名"}]}';
+    
+    // 逐个识别截图
+    var allDishes=[];
+    for(var i=0;i<meituanScreenshots.length;i++){
+      setMeituanOcrStatus('🤖 正在识别第 '+(i+1)+'/'+meituanScreenshots.length+' 张截图...','run');
+      
+      var content=[
+        {type:'text',text:prompt},
+        {type:'image_url',image_url:{url:meituanScreenshots[i].data}}
+      ];
+      
+      var resp=await fetch(baseUrl+'/chat/completions',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+apiKey
+        },
+        body:JSON.stringify({
+          model:model,
+          messages:[{role:'user',content:content}],
+          temperature:0.1,
+          max_tokens:4096
+        })
+      });
+      
+      if(!resp.ok){
+        throw new Error('API请求失败：'+resp.status);
+      }
+      
+      var data=await resp.json();
+      var resultText=data.choices[0].message.content;
+      
+      // 提取JSON
+      var jsonMatch=resultText.match(/\{[\s\S]*\}/);
+      if(jsonMatch){
+        var parsed=JSON.parse(jsonMatch[0]);
+        if(parsed.dishes && Array.isArray(parsed.dishes)){
+          allDishes=allDishes.concat(parsed.dishes);
+        }
+      }
+    }
+    
+    // 去重
+    var uniqueDishes=[];
+    var seen={};
+    allDishes.forEach(function(d){
+      var key=d.name+'_'+d.price;
+      if(!seen[key]){
+        seen[key]=true;
+        uniqueDishes.push(d);
+      }
+    });
+    
+    setMeituanOcrStatus('✅ 识别完成！共识别到 '+uniqueDishes.length+' 个菜品','ok');
+    renderMeituanOcrResult(uniqueDishes);
+    
+  }catch(e){
+    console.error('识别失败',e);
+    setMeituanOcrStatus('❌ 识别失败：'+e.message,'err');
+  }
+}
+function renderMeituanOcrResult(dishes){
+  var el=$('meituanOcrResult');
+  if(!el) return;
+  el.style.display='block';
+  
+  var html='<div style="margin-top:10px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+    '<span style="font-size:13px;font-weight:600;color:var(--text1);">识别结果（'+dishes.length+'个菜品）</span>'+
+    '<button class="btn-blue-ghost" style="height:30px;font-size:12px;" onclick="exportMeituanOcrExcel()">📥 导出Excel</button>'+
+    '</div>'+
+    '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
+    '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
+    '<thead><tr style="background:#F7F8FA;position:sticky;top:0;">'+
+    '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">分组</th>'+
+    '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">菜品名称</th>'+
+    '<th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);">价格</th>'+
+    '<th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);">月售</th>'+
+    '</tr></thead><tbody>';
+  
+  dishes.forEach(function(d){
+    html+='<tr>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;color:var(--text3);">'+(d.category||'')+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;">'+(d.name||'')+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;text-align:right;color:#FF7D00;font-weight:600;">¥'+(d.price||'')+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;text-align:right;color:var(--text2);">'+(d.sales||'')+'</td>'+
+      '</tr>';
+  });
+  
+  html+='</tbody></table></div></div>';
+  el.innerHTML=html;
+  
+  // 保存到全局，供导出使用
+  window.__meituanOcrDishes=dishes;
+}
+function exportMeituanOcrExcel(){
+  var dishes=window.__meituanOcrDishes||[];
+  if(dishes.length===0){
+    toast('没有可导出的数据');
+    return;
+  }
+  
+  // 构建CSV
+  var csv='\uFEFF分组,菜品名称,价格(元),月售\n';
+  dishes.forEach(function(d){
+    csv+=(d.category||'')+','+(d.name||'')+','+(d.price||'')+','+(d.sales||'')+'\n';
+  });
+  
+  // 下载
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='美团菜单_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Excel已导出');
+}
 function arrayBufferToBase64(buf){
   var bytes=new Uint8Array(buf), binary='';
   for(var i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]);

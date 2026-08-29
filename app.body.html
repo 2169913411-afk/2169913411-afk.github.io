@@ -359,19 +359,47 @@
     <!-- 美团外卖专用抓取区域 -->
     <div id="meituanScrapeArea" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
       <div style="font-size:13px;color:var(--text1);font-weight:700;margin-bottom:8px;">🍔 美团外卖专用抓取</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
-        <b>操作步骤：</b><br>
+      
+      <!-- 长截图AI识别（推荐，不会触发反爬） -->
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:#16A34A;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span>📸</span> 长截图AI识别（推荐 · 不会触发反爬）
+        </div>
+        <div style="font-size:12px;color:#4E5969;line-height:1.8;margin-bottom:10px;">
+          <b>操作步骤：</b><br>
+          1. 在手机美团APP中打开目标店铺<br>
+          2. 使用手机长截图功能，截取完整菜单（逐个分类滑动截取）<br>
+          3. 将长截图上传到下方，AI自动识别菜品名称、价格、月售<br>
+          4. 识别完成后可导出Excel表格
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div class="upload-zone" style="flex:0 0 120px;height:80px;margin:0;" id="meituanScreenshotZone" onclick="document.getElementById('meituanScreenshotInput').click()">
+            <div class="main" style="font-size:12px;">上传长截图</div>
+            <div class="sub" style="font-size:11px;">或 Ctrl+V 粘贴</div>
+            <input type="file" id="meituanScreenshotInput" accept="image/*" class="hidden" multiple>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+            <div id="meituanScreenshotList" style="font-size:11px;color:var(--text2);max-height:60px;overflow-y:auto;"></div>
+            <button class="btn-blue-ghost" style="height:32px;font-size:12px;" onclick="recognizeMeituanScreenshots()">🤖 AI识别菜品</button>
+          </div>
+        </div>
+        <div id="meituanOcrStatus" style="display:none;margin-top:10px;font-size:12px;font-weight:600;line-height:1.8;border-radius:8px;padding:8px 10px;background:#FFF7ED;border:1px solid #FED7AA;color:#B45309;"></div>
+        <div id="meituanOcrResult" style="display:none;margin-top:10px;"></div>
+      </div>
+      
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+        <b>控制台脚本方式（可能触发反爬，不推荐）：</b><br>
         1. 点击上方「开始抓取」打开美团店铺页面<br>
         2. 在美团店铺页面按 <b>F12</b>（Mac：<b>Cmd+Option+J</b>）打开控制台<br>
         3. 点击下方「复制抓取脚本」，粘贴到控制台回车执行<br>
         4. 脚本自动逐个分类抓取，完成后自动下载 Excel
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button class="btn-blue-ghost" style="height:36px;font-size:13px;" onclick="copyMeituanScraper()">📋 复制美团抓取脚本</button>
+        <button class="btn-ghost" style="height:36px;font-size:13px;" onclick="copyMeituanScraper()">📋 复制美团抓取脚本</button>
         <span id="meituanCopyStatus" style="font-size:12px;color:#16A34A;"></span>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:8px;">
-        提示：美团店铺页面需先登录（手机美团App扫码），登录后再执行脚本。脚本支持虚拟滚动，自动加载所有分类菜品。
+        提示：美团反爬严格，推荐使用上方「长截图AI识别」功能，不会触发反爬限制。
       </div>
     </div>
   </div>
