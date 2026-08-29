@@ -1686,52 +1686,24 @@ h1,h2,h3,.lp-title{
 
 <script>
 (function(){
-  /* 资源版本号：每次部署新版本时改这里即可，避免浏览器/CDN缓存旧文件 */
-  var V='20260829.2';
-  var root=document.getElementById('__appRoot');
-  function loadScript(src){
-    return new Promise(function(res,rej){
-      var s=document.createElement('script');
-      s.src=src;
-      s.onload=function(){ res(); };
-      s.onerror=function(){ rej(new Error('脚本加载失败: '+src)); };
-      document.body.appendChild(s);
-    });
-  }
-  fetch('app.body.html?v='+V).then(function(r){ return r.text(); }).then(function(html){
-    if(root){ root.outerHTML=html; }
-    return loadScript('app.js.1?v='+V)
-      .then(function(){ return loadScript('app.js.2?v='+V); })
-      .then(function(){ return loadScript('app.js.3?v='+V); })
-      .then(function(){ return loadScript('app.js.4?v='+V); })
-      .then(function(){ return loadScript('app.js.5?v='+V); })
-      .then(function(){
-        // 覆盖extractShopId函数，支持从restaurant_id和URL编码链接中提取店铺ID
-        window.extractShopId = function(url){
-          var s=String(url||'');
-          var m=s.match(/[?&](?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
-          if(m) return m[1];
-          var m2=s.match(/(?:shopId|restaurant_id)%3D([A-Za-z0-9]+)/i);
-          if(m2) return m2[1];
-          try{
-            var targetMatch=s.match(/[?&]targetUrl=([^&]+)/);
-            if(targetMatch){
-              var decoded=decodeURIComponent(targetMatch[1]);
-              var m3=decoded.match(/(?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
-              if(m3) return m3[1];
-            }
-          }catch(e){}
-          return '';
-        };
-        console.log('extractShopId已更新');
-      })
-      ['catch'](function(e){
-        console.log('脚本加载完成（部分脚本可能不存在）', e);
-      });
-  })['catch'](function(e){
-    console.error('LOAD_ERROR',e);
-    if(root) root.textContent='加载失败，请刷新重试';
-  });
+  // 提取店铺ID函数，支持从restaurant_id和URL编码链接中提取店铺ID
+  window.extractShopId = function(url){
+    var s=String(url||'');
+    var m=s.match(/[?&](?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+    if(m) return m[1];
+    var m2=s.match(/(?:shopId|restaurant_id)%3D([A-Za-z0-9]+)/i);
+    if(m2) return m2[1];
+    try{
+      var targetMatch=s.match(/[?&]targetUrl=([^&]+)/);
+      if(targetMatch){
+        var decoded=decodeURIComponent(targetMatch[1]);
+        var m3=decoded.match(/(?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+        if(m3) return m3[1];
+      }
+    }catch(e){}
+    return '';
+  };
+  console.log('extractShopId已初始化');
 })();
 </script>
 <script>
