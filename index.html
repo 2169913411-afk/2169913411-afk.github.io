@@ -1658,26 +1658,30 @@ h1,h2,h3,.lp-title{
 })();
 </script>
 <script>
-// 延迟覆盖extractShopId函数，确保在所有脚本加载完成后执行
-setTimeout(function(){
-  window.extractShopId = function(url){
-    var s=String(url||'');
-    var m=s.match(/[?&](?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
-    if(m) return m[1];
-    var m2=s.match(/(?:shopId|restaurant_id)%3D([A-Za-z0-9]+)/i);
-    if(m2) return m2[1];
-    try{
-      var targetMatch=s.match(/[?&]targetUrl=([^&]+)/);
-      if(targetMatch){
-        var decoded=decodeURIComponent(targetMatch[1]);
-        var m3=decoded.match(/(?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
-        if(m3) return m3[1];
-      }
-    }catch(e){}
-    return '';
-  };
-  console.log('extractShopId已通过setTimeout更新');
-}, 2000);
+// 使用setInterval反复覆盖extractShopId函数，确保不被其他脚本覆盖
+var __extractShopIdInterval = setInterval(function(){
+  var testLink = 'https://e4ua.ug.ele.me/wow/alsc/mod/c1474c7db25accb9ab49ddf3?targetUrl=eleme%3A%2F%2Fcatering%3Frestaurant_id%3DE9373931687879277693';
+  if(typeof extractShopId !== 'function' || extractShopId(testLink) !== 'E9373931687879277693'){
+    window.extractShopId = function(url){
+      var s=String(url||'');
+      var m=s.match(/[?&](?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+      if(m) return m[1];
+      var m2=s.match(/(?:shopId|restaurant_id)%3D([A-Za-z0-9]+)/i);
+      if(m2) return m2[1];
+      try{
+        var targetMatch=s.match(/[?&]targetUrl=([^&]+)/);
+        if(targetMatch){
+          var decoded=decodeURIComponent(targetMatch[1]);
+          var m3=decoded.match(/(?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+          if(m3) return m3[1];
+        }
+      }catch(e){}
+      return '';
+    };
+  }
+}, 500);
+// 10秒后停止检查
+setTimeout(function(){ clearInterval(__extractShopIdInterval); }, 10000);
 </script>
 <script>
 /* ================================================================
