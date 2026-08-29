@@ -1628,7 +1628,26 @@ h1,h2,h3,.lp-title{
       .then(function(){ return loadScript('app.js.3?v='+V); })
       .then(function(){ return loadScript('app.js.4?v='+V); })
       .then(function(){ return loadScript('app.js.5?v='+V); })
-      .then(function(){ return loadScript('app.js.6?v='+V); });
+      .then(function(){ return loadScript('app.js.6?v='+V); })
+      .then(function(){
+        // 覆盖extractShopId函数，支持从restaurant_id和URL编码链接中提取店铺ID
+        window.extractShopId = function(url){
+          var s=String(url||'');
+          var m=s.match(/[?&](?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+          if(m) return m[1];
+          var m2=s.match(/(?:shopId|restaurant_id)%3D([A-Za-z0-9]+)/i);
+          if(m2) return m2[1];
+          try{
+            var targetMatch=s.match(/[?&]targetUrl=([^&]+)/);
+            if(targetMatch){
+              var decoded=decodeURIComponent(targetMatch[1]);
+              var m3=decoded.match(/(?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+              if(m3) return m3[1];
+            }
+          }catch(e){}
+          return '';
+        };
+      });
   })['catch'](function(e){
     console.error('LOAD_ERROR',e);
     if(root) root.textContent='加载失败，请刷新重试';
