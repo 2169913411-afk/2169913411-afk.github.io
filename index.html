@@ -1246,7 +1246,7 @@ h1,h2,h3,.lp-title{
       </div>
       <div class="plan-requirement-tip" id="planRequirementTip" style="margin-top:10px;padding:10px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E40AF;line-height:1.6;">
         <b>当前档位（菜单全量优化+导出）需要：</b><br>
-        ✅ 需上传：门店二维码截图、经营概览截图、门店数据Excel、商品销售Excel、商家订单Excel、用户评价Excel、商圈同行对比数据<br>
+        ✅ 需上传：门店二维码截图、经营概览截图、门店数据Excel、商品销售Excel、商家订单Excel、用户评价Excel<br>
         ⚪ 可选：商品成本Excel
       </div>
       <div class="balance-tip" id="balanceTip" style="margin-top:10px;">当前可用积分：0，本次操作将消耗 88 积分</div>
@@ -1357,22 +1357,8 @@ h1,h2,h3,.lp-title{
       <div id="reviewRecog" class="recog-box hidden"></div>
     </div>
 
-    <div class="section" id="peerSection">
-      <div class="section-title">7. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
-      <div class="upload-zone uz-qr" id="peerZone">
-        <i data-lucide="users"></i>
-        <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传商圈同行对比数据</div>
-          <div class="sub">同品类周边同行流量、转化、客单价对标数据</div>
-        </div>
-        <div class="paste-hint">粘贴到：商圈同行对比数据</div>
-        <input type="file" id="peerInput" accept="image/*,.xlsx,.xls" multiple class="hidden">
-      </div>
-      <div class="thumb-grid" id="peerThumbs"></div>
-    </div>
-
     <div class="section" id="costSection">
-      <div class="section-title">8. 商品成本Excel <span class="tag tag-opt" id="costTag">可选</span></div>
+      <div class="section-title">7. 商品成本Excel <span class="tag tag-opt" id="costTag">可选</span></div>
       <div class="upload-zone uz-qr" id="costZone">
         <i data-lucide="calculator"></i>
         <div class="uz-body">
@@ -2186,20 +2172,20 @@ function updatePlanRequirements(){
   
   // 定义各档位的必须文件（按照餐谋长业务规则）
   // qr=门店二维码截图, overview=经营概览截图, shop=门店数据Excel, menu=商品销售Excel
-  // order=商家订单Excel, review=用户评价Excel, peer=商圈同行对比数据, cost=商品成本Excel
+  // order=商家订单Excel, review=用户评价Excel, cost=商品成本Excel
   var requirements = {
     38: { 
       required: ['qr', 'overview', 'shop'], 
       optional: [], 
-      disabled: ['menu', 'order', 'review', 'peer', 'cost']
+      disabled: ['menu', 'order', 'review', 'cost']
     },
     58: { 
       required: ['qr', 'overview', 'shop', 'menu'], 
       optional: ['cost'], 
-      disabled: ['order', 'review', 'peer']
+      disabled: ['order', 'review']
     },
     88: { 
-      required: ['qr', 'overview', 'shop', 'menu', 'order', 'review', 'peer'], 
+      required: ['qr', 'overview', 'shop', 'menu', 'order', 'review'], 
       optional: ['cost'], 
       disabled: []
     }
@@ -2215,7 +2201,6 @@ function updatePlanRequirements(){
     menu: '商品销售Excel',
     order: '商家订单Excel',
     review: '用户评价Excel',
-    peer: '商圈同行对比数据',
     cost: '商品成本Excel'
   };
   
@@ -2244,7 +2229,7 @@ function updatePlanRequirements(){
     }
   }
   
-  var allMaterials = ['qr', 'overview', 'shop', 'menu', 'order', 'review', 'peer', 'cost'];
+  var allMaterials = ['qr', 'overview', 'shop', 'menu', 'order', 'review', 'cost'];
   allMaterials.forEach(function(m){
     var isRequired = req.required.indexOf(m) > -1;
     var isDisabled = req.disabled.indexOf(m) > -1;
@@ -2439,7 +2424,7 @@ function setupZone(zoneId,inputId,handler){
     if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length) handler(e.dataTransfer.files);
   });
 }
-state.qr=null; state.peer=[]; state.shop=null; state.menu=null; state.review=null;
+state.qr=null; state.overview=[]; state.shop=null; state.menu=null; state.order=null; state.review=null; state.cost=null;
 
 function fileToDataUrl(file,maxEdge){
   return new Promise(function(resolve,reject){
@@ -2478,23 +2463,6 @@ setupZone('qrZone','qrInput',function(files){
 });
 
 /* 2. 同行对比截图 */
-function renderPeerThumbs(){
-  var box=$('peerThumbs'); box.innerHTML='';
-  state.peer.forEach(function(s,i){
-    var d=document.createElement('div'); d.className='thumb';
-    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delPeer('+i+')">✕</button>';
-    box.appendChild(d);
-  });
-  updateStartBtn();
-}
-function delPeer(i){ state.peer.splice(i,1); renderPeerThumbs(); }
-setupZone('peerZone','peerInput',function(files){
-  if(!files.length) return;
-  var arr=Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image')>-1;}).slice(0,8);
-  var tasks=arr.map(function(f){ return fileToDataUrl(f,0).then(function(d){ state.peer.push({file:f,dataUrl:d,name:f.name}); }); });
-  Promise.all(tasks).then(renderPeerThumbs);
-});
-
 /* 粘贴图片：鼠标悬停在哪个上传框，就粘贴到哪个框 */
 var pasteTarget=null;
 function bindPasteZone(el,key){
@@ -2507,8 +2475,6 @@ bindPasteZone($('overviewZone'),'overview');
 bindPasteZone($('menuZone'),'menu');
 bindPasteZone($('orderZone'),'order');
 bindPasteZone($('reviewZone'),'review');
-bindPasteZone($('peerZone'),'peer');
-bindPasteZone($('roiZone'),'roi');
 bindPasteZone($('qrZone2'),'qr2');
 /* 通用二维码识别（图片 → 文本内容） */
 function recognizeQrFromDataUrl(dataUrl, onResult){
@@ -2564,25 +2530,6 @@ function handlePastedImage(f,target){
     });
     return;
   }
-  if(target==='roi'){
-    if(!state.roi) state.roi=[];
-    if(state.roi.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
-    fileToDataUrl(f,0).then(function(d){
-      state.roi.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
-      renderRoiThumbs();
-      toast('已粘贴到「推广ROI数据」');
-    });
-    return;
-  }
-  if(target==='peer'){
-    if(state.peer.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
-    fileToDataUrl(f,0).then(function(d){
-      state.peer.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
-      renderPeerThumbs();
-      toast('已粘贴到「商圈同行对比数据」');
-    });
-    return;
-  }
   if(target==='qr' || !target){
     if(!state.qr){
       fileToDataUrl(f,0).then(function(d){
@@ -2594,12 +2541,7 @@ function handlePastedImage(f,target){
         toast('已粘贴为门店二维码');
       });
     } else {
-      if(state.peer.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
-      fileToDataUrl(f,0).then(function(d){
-        state.peer.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
-        renderPeerThumbs();
-        toast('已粘贴为同行/重要截图');
-      });
+      toast('门店二维码已上传，如需更换请先删除');
     }
     return;
   }
@@ -3005,27 +2947,6 @@ function handleOrderFile(f){
 function removeOrder(){ state.order=null; RECOGNIZED.order=null; $('orderItem').classList.add('hidden'); $('orderZone').classList.remove('hidden'); $('orderRecog').classList.add('hidden'); updateStartBtn(); }
 setupZone('orderZone','orderInput',function(files){ if(files.length) handleOrderFile(files[0]); });
 
-/* 推广ROI数据上传 */
-function renderRoiThumbs(){
-  var box=$('roiThumbs'); if(!box) return;
-  box.innerHTML='';
-  (state.roi||[]).forEach(function(s,i){
-    var d=document.createElement('div'); d.className='thumb';
-    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delRoi('+i+')">✕</button>';
-    box.appendChild(d);
-  });
-  updateStartBtn();
-}
-function delRoi(i){ state.roi.splice(i,1); renderRoiThumbs(); }
-setupZone('roiZone','roiInput',function(files){
-  if(!files.length) return;
-  if(!state.roi) state.roi=[];
-  if(state.roi.length>=8){ toast('最多8张截图，请先删除部分再上传'); return; }
-  var arr=Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image')>-1||f.name.indexOf('.xls')>-1||f.name.indexOf('.xlsx')>-1;}).slice(0,8-state.roi.length);
-  var tasks=arr.map(function(f){ return fileToDataUrl(f,0).then(function(d){ state.roi.push({file:f,dataUrl:d,name:f.name}); }); });
-  Promise.all(tasks).then(renderRoiThumbs);
-});
-
 /* 商品成本Excel上传 */
 function parseCostFile(rows){
   var headIdx=-1, head=null;
@@ -3137,19 +3058,19 @@ function completenessCheck(){
   
   // 按照餐谋长业务规则定义各档位必填素材
   var requiredByPlan={
-    38:['qr','overview'],
-    58:['qr','overview','menu'],
-    88:['qr','overview','menu','order','review','peer']
+    38:['qr','overview','shop'],
+    58:['qr','overview','shop','menu'],
+    88:['qr','overview','shop','menu','order','review']
   };
   
   var materialNames={
     qr:'门店二维码截图',
     overview:'经营概览截图',
+    shop:'门店数据Excel',
     menu:'商品销售Excel',
     order:'商家订单Excel',
     review:'用户评价Excel',
-    peer:'商圈同行对比数据',
-    roi:'推广ROI数据'
+    cost:'商品成本Excel'
   };
   
   // 检查各素材是否已上传
@@ -3159,8 +3080,7 @@ function completenessCheck(){
     menu:!!(state.menu&&state.menu.parsed&&state.menu.parsed.ok),
     order:!!(state.order&&state.order.parsed&&state.order.parsed.ok),
     review:!!(state.review&&state.review.parsed&&state.review.parsed.ok),
-    peer:!!(state.peer&&state.peer.length),
-    roi:!!(state.roi&&state.roi.length)
+    cost:!!(state.cost&&state.cost.parsed&&state.cost.parsed.ok)
   };
   
   // 检查必填素材
