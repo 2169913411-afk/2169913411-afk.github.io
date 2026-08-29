@@ -1085,31 +1085,32 @@ h1,h2,h3,.lp-title{
   color: #ff9500;
 }
 
-/* ===== v0.39 四格统计卡 ===== */
+/* ===== v0.39 四格统计卡（独立卡片样式） ===== */
 .stat-grid-4{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:0;
-  background:#fff;
-  border-radius:14px;
-  overflow:hidden;
-  border:1px solid #eef0f3;
-  box-shadow:0 1px 3px rgba(0,0,0,.04);
-  cursor:pointer;
-  transition:box-shadow .2s,transform .2s;
+  gap:10px;
   margin-bottom:10px;
-}
-.stat-grid-4:hover{
-  box-shadow:0 4px 16px rgba(22,93,255,.1);
-  transform:translateY(-1px);
 }
 .sg4-item{
   padding:14px 8px;
   text-align:center;
-  border-right:1px solid #f0f2f5;
+  background:#fff;
+  border-radius:12px;
+  border:1px solid #eef0f3;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+  cursor:pointer;
+  transition:box-shadow .2s,transform .2s,border-color .2s;
   position:relative;
 }
-.sg4-item:last-child{ border-right:none; }
+.sg4-item:hover{
+  box-shadow:0 4px 16px rgba(22,93,255,.12);
+  transform:translateY(-2px);
+  border-color:#165DFF;
+}
+.sg4-item.clickable{
+  cursor:pointer;
+}
 .sg4-num{
   font-size:22px;
   font-weight:700;
