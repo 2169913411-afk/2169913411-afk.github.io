@@ -1924,6 +1924,14 @@ var __meituanIframeInterval = setInterval(function(){
   try {
     var scrapeMask=document.getElementById('scrapeMask');
     if(scrapeMask && !scrapeMask.classList.contains('hidden') && scrapeMask.style.display !== 'none'){
+      // 只在选择美团外卖时才显示美团抓取区域
+      var currentPlat = typeof scrapePlat === 'function' ? scrapePlat() : '淘宝闪购';
+      if(currentPlat !== '美团外卖'){
+        // 如果不是美团外卖，移除已插入的美团抓取区域
+        var existingArea=document.getElementById('meituanIframeArea');
+        if(existingArea){ existingArea.remove(); }
+        return;
+      }
       var iframeArea=document.getElementById('meituanIframeArea');
       if(!iframeArea){
         var startButton=document.querySelector('button[onclick="confirmScrape()"]');
