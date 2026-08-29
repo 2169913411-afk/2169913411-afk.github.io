@@ -3299,7 +3299,7 @@ function recognizeOverviewImage(dataUrl, callback){
   // 识别函数，支持重试
   function doRecognize(retryCount){
     return callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.visionModel||API_DEFAULT.visionModel,
-      [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,2048)
+      [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024)
     .then(parseJson)
     .then(function(v){
       if(v && v.screenshot_type) return v;
