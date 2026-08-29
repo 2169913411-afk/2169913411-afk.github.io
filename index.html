@@ -1444,14 +1444,31 @@ h1,h2,h3,.lp-title{
 <!-- ============ 充值中心 ============ -->
 <div class="mask hidden" id="rechargeMask">
   <div class="modal">
-    <div class="modal-head"><h3>充值脑容量</h3><button class="modal-close" onclick="closeModal('rechargeMask')">✕</button></div>
+    <div class="modal-head"><h3>脑容量</h3><button class="modal-close" onclick="closeModal('rechargeMask')">✕</button></div>
     <div class="balance-row">
       <span>当前可用积分：<b class="num" id="rechargeBalance">0</b></span>
       <span class="shield">🛡️ 永久有效</span>
     </div>
-    <div class="pkg-grid" id="packageGrid"></div>
-    <div class="compliance">积分永久有效，仅限平台内AI诊断消耗，不支持提现或退款。充值即代表同意 <a onclick="openRules()">《积分使用规则》</a></div>
-    <button class="pay-btn" id="payBtn" onclick="doPay()">立即充值 ¥0</button>
+    <!-- 标签页切换 -->
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tab active" data-recharge-tab="packages" onclick="switchRechargeTab('packages')">充值套餐</div>
+      <div class="tab" data-recharge-tab="records" onclick="switchRechargeTab('records')">积分记录</div>
+    </div>
+    <!-- 充值套餐内容 -->
+    <div id="rechargePackagesContent">
+      <div class="pkg-grid" id="packageGrid"></div>
+      <div class="compliance">积分永久有效，仅限平台内AI诊断消耗，不支持提现或退款。充值即代表同意 <a onclick="openRules()">《积分使用规则》</a></div>
+      <button class="pay-btn" id="payBtn" onclick="doPay()">立即充值 ¥0</button>
+    </div>
+    <!-- 积分记录内容 -->
+    <div id="rechargeRecordsContent" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="record-filter-btn active" data-filter="all" onclick="filterRechargeRecords('all')">全部记录</button>
+        <button class="record-filter-btn" data-filter="consume" onclick="filterRechargeRecords('consume')">消费记录</button>
+        <button class="record-filter-btn" data-filter="recharge" onclick="filterRechargeRecords('recharge')">充值记录</button>
+      </div>
+      <div id="rechargeRecordsList" style="font-size:13px;color:var(--text2);max-height:400px;overflow-y:auto;"></div>
+    </div>
   </div>
 </div>
 
@@ -1488,7 +1505,6 @@ h1,h2,h3,.lp-title{
     <div class="tabs">
       <div class="tab active" data-tab="basic" onclick="switchTab('basic')">基本资料</div>
       <div class="tab" data-tab="apiset" onclick="switchTab('apiset')">AI模型设置</div>
-      <div class="tab" data-tab="records" onclick="switchTab('records')">积分记录</div>
     </div>
     <div id="tab-basic" class="profile-form">
       <div class="avatar-row">
@@ -1511,14 +1527,6 @@ h1,h2,h3,.lp-title{
         <button class="btn-primary enabled" style="width:auto;height:38px;font-size:14px;padding:0 24px;" onclick="saveApi()">保存</button>
       </div>
       <div id="modelStatus" style="font-size:12px;color:var(--text3);margin-top:10px;"></div>
-    </div>
-    <div id="tab-records" class="hidden">
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button class="record-filter-btn active" data-filter="all" onclick="filterRecords('all')">全部记录</button>
-        <button class="record-filter-btn" data-filter="consume" onclick="filterRecords('consume')">消费记录</button>
-        <button class="record-filter-btn" data-filter="recharge" onclick="filterRecords('recharge')">充值记录</button>
-      </div>
-      <div id="recordsList" style="font-size:13px;color:var(--text2);max-height:400px;overflow-y:auto;"></div>
     </div>
   </div>
 </div>
@@ -2331,7 +2339,63 @@ function renderPackages(){
   var cur=PACKAGES.filter(function(p){return p.id===selectedPkg;})[0]||PACKAGES[2];
   $('payBtn').textContent='立即充值 ¥'+cur.price;
 }
-function openRecharge(){ renderPackages(); openModal('rechargeMask'); }
+function openRecharge(){
+  renderPackages();
+  switchRechargeTab('packages');
+  renderRechargeRecords();
+  openModal('rechargeMask');
+}
+var currentRechargeRecordFilter='all';
+function switchRechargeTab(tab){
+  var tabs=document.querySelectorAll('#rechargeMask .tab');
+  tabs.forEach(function(tb){ tb.classList.toggle('active',tb.getAttribute('data-recharge-tab')===tab); });
+  $('rechargePackagesContent').style.display=tab==='packages'?'block':'none';
+  $('rechargeRecordsContent').style.display=tab==='records'?'block':'none';
+}
+function filterRechargeRecords(filter){
+  currentRechargeRecordFilter=filter;
+  var btns=document.querySelectorAll('#rechargeRecordsContent .record-filter-btn');
+  btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')===filter); });
+  renderRechargeRecords();
+}
+function renderRechargeRecords(){
+  var allList=state.pointsLog.slice(0,100);
+  var list=allList;
+  if(currentRechargeRecordFilter==='consume'){
+    list=allList.filter(function(r){ return r.delta && r.delta.charAt(0)==='-'; });
+  }else if(currentRechargeRecordFilter==='recharge'){
+    list=allList.filter(function(r){ return r.delta && r.delta.charAt(0)==='+'; });
+  }
+  var listEl=$('rechargeRecordsList');
+  if(!listEl) return;
+  if(!list.length){
+    var emptyText=currentRechargeRecordFilter==='consume'?'暂无消费记录':currentRechargeRecordFilter==='recharge'?'暂无充值记录':'暂无记录';
+    listEl.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text3);font-size:13px;">'+emptyText+'</div>';
+    return;
+  }
+  listEl.innerHTML=
+    '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
+    '<tr style="color:var(--text3);text-align:left;background:#F7F8FA;">'+
+    '<th style="padding:10px 8px;font-weight:600;">时间</th>'+
+    '<th style="padding:10px 8px;font-weight:600;">类型</th>'+
+    '<th style="padding:10px 8px;font-weight:600;">项目说明</th>'+
+    '<th style="padding:10px 8px;font-weight:600;text-align:right;">变动积分</th>'+
+    '<th style="padding:10px 8px;font-weight:600;text-align:right;">余额</th>'+
+    '</tr>'+
+    list.map(function(r){
+      var isConsume=r.delta && r.delta.charAt(0)==='-';
+      var typeText=isConsume?'<span style="color:#DC2626;background:#FEF2F2;padding:2px 8px;border-radius:4px;font-size:11px;">消费</span>':'<span style="color:#16A34A;background:#F0FDF4;padding:2px 8px;border-radius:4px;font-size:11px;">充值</span>';
+      var deltaColor=isConsume?'#DC2626':'#16A34A';
+      return '<tr style="border-top:1px solid var(--border);">'+
+        '<td style="padding:10px 8px;color:var(--text3);font-size:11px;">'+r.t+'</td>'+
+        '<td style="padding:10px 8px;">'+typeText+'</td>'+
+        '<td style="padding:10px 8px;color:var(--text1);">'+r.note+'</td>'+
+        '<td class="num" style="padding:10px 8px;text-align:right;font-weight:600;color:'+deltaColor+';">'+r.delta+'</td>'+
+        '<td class="num" style="padding:10px 8px;text-align:right;color:var(--text2);">'+r.balance+'</td>'+
+        '</tr>';
+    }).join('')+
+    '</table>';
+}
 function doPay(){
   var p=PACKAGES.filter(function(x){return x.id===selectedPkg;})[0]||PACKAGES[2];
   if(confirm('模拟微信支付 ¥'+p.price+'，确认后积分到账（正式环境接入微信支付Native+回调自动到账）')){
@@ -2369,11 +2433,10 @@ function openProfile(){
   $('modelTimeout').value=state.api.timeout||180;
   $('modelStatus').textContent=state.api.apiKey?'✅ 已内置AI模型（'+state.api.model+'），可直接使用，无需配置':'尚未配置 API Key，分析将不可用';
   switchTab('basic');
-  renderRecords();
   openModal('profileMask');
 }
 function switchTab(t){
-  ['basic','apiset','records'].forEach(function(x){ $('tab-'+x).classList.toggle('hidden',x!==t); });
+  ['basic','apiset'].forEach(function(x){ $('tab-'+x).classList.toggle('hidden',x!==t); });
   var tabs=document.querySelectorAll('#profileMask .tab');
   tabs.forEach(function(tb){ tb.classList.toggle('active',tb.getAttribute('data-tab')===t); });
 }
