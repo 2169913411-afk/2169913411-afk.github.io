@@ -3201,6 +3201,16 @@ function pickScrapePlat(el){
   var p=el.getAttribute('data-plat');
   var t=$('scrapePlatTip'); if(t) t.textContent=tips[p]||'';
   var l=$('scrapeLoginTip'); if(l) l.textContent=(tips[p]||'')+'（第 1 步登录账号）';
+  // 美团登录引导显示/隐藏
+  var hint=$('meituanLoginHint');
+  if(hint){
+    hint.style.display = (p==='美团外卖') ? 'block' : 'none';
+  }
+}
+/* 打开美团登录页 */
+function openMeituanLogin(){
+  window.open('https://passport.meituan.com/account/unitivelogin?redirect=https%3A%2F%2Fh5.waimai.meituan.com%2F','_blank');
+  toast('已打开美团登录页，请用手机美团App扫码登录，登录后回到本页点「开始抓取」');
 }
 function scrapePlat(){
   var o=document.querySelector('#scrapePlatRow .plat-opt.active');
@@ -3431,16 +3441,25 @@ function _doScrape(target){
     window.open(target,'_blank');
   }else if(isMt){
     // 美团链接：直接打开，抓取脚本会自动识别美团页面
+    // 注意：美团H5未登录时会跳转到登录页，需要提示用户先登录
     window.open(target,'_blank');
   }else{
     window.open(target,'_blank');
   }
 
   var platName=isMt?'美团外卖':(isEle?'淘宝闪购/饿了么':'');
-  setScrapeStatus('✅ 已在浏览器打开'+(platName?platName+'店铺页':'链接')+'。<br>请按下方流程操作：① 确认已用手机 App 登录 → ② 点书签栏「<b>餐谋长抓取</b>」→ 自动抓取并下载。','ok');
-  var hint=$('scrapeFlowHint');
-  if(hint) hint.innerHTML='✅ 已打开店铺页。现在点一下浏览器书签栏里的「<b>餐谋长抓取</b>」书签，就会自动抓取并下载 Excel/zip（页面顶部有进度提示）。';
-  toast('已打开店铺，请点书签自动抓取');
+  if(isMt){
+    // 美团特殊提示：需要先登录
+    setScrapeStatus('⚠️ 已打开美团店铺页。<br><b>重要：</b>如果页面跳转到登录页，请先用手机「美团」App扫码登录，登录后刷新页面即可看到店铺菜单。<br>看到店铺菜单后，点书签栏「<b>餐谋长抓取</b>」→ 自动抓取并下载。','run');
+    var hint=$('scrapeFlowHint');
+    if(hint) hint.innerHTML='⚠️ 美团抓取需要先登录。如果新标签页显示登录界面，请用手机美团App扫码登录，登录后刷新页面。看到店铺菜品后，点书签栏「<b>餐谋长抓取</b>」开始抓取。';
+    toast('美团需先登录，如跳转到登录页请扫码登录后刷新');
+  }else{
+    setScrapeStatus('✅ 已在浏览器打开'+(platName?platName+'店铺页':'链接')+'。<br>请按下方流程操作：① 确认已用手机 App 登录 → ② 点书签栏「<b>餐谋长抓取</b>」→ 自动抓取并下载。','ok');
+    var hint2=$('scrapeFlowHint');
+    if(hint2) hint2.innerHTML='✅ 已打开店铺页。现在点一下浏览器书签栏里的「<b>餐谋长抓取</b>」书签，就会自动抓取并下载 Excel/zip（页面顶部有进度提示）。';
+    toast('已打开店铺，请点书签自动抓取');
+  }
 }
 /* 第3步（兜底）：复制抓取脚本（在店铺页 F12 控制台粘贴执行） */
 var SCRAPE_SCRIPT='';

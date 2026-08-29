@@ -302,6 +302,17 @@
       <div class="plat-opt" data-plat="美团外卖" onclick="pickScrapePlat(this)"><span class="plat-logo pl-mt">美团</span><span>美团外卖</span></div>
     </div>
 
+    <!-- 美团登录引导（仅选择美团时显示） -->
+    <div id="meituanLoginHint" style="display:none;margin:8px 0 12px;padding:10px 12px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;font-size:12px;line-height:1.8;color:#B45309;">
+      <div style="font-weight:700;margin-bottom:4px;">⚠️ 美团抓取前请先登录</div>
+      <div>美团H5在未登录时会跳转到登录页，无法查看店铺菜单。请先：</div>
+      <div style="margin:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-blue-ghost" style="height:30px;font-size:12px;" onclick="openMeituanLogin()">🔐 打开美团登录页</button>
+        <span style="font-size:11px;color:var(--text3);">用手机美团App扫码登录，登录后回到本页点「开始抓取」</span>
+      </div>
+      <div style="font-size:11px;color:#92400E;">💡 登录态在浏览器中会保持一段时间，登录一次后可多次抓取不同店铺</div>
+    </div>
+
     <div style="font-size:13px;color:var(--text1);font-weight:700;">③ 抓取内容</div>
     <div style="display:flex;gap:12px;margin:8px 0 10px;font-size:13px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .15s;"><input type="radio" name="scrapeMode" value="menu" checked> 只抓菜单<br style="display:none"><span style="font-size:11px;color:var(--text3);">Excel 表格</span></label>
