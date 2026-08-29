@@ -2775,7 +2775,7 @@ function handleShopFile(f){
 }
 function removeShop(){ state.shop=null; RECOGNIZED.shop=null; $('shopItem').classList.add('hidden'); $('shopZone').classList.remove('hidden'); $('shopRecog').classList.add('hidden'); var shopTag=$('shopTag'); if(shopTag) shopTag.style.display=''; updateStartBtn(); }
 
-/* 菜单数据文件：识别 商品名称/菜单分组/价格/描述 */
+/* 菜单数据文件：识别 商品名称/是否招牌/销售额/销量，并合计相同商品 */
 function parseMenuFile(rows){
   var headIdx=-1, head=null;
   for(var i=0;i<Math.min(rows.length,8);i++){
@@ -2790,7 +2790,9 @@ function parseMenuFile(rows){
   var idxName=findCol(['商品名称','菜名','品名','名称']);
   var idxGroup=findCol(['菜单分组','分组','分类','类目']);
   var idxPrice=findCol(['现价','价格','售价','单价']);
-  var idxSales=findCol(['月售','销量','售出']);
+  var idxSales=findCol(['月售','销量','售出','销售数量']);
+  var idxAmount=findCol(['销售额','营业额','收入','实收','销售金额','金额']);
+  var idxSignature=findCol(['是否招牌','招牌','招牌菜','推荐','是否推荐']);
   var idxDesc=findCol(['描述','说明','介绍','卖点']);
   if(idxName<0) return {ok:false,msg:'未找到商品名称列'};
   var products=[];
@@ -2805,33 +2807,132 @@ function parseMenuFile(rows){
     var sRaw=idxSales>-1?(row[idxSales]==null?'':String(row[idxSales]).trim()):'';
     var sNum=0;
     if(sRaw){ var sm=sRaw.match(/(\d+(?:\.\d+)?)/); if(sm) sNum=parseFloat(sm[1]); }
+    var aRaw=idxAmount>-1?(row[idxAmount]==null?'':String(row[idxAmount]).trim()):'';
+    var aNum=0;
+    if(aRaw){ var am=aRaw.match(/(\d+(?:\.\d+)?)/); if(am) aNum=parseFloat(am[1]); }
+    var isSignature=false;
+    if(idxSignature>-1){
+      var sigVal=row[idxSignature]==null?'':String(row[idxSignature]).trim();
+      isSignature = sigVal==='是'||sigVal==='招牌'||sigVal==='推荐'||sigVal==='1'||sigVal==='true'||sigVal==='是招牌';
+    }
     if(g==='/') g='';
-    products.push({name:name,group:g,price:p,desc:d,salesRaw:sRaw,sales:sNum});
+    products.push({name:name,group:g,price:p,desc:d,salesRaw:sRaw,sales:sNum,amountRaw:aRaw,amount:aNum,isSignature:isSignature});
     if(products.length>=500) break;
   }
+  
+  // 合计相同商品的销量和销售额
+  var productMap={};
+  products.forEach(function(p){
+    var key=p.name.trim();
+    if(!productMap[key]){
+      productMap[key]={
+        name:p.name,
+        group:p.group,
+        price:p.price,
+        desc:p.desc,
+        isSignature:p.isSignature,
+        totalSales:0,
+        totalAmount:0,
+        count:0
+      };
+    }
+    productMap[key].totalSales += p.sales || 0;
+    productMap[key].totalAmount += p.amount || 0;
+    productMap[key].count++;
+    // 保留第一个非空的分组、价格、描述
+    if(!productMap[key].group && p.group) productMap[key].group=p.group;
+    if(!productMap[key].price && p.price) productMap[key].price=p.price;
+    if(!productMap[key].desc && p.desc) productMap[key].desc=p.desc;
+    if(!productMap[key].isSignature && p.isSignature) productMap[key].isSignature=p.isSignature;
+  });
+  
+  var aggregatedProducts=Object.values(productMap).map(function(p){
+    return {
+      name:p.name,
+      group:p.group,
+      price:p.price,
+      desc:p.desc,
+      isSignature:p.isSignature,
+      sales:p.totalSales,
+      amount:p.totalAmount,
+      recordCount:p.count
+    };
+  });
+  
+  // 按销售额降序排序
+  aggregatedProducts.sort(function(a,b){ return (b.amount||0)-(a.amount||0); });
+  
   var found=[];
   if(idxName>-1) found.push('商品名称');
   if(idxGroup>-1) found.push('菜单分组');
   if(idxPrice>-1) found.push('价格');
-  if(idxSales>-1) found.push('月售');
+  if(idxSales>-1) found.push('销量');
+  if(idxAmount>-1) found.push('销售额');
+  if(idxSignature>-1) found.push('是否招牌');
   if(idxDesc>-1) found.push('描述');
-  return {ok:true,found:found,products:products,groupCount:new Set(products.map(function(x){return x.group||'未分组';})).size};
+  
+  // 统计招牌商品数量
+  var signatureCount=aggregatedProducts.filter(function(p){return p.isSignature;}).length;
+  
+  // 计算总销量和总销售额
+  var totalSales=aggregatedProducts.reduce(function(sum,p){return sum+(p.sales||0);},0);
+  var totalAmount=aggregatedProducts.reduce(function(sum,p){return sum+(p.amount||0);},0);
+  
+  return {
+    ok:true,
+    found:found,
+    products:aggregatedProducts,
+    rawProducts:products,
+    groupCount:new Set(aggregatedProducts.map(function(x){return x.group||'未分组';})).size,
+    signatureCount:signatureCount,
+    totalSales:totalSales,
+    totalAmount:totalAmount,
+    duplicateCount:products.length-aggregatedProducts.length
+  };
 }
 function handleMenuFile(f){
   $('menuName').textContent=f.name; $('menuSize').textContent=fmtSize(f.size);
   $('menuItem').classList.remove('hidden'); $('menuZone').classList.add('hidden');
   $('menuRecog').classList.add('hidden');
+  // 上传后隐藏"需上传"标签
+  var menuTag=$('menuTag'); if(menuTag) menuTag.style.display='none';
   readSheetArray(f).then(function(rows){
     var res=parseMenuFile(rows);
     state.menu={file:f,rows:rows,parsed:res};
     var box=$('menuRecog');
     if(res.ok){
-      var missing=[]; ['商品名称','菜单分组','价格','描述'].forEach(function(x){ if(res.found.indexOf(x)<0) missing.push(x); });
+      var missing=[]; ['商品名称','销量','销售额'].forEach(function(x){ if(res.found.indexOf(x)<0) missing.push(x); });
       box.className='recog-box';
-      box.innerHTML='<div class="r-title">已识别 '+res.found.join('、')+'，共 '+res.products.length+' 个商品</div>'+
+      var summaryHtml = '<div class="r-title">已识别 '+res.found.join('、')+'，共 '+res.products.length+' 个商品（去重后）</div>';
+      // 显示统计信息
+      var statsHtml = '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;">';
+      statsHtml += '<span style="background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:4px;font-size:11px;">总销量：'+fmt(res.totalSales)+'</span>';
+      if(res.totalAmount>0) statsHtml += '<span style="background:#ECFDF5;color:#047857;padding:2px 8px;border-radius:4px;font-size:11px;">总销售额：¥'+fmt(res.totalAmount)+'</span>';
+      if(res.signatureCount>0) statsHtml += '<span style="background:#FFFBEB;color:#B45309;padding:2px 8px;border-radius:4px;font-size:11px;">招牌商品：'+res.signatureCount+'个</span>';
+      if(res.duplicateCount>0) statsHtml += '<span style="background:#F3F4F6;color:#4B5563;padding:2px 8px;border-radius:4px;font-size:11px;">合并重复：'+res.duplicateCount+'条</span>';
+      statsHtml += '<span style="background:#F3F4F6;color:#4B5563;padding:2px 8px;border-radius:4px;font-size:11px;">分组数：'+res.groupCount+'</span>';
+      statsHtml += '</div>';
+      
+      // 显示销量TOP5商品
+      var topProducts = res.products.slice(0,5);
+      var topHtml = '';
+      if(topProducts.length>0){
+        topHtml = '<div style="margin-top:8px;font-size:11px;color:#4E5969;">';
+        topHtml += '<div style="font-weight:600;margin-bottom:4px;">销量TOP5：</div>';
+        topProducts.forEach(function(p, i){
+          topHtml += '<div style="display:flex;justify-content:space-between;padding:2px 0;">';
+          topHtml += '<span>'+(i+1)+'. '+p.name+(p.isSignature?' 🌟':'')+'</span>';
+          topHtml += '<span style="color:#1D4ED8;">'+fmt(p.sales)+'份'+(p.amount>0?' / ¥'+fmt(p.amount):'')+'</span>';
+          topHtml += '</div>';
+        });
+        topHtml += '</div>';
+      }
+      
+      box.innerHTML=summaryHtml +
         '<div class="recog-list">'+res.found.map(function(x){return '<span>'+x+'</span>';}).join('')+'</div>'+
-        (missing.length?'<div style="color:#B45309;margin-top:4px;">未识别列：'+missing.join('、')+'</div>':'')+
-        '<div style="margin-top:2px;">分组数：'+res.groupCount+'</div>';
+        statsHtml +
+        topHtml +
+        (missing.length?'<div style="color:#B45309;margin-top:4px;font-size:11px;">未识别列：'+missing.join('、')+'（不影响分析）</div>':'');
     }else{
       box.className='recog-box err';
       box.innerHTML='<div class="r-title">⚠️ 识别异常</div>'+res.msg;
@@ -2841,7 +2942,7 @@ function handleMenuFile(f){
     updateStartBtn();
   });
 }
-function removeMenu(){ state.menu=null; RECOGNIZED.menu=null; $('menuItem').classList.add('hidden'); $('menuZone').classList.remove('hidden'); $('menuRecog').classList.add('hidden'); }
+function removeMenu(){ state.menu=null; RECOGNIZED.menu=null; $('menuItem').classList.add('hidden'); $('menuZone').classList.remove('hidden'); $('menuRecog').classList.add('hidden'); var menuTag=$('menuTag'); if(menuTag) menuTag.style.display=''; }
 
 /* 评价数据文件：识别差评 */
 function parseReviewFile(rows){
