@@ -1255,12 +1255,12 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="qrSection">
-      <div class="section-title">1. 门店二维码截图 <span class="tag tag-opt" id="qrTag">非必选</span></div>
+      <div class="section-title">1. 门店二维码/店铺链接 <span class="tag tag-opt" id="qrTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="qrZone">
         <i data-lucide="qr-code"></i>
         <div class="uz-body">
           <div class="main">点击、拖拽或粘贴上传门店二维码</div>
-          <div class="sub">模拟普通消费者进店视角，支持 Ctrl+V 粘贴（jpg/png）</div>
+          <div class="sub">支持标准二维码识别；淘宝/美团小程序码请使用下方链接输入</div>
         </div>
         <div class="paste-hint">粘贴到：门店二维码截图</div>
         <input type="file" id="qrInput" accept="image/*">
@@ -1270,6 +1270,14 @@ h1,h2,h3,.lp-title{
         <button class="del" onclick="removeQr()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
       </div>
       <div id="qrRecogResult"></div>
+      <div style="margin-top:12px;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">或手动粘贴店铺链接（推荐，小程序码无法自动识别时使用）</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="qrShopLink" placeholder="粘贴淘宝闪购/美团外卖店铺链接" style="flex:1;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;outline:none;" oninput="onQrLinkInput()">
+          <button onclick="applyQrShopLink()" style="padding:8px 16px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">应用链接</button>
+        </div>
+        <div id="qrLinkStatus" style="font-size:11px;margin-top:4px;"></div>
+      </div>
     </div>
 
     <div class="section" id="overviewSection">
@@ -2474,7 +2482,85 @@ function fileToDataUrl(file,maxEdge){
 function fmtSize(b){ if(b<1024)return b+'B'; if(b<1048576)return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(2)+'MB'; }
 
 /* 1. 二维码 */
-function removeQr(){ state.qr=null; $('qrItem').classList.add('hidden'); $('qrZone').classList.remove('hidden'); updateStartBtn(); }
+function removeQr(){ 
+  state.qr=null; 
+  $('qrItem').classList.add('hidden'); 
+  $('qrZone').classList.remove('hidden'); 
+  // 同时清除店铺链接
+  var linkInput=$('qrShopLink');
+  if(linkInput) linkInput.value='';
+  var linkStatus=$('qrLinkStatus');
+  if(linkStatus) linkStatus.innerHTML='';
+  updateStartBtn(); 
+}
+/* 店铺链接输入处理 */
+function onQrLinkInput(){
+  var linkInput=$('qrShopLink');
+  var linkStatus=$('qrLinkStatus');
+  if(!linkInput || !linkStatus) return;
+  var link=linkInput.value.trim();
+  if(!link){
+    linkStatus.innerHTML='';
+    return;
+  }
+  // 检测链接类型
+  if(isTaoKouLing(link) || link.indexOf('m.tb.cn')>-1 || link.indexOf('tb.cn')>-1){
+    linkStatus.innerHTML='<span style="color:#B45309;">⚠️ 检测到淘宝口令/短链，点击"应用链接"后将自动解码</span>';
+  }else if(isMeituanLink(link) || link.indexOf('dpurl.cn')>-1 || link.indexOf('meituan.com')>-1){
+    linkStatus.innerHTML='<span style="color:#16A34A;">✅ 检测到美团外卖链接</span>';
+  }else if(link.indexOf('ele.me')>-1 || link.indexOf('h5.ele.me')>-1){
+    linkStatus.innerHTML='<span style="color:#16A34A;">✅ 检测到淘宝闪购/饿了么店铺链接</span>';
+  }else if(/^https?:\/\//.test(link)){
+    linkStatus.innerHTML='<span style="color:#6B7280;">已输入链接，点击"应用链接"确认</span>';
+  }else{
+    linkStatus.innerHTML='<span style="color:#DC2626;">⚠️ 请输入有效的店铺链接</span>';
+  }
+}
+/* 应用店铺链接 */
+function applyQrShopLink(){
+  var linkInput=$('qrShopLink');
+  var linkStatus=$('qrLinkStatus');
+  if(!linkInput) return;
+  var link=linkInput.value.trim();
+  if(!link){
+    toast('请先输入店铺链接');
+    return;
+  }
+  
+  // 处理淘宝口令/短链
+  if(isTaoKouLing(link) || link.indexOf('m.tb.cn')>-1 || link.indexOf('tb.cn')>-1){
+    if(linkStatus) linkStatus.innerHTML='<span style="color:#1D4ED8;">🔄 正在解码淘宝口令...</span>';
+    var decodeUrl=decodeCfgUrl();
+    if(!decodeUrl){
+      if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 未配置解码服务地址，请先在商家调研中配置</span>';
+      return;
+    }
+    fetch(decodeUrl+'/api/decode',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:link})
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if(j&&j.ok&&j.url){
+        linkInput.value=j.url;
+        state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:j.url};
+        if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 解码成功，店铺链接已应用</span>';
+        toast('店铺链接已应用');
+        updateStartBtn();
+      }else{
+        if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 解码失败：'+(j&&j.error||'未知错误')+'</span>';
+      }
+    })['catch'](function(e){
+      if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 请求失败：'+e.message+'</span>';
+    });
+    return;
+  }
+  
+  // 直接应用链接
+  state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:link};
+  if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 店铺链接已应用</span>';
+  toast('店铺链接已应用');
+  updateStartBtn();
+}
 setupZone('qrZone','qrInput',function(files){
   if(!files.length) return;
   var f=files[0];
@@ -2497,7 +2583,7 @@ setupZone('qrZone','qrInput',function(files){
       }else{
         var qrResultEl=$('qrRecogResult');
         if(qrResultEl){
-          qrResultEl.innerHTML='<div style="font-size:11px;color:#B45309;margin-top:6px;">⚠️ 二维码识别失败，请确保截图中包含清晰的二维码</div>';
+          qrResultEl.innerHTML='<div style="font-size:11px;color:#B45309;margin-top:6px;">⚠️ 二维码识别失败（可能是淘宝/美团小程序码，无法自动识别）。请使用下方"手动粘贴店铺链接"功能，或在商家调研中抓取菜单数据。</div>';
         }
       }
     });
