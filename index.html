@@ -63,6 +63,7 @@ input,textarea,select{font-family:inherit;}
 .section-title .tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:4px;}
 .tag-req{background:var(--red-bg);color:#CB272D;}
 .tag-opt{background:#F2F3F5;color:var(--text3);}
+.tag-disabled{background:#E5E6EB;color:#86909C;text-decoration:line-through;}
 
 /* 平台选择 */
 .plat-row{display:flex;gap:10px;}
@@ -1237,15 +1238,15 @@ h1,h2,h3,.lp-title{
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title">1. 上传门店二维码 <span class="tag tag-opt" id="qrTag">非必选</span></div>
+    <div class="section" id="qrSection">
+      <div class="section-title">1. 门店二维码截图 <span class="tag tag-opt" id="qrTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="qrZone">
         <i data-lucide="qr-code"></i>
         <div class="uz-body">
           <div class="main">点击上传门店二维码</div>
-          <div class="sub">模拟顾客进店做前端排查，支持 Ctrl+V 粘贴（jpg/png）</div>
+          <div class="sub">模拟普通消费者进店视角，支持 Ctrl+V 粘贴（jpg/png）</div>
         </div>
-        <div class="paste-hint">粘贴到：门店二维码</div>
+        <div class="paste-hint">粘贴到：门店二维码截图</div>
         <input type="file" id="qrInput" accept="image/*" class="hidden">
       </div>
       <div id="qrItem" class="file-item hidden" style="margin-top:10px;">
@@ -1254,48 +1255,30 @@ h1,h2,h3,.lp-title{
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title">2. 上传同行数据以及其他重要截图数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
-      <div class="upload-zone uz-qr" id="peerZone">
-        <i data-lucide="images"></i>
+    <div class="section" id="overviewSection">
+      <div class="section-title">2. 经营概览截图 <span class="tag tag-opt" id="overviewTag">非必选</span></div>
+      <div class="upload-zone uz-qr" id="overviewZone">
+        <i data-lucide="bar-chart-3"></i>
         <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传截图</div>
-          <div class="sub">同行对比数据 + 其他重要截图，鼠标移入后 Ctrl+V 粘贴到本框</div>
+          <div class="main">点击、拖拽或粘贴上传经营概览截图</div>
+          <div class="sub">包含曝光、入店、下单转化、客单价，同时读取商圈同行指标</div>
         </div>
-        <div class="paste-hint">粘贴到：同行/重要截图</div>
-        <input type="file" id="peerInput" accept="image/*" multiple class="hidden">
+        <div class="paste-hint">粘贴到：经营概览截图</div>
+        <input type="file" id="overviewInput" accept="image/*" multiple class="hidden">
       </div>
-      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天流量数据：新客曝光/入店/下单、老客曝光/入店/下单、全部顾客曝光/入店/下单（曝光按“人”计）；其他重要截图可一并上传</div>
-      <div class="thumb-grid" id="peerThumbs"></div>
+      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天经营概览：曝光人数、入店人数、下单人数、入店转化率、下单转化率、有效订单、客单价；截图内需包含商圈同行对比数据</div>
+      <div class="thumb-grid" id="overviewThumbs"></div>
     </div>
 
-    <div class="section">
-      <div class="section-title">3. 上传门店数据文件 <span class="tag tag-req" id="shopTag">必选</span></div>
-      <div class="upload-zone uz-qr" id="shopZone">
-        <i data-lucide="file-spreadsheet"></i>
-        <div class="uz-body">
-          <div class="main">点击或拖拽上传经营数据Excel</div>
-          <div class="sub">支持 .xlsx / .xls，自动识别经营指标</div>
-        </div>
-        <div class="paste-hint">粘贴到：门店数据文件</div>
-        <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
-      </div>
-      <div id="shopItem" class="file-item hidden" style="margin-top:10px;">
-        <span>📊</span><span class="fname" id="shopName"></span><span class="fsize" id="shopSize"></span>
-        <button class="del" onclick="removeShop()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
-      </div>
-      <div id="shopRecog" class="recog-box hidden"></div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">4. 上传菜单数据文件 <span class="tag tag-req" id="menuTag">必选</span></div>
+    <div class="section" id="menuSection">
+      <div class="section-title">3. 商品销售Excel <span class="tag tag-req" id="menuTag">必选</span></div>
       <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
         <div class="uz-body">
-          <div class="main">点击或拖拽上传菜单Excel</div>
-          <div class="sub">支持 .xlsx / .xls，识别商品名称/分组/价格</div>
+          <div class="main">点击或拖拽上传商品销售Excel</div>
+          <div class="sub">菜品名称、售价、销量、销售额、成本、分类，用于菜品诊断和优化</div>
         </div>
-        <div class="paste-hint">粘贴到：菜单数据文件</div>
+        <div class="paste-hint">粘贴到：商品销售Excel</div>
         <input type="file" id="menuInput" accept=".xlsx,.xls" class="hidden">
       </div>
       <div id="menuItem" class="file-item hidden" style="margin-top:10px;">
@@ -1305,15 +1288,33 @@ h1,h2,h3,.lp-title{
       <div id="menuRecog" class="recog-box hidden"></div>
     </div>
 
-    <div class="section">
-      <div class="section-title">5. 上传门店评价数据 <span class="tag tag-opt" id="reviewTag">非必选</span></div>
+    <div class="section" id="orderSection">
+      <div class="section-title">4. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
+      <div class="upload-zone uz-qr" id="orderZone">
+        <i data-lucide="file-text"></i>
+        <div class="uz-body">
+          <div class="main">点击或拖拽上传商家订单Excel</div>
+          <div class="sub">订单明细，用于核算平台扣点、补贴、实付金额、单店真实收益</div>
+        </div>
+        <div class="paste-hint">粘贴到：商家订单Excel</div>
+        <input type="file" id="orderInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="orderItem" class="file-item hidden" style="margin-top:10px;">
+        <span>📋</span><span class="fname" id="orderName"></span><span class="fsize" id="orderSize"></span>
+        <button class="del" onclick="removeOrder()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="orderRecog" class="recog-box hidden"></div>
+    </div>
+
+    <div class="section" id="reviewSection">
+      <div class="section-title">5. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
         <div class="uz-body">
-          <div class="main">点击或拖拽上传评价Excel</div>
-          <div class="sub">支持 .xlsx / .xls，自动筛选差评</div>
+          <div class="main">点击或拖拽上传用户评价Excel</div>
+          <div class="sub">存储全部好评、差评、追评内容，用于差评归类、问题拆解、回复模板</div>
         </div>
-        <div class="paste-hint">粘贴到：评价数据文件</div>
+        <div class="paste-hint">粘贴到：用户评价Excel</div>
         <input type="file" id="reviewInput" accept=".xlsx,.xls" class="hidden">
       </div>
       <div id="reviewItem" class="file-item hidden" style="margin-top:10px;">
@@ -1321,6 +1322,34 @@ h1,h2,h3,.lp-title{
         <button class="del" onclick="removeReview()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
       </div>
       <div id="reviewRecog" class="recog-box hidden"></div>
+    </div>
+
+    <div class="section" id="peerSection">
+      <div class="section-title">6. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
+      <div class="upload-zone uz-qr" id="peerZone">
+        <i data-lucide="users"></i>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传商圈同行对比数据</div>
+          <div class="sub">同品类周边同行流量、转化、客单价对标数据</div>
+        </div>
+        <div class="paste-hint">粘贴到：商圈同行对比数据</div>
+        <input type="file" id="peerInput" accept="image/*,.xlsx,.xls" multiple class="hidden">
+      </div>
+      <div class="thumb-grid" id="peerThumbs"></div>
+    </div>
+
+    <div class="section" id="roiSection">
+      <div class="section-title">7. 推广ROI数据 <span class="tag tag-opt" id="roiTag">可选</span></div>
+      <div class="upload-zone uz-qr" id="roiZone">
+        <i data-lucide="trending-up"></i>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传推广ROI数据</div>
+          <div class="sub">各个推广渠道消耗、产出、ROI投产数据（截图或Excel）</div>
+        </div>
+        <div class="paste-hint">粘贴到：推广ROI数据</div>
+        <input type="file" id="roiInput" accept="image/*,.xlsx,.xls" multiple class="hidden">
+      </div>
+      <div class="thumb-grid" id="roiThumbs"></div>
     </div>
 
     <div class="section">
@@ -2122,50 +2151,94 @@ function getPlan(){
   var r=document.querySelector('input[name=planTop]:checked') || document.querySelector('input[name=plan]:checked'); return r?PLANS[r.value]:null;
 }
 
-// 根据档位更新必须/非必须文件
+// 根据档位更新必须/非必须文件（按照餐谋长业务规则）
 function updatePlanRequirements(){
   var plan = getPlan();
   if(!plan) return;
   var planId = plan.cost;
   
-  // 定义各档位的必须文件
+  // 定义各档位的必须文件（按照餐谋长业务规则）
+  // qr=门店二维码截图, overview=经营概览截图, menu=商品销售Excel
+  // order=商家订单Excel, review=用户评价Excel, peer=商圈同行对比数据, roi=推广ROI数据
   var requirements = {
-    38: { shop: true, menu: false, peer: false, qr: false, review: false },
-    58: { shop: true, menu: false, peer: true, qr: false, review: false },
-    88: { shop: true, menu: true, peer: false, qr: false, review: false }
+    38: { 
+      required: ['qr', 'overview'], 
+      optional: [], 
+      disabled: ['menu', 'order', 'review', 'peer', 'roi']
+    },
+    58: { 
+      required: ['qr', 'overview', 'menu'], 
+      optional: ['order', 'roi'], 
+      disabled: ['review', 'peer']
+    },
+    88: { 
+      required: ['qr', 'overview', 'menu', 'order', 'review', 'peer'], 
+      optional: ['roi'], 
+      disabled: []
+    }
   };
   
   var req = requirements[planId] || requirements[88];
   
-  // 更新标签
-  function updateTag(id, isRequired){
-    var tag = document.getElementById(id);
+  // 素材名称映射
+  var materialNames = {
+    qr: '门店二维码截图',
+    overview: '经营概览截图',
+    menu: '商品销售Excel',
+    order: '商家订单Excel',
+    review: '用户评价Excel',
+    peer: '商圈同行对比数据',
+    roi: '推广ROI数据'
+  };
+  
+  // 更新标签和禁用状态
+  function updateMaterial(id, isRequired, isDisabled){
+    var tag = document.getElementById(id + 'Tag');
+    var section = document.getElementById(id + 'Section');
     if(tag){
-      tag.textContent = isRequired ? '必选' : '非必选';
-      tag.className = 'tag ' + (isRequired ? 'tag-req' : 'tag-opt');
+      if(isDisabled){
+        tag.textContent = '本档禁用';
+        tag.className = 'tag tag-disabled';
+      } else {
+        tag.textContent = isRequired ? '必选' : '可选';
+        tag.className = 'tag ' + (isRequired ? 'tag-req' : 'tag-opt');
+      }
+    }
+    if(section){
+      if(isDisabled){
+        section.style.opacity = '0.5';
+        section.style.pointerEvents = 'none';
+      } else {
+        section.style.opacity = '1';
+        section.style.pointerEvents = 'auto';
+      }
     }
   }
   
-  updateTag('shopTag', req.shop);
-  updateTag('menuTag', req.menu);
-  updateTag('peerTag', req.peer);
-  updateTag('qrTag', req.qr);
-  updateTag('reviewTag', req.review);
+  var allMaterials = ['qr', 'overview', 'menu', 'order', 'review', 'peer', 'roi'];
+  allMaterials.forEach(function(m){
+    var isRequired = req.required.indexOf(m) > -1;
+    var isDisabled = req.disabled.indexOf(m) > -1;
+    updateMaterial(m, isRequired, isDisabled);
+  });
   
   // 更新需求提示
   var tip = document.getElementById('planRequirementTip');
   if(tip){
-    var requiredItems = [];
-    var optionalItems = [];
-    if(req.shop) requiredItems.push('门店数据文件'); else optionalItems.push('门店数据文件');
-    if(req.menu) requiredItems.push('菜单数据文件'); else optionalItems.push('菜单数据文件');
-    if(req.peer) requiredItems.push('同行数据截图'); else optionalItems.push('同行数据截图');
-    if(req.qr) requiredItems.push('门店二维码'); else optionalItems.push('门店二维码');
-    if(req.review) requiredItems.push('评价数据'); else optionalItems.push('评价数据');
+    var requiredItems = req.required.map(function(m){ return materialNames[m]; });
+    var optionalItems = req.optional.map(function(m){ return materialNames[m]; });
+    var disabledItems = req.disabled.map(function(m){ return materialNames[m]; });
     
-    tip.innerHTML = '<b>当前档位（' + plan.name + '）需要：</b><br>' +
-      '✅ 必选：' + requiredItems.join('、') + '<br>' +
-      '⚪ 可选：' + optionalItems.join('、');
+    var html = '<b>当前档位（' + plan.name + '）需要：</b><br>' +
+      '✅ 必选：' + requiredItems.join('、') + '<br>';
+    if(optionalItems.length > 0){
+      html += '⚪ 可选：' + optionalItems.join('、') + '<br>';
+    }
+    if(disabledItems.length > 0){
+      html += '🚫 本档禁用：' + disabledItems.join('、');
+    }
+    
+    tip.innerHTML = html;
   }
   
   // 同步底部的档位选择
