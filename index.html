@@ -1243,8 +1243,8 @@ h1,h2,h3,.lp-title{
       </div>
       <div class="plan-requirement-tip" id="planRequirementTip" style="margin-top:10px;padding:10px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E40AF;line-height:1.6;">
         <b>当前档位（菜单全量优化+导出）需要：</b><br>
-        ✅ 必选：门店数据文件、菜单数据文件<br>
-        ⚪ 可选：门店二维码、同行数据截图、评价数据
+        ✅ 需上传：经营概览截图、商品销售Excel<br>
+        ⚪ 可选：门店二维码、商家订单Excel、用户评价Excel、商圈同行对比数据、推广ROI数据
       </div>
       <div class="balance-tip" id="balanceTip" style="margin-top:10px;">当前可用积分：0，本次操作将消耗 88 积分</div>
       <button class="btn-primary" id="startBtn" onclick="onStart()" style="margin-top:10px;width:100%;">开始AI分析</button>
@@ -1267,26 +1267,8 @@ h1,h2,h3,.lp-title{
       </div>
     </div>
 
-    <div class="section" id="shopSection">
-      <div class="section-title">2. 门店数据Excel <span class="tag tag-req" id="shopTag">必选</span></div>
-      <div class="upload-zone uz-qr" id="shopZone">
-        <i data-lucide="store"></i>
-        <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传门店数据Excel</div>
-          <div class="sub">包含日期、有效订单、收入、营业额、曝光、进店、下单转化等核心经营数据</div>
-        </div>
-        <div class="paste-hint">粘贴到：门店数据Excel</div>
-        <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
-      </div>
-      <div id="shopItem" class="file-item hidden" style="margin-top:10px;">
-        <span>🏪</span><span class="fname" id="shopName"></span><span class="fsize" id="shopSize"></span>
-        <button class="del" onclick="removeShop()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
-      </div>
-      <div id="shopRecog" class="recog-box hidden"></div>
-    </div>
-
     <div class="section" id="overviewSection">
-      <div class="section-title">3. 经营概览截图 <span class="tag tag-opt" id="overviewTag">非必选</span></div>
+      <div class="section-title">2. 经营概览截图 <span class="tag tag-req" id="overviewTag">需上传</span></div>
       <div class="upload-zone uz-qr" id="overviewZone">
         <i data-lucide="bar-chart-3"></i>
         <div class="uz-body">
@@ -1301,7 +1283,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="menuSection">
-      <div class="section-title">4. 商品销售Excel <span class="tag tag-req" id="menuTag">必选</span></div>
+      <div class="section-title">3. 商品销售Excel <span class="tag tag-req" id="menuTag">需上传</span></div>
       <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
         <div class="uz-body">
@@ -1319,7 +1301,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="orderSection">
-      <div class="section-title">5. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
+      <div class="section-title">4. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
       <div class="upload-zone uz-qr" id="orderZone">
         <i data-lucide="file-text"></i>
         <div class="uz-body">
@@ -1337,7 +1319,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="reviewSection">
-      <div class="section-title">6. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
+      <div class="section-title">5. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
         <div class="uz-body">
@@ -1355,7 +1337,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="peerSection">
-      <div class="section-title">7. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
+      <div class="section-title">6. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="peerZone">
         <i data-lucide="users"></i>
         <div class="uz-body">
@@ -1369,7 +1351,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="roiSection">
-      <div class="section-title">8. 推广ROI数据 <span class="tag tag-opt" id="roiTag">可选</span></div>
+      <div class="section-title">7. 推广ROI数据 <span class="tag tag-opt" id="roiTag">可选</span></div>
       <div class="upload-zone uz-qr" id="roiZone">
         <i data-lucide="trending-up"></i>
         <div class="uz-body">
@@ -2164,7 +2146,7 @@ function refreshTip(){
   updateStartBtn();
 }
 function updateStartBtn(){
-  var ready = !!(state.qr && state.qr.file && state.shop && state.shop.file);
+  var ready = !!((state.overview && state.overview.length>0) && state.menu && state.menu.file);
   $('startBtn').classList.toggle('enabled', ready);
 }
 function getPlan(){
@@ -2217,10 +2199,11 @@ function updatePlanRequirements(){
     var section = document.getElementById(id + 'Section');
     if(tag){
       if(isDisabled){
-        tag.textContent = '本档禁用';
-        tag.className = 'tag tag-disabled';
+        // 禁用的不用提示出来，隐藏标签
+        tag.style.display = 'none';
       } else {
-        tag.textContent = isRequired ? '必选' : '可选';
+        tag.style.display = '';
+        tag.textContent = isRequired ? '需上传' : '可选';
         tag.className = 'tag ' + (isRequired ? 'tag-req' : 'tag-opt');
       }
     }
