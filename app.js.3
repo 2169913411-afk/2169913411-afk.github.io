@@ -328,8 +328,23 @@ function cleanLink(raw){
 }
 /* 从任意链接提取 shopId（兼容 h5.ele.me / market.m.taobao.com 跳转页等） */
 function extractShopId(url){
-  var m=String(url||'').match(/[?&]shopId=([A-Za-z0-9]+)/);
-  return m?m[1]:'';
+  var s=String(url||'');
+  // 1. 直接匹配 shopId= 或 restaurant_id=
+  var m=s.match(/[?&](?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+  if(m) return m[1];
+  // 2. 匹配URL编码的 shopId%3D 或 restaurant_id%3D（在targetUrl等参数中）
+  var m2=s.match(/(?:shopId|restaurant_id)%3D([A-Za-z0-9]+)/i);
+  if(m2) return m2[1];
+  // 3. 解码targetUrl参数后再匹配
+  try{
+    var targetMatch=s.match(/[?&]targetUrl=([^&]+)/);
+    if(targetMatch){
+      var decoded=decodeURIComponent(targetMatch[1]);
+      var m3=decoded.match(/(?:shopId|restaurant_id)=([A-Za-z0-9]+)/);
+      if(m3) return m3[1];
+    }
+  }catch(e){}
+  return '';
 }
 /* 将带 shopId 的任意链接规范化为标准 h5.ele.me 店铺直链；无 shopId 则原样返回 */
 function normalizeShopUrl(url){
