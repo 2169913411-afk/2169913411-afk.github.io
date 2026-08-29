@@ -3770,7 +3770,7 @@ function runAnalysis(plan){
     }
     finishAnalysis(structured,report,[],plan);
   })['catch'](function(err){
-    renderError(err);
+    renderError(err, plan);
   });
 }
 state.notesText=function(){ return $('notesInput').value.trim(); };
@@ -4156,6 +4156,13 @@ var LLM_SYSTEM=[
 '  2. 拼好饭/爆品团：走极致低价，建议3-5个产品，客单价较高的门店不建议上；选品要求：单品价格低、食材成本极低、出餐速度快',
 '  3. 每个推荐产品必须说明：选品理由、建议价格、成本测算（食材成本占比预估）、预期效果',
 '- 活动推荐必须分优先级：必做活动（满减、神券、收藏有礼、减配送费）优先，选做活动根据门店情况推荐3-5项。',
+'- 活动推荐必须考虑门店所在地区的平台活动力度：',
+'  1. 必须根据门店地址（shop_base.address字段）或扫码抓取的门店数据判断门店所在城市/地区',
+'  2. 美团神券活动：不同城市/地区的神券力度不同，必须根据门店所在地区推荐合适的神券档位。常见神券力度参考：一线城市（北京、上海、广州、深圳）满30减5-8、满50减10-15；新一线城市（杭州、成都、武汉、南京、长沙、重庆、西安、苏州、天津、郑州）满25减4-6、满40减8-12；二线城市满20减3-5、满30减5-8；三四线城市满15减2-4、满25减4-6。以上仅为参考，实际力度以当地平台活动为准，必须结合门店客单价和成本结构调整。',
+'  3. 淘宝闪购爆红包活动：不同城市/地区的爆红包力度不同，必须根据门店所在地区推荐合适的爆红包档位。常见爆红包力度参考：一线城市满30减6-10、满50减12-18；新一线城市满25减5-8、满40减10-15；二线城市满20减4-6、满30减6-10；三四线城市满15减3-5、满25减5-8。以上仅为参考，实际力度以当地平台活动为准，必须结合门店客单价和成本结构调整。',
+'  4. 必须分析门店现有活动与地区平台活动的叠加效果，避免活动叠加导致亏损。神券/爆红包通常与满减叠加使用，必须计算叠加后的商家实收。',
+'  5. 如果门店所在地区有特殊的平台大促活动（如618、双11、美食节等），必须考虑大促期间的活动力度调整建议。',
+'  6. 活动力度必须循序渐进，不要一次性设置过高的优惠，避免后续无法回调。',
 '',
 '## 10.11 线上门店数据使用铁则（必须严格执行）',
 '- 如果扫码抓取到了线上门店数据（scraped_shop_data字段，且data_availability.shop_data_scraped为true），必须在分析中充分使用这些数据，绝对不能忽略。',
@@ -4362,12 +4369,24 @@ function finishAnalysis(structured,report,changes,plan){
     startBtn.textContent='已生成报告';
   }
 }
-function renderError(err){
+function renderError(err, plan){
   var area=$('resultArea');
+  var refundHtml = '';
+  // 如果传入了plan参数，退回对应的积分
+  if(plan && plan.cost){
+    // 退回积分
+    state.points += plan.cost;
+    state.pointsLog.unshift({t:nowStr(),delta:'+'+plan.cost,note:'分析失败退回'+plan.name,balance:state.points});
+    saveState();
+    updateBalanceUI();
+    refundHtml = '<div style="font-size:14px;color:#16A34A;font-weight:600;margin-top:16px;padding:12px;background:#F0FDF4;border-radius:8px;">✅ 已自动退回 '+plan.cost+' 积分（'+plan.name+'）</div>';
+  }
   area.innerHTML='<div style="text-align:center;padding:60px 0;color:var(--red);">'+
     '<div style="font-size:16px;font-weight:700;margin-bottom:8px;">分析失败</div>'+
     '<div style="font-size:13px;color:var(--text2);word-break:break-all;">'+String(err&&err.message||err)+'</div>'+
-    '<div style="font-size:12px;color:var(--text3);margin-top:12px;">请检查：① API Key 是否正确 ② 接口地址/模型名是否正确 ③ 账户余额是否充足 ④ 网络是否通畅</div></div>';
+    '<div style="font-size:12px;color:var(--text3);margin-top:12px;">请检查：① API Key 是否正确 ② 接口地址/模型名是否正确 ③ 账户余额是否充足 ④ 网络是否通畅</div>'+
+    refundHtml +
+    '<div style="margin-top:20px;"><button class="btn-primary enabled" style="height:40px;font-size:14px;padding:0 32px;" onclick="location.reload()">重新分析</button></div></div>';
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
