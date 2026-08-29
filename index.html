@@ -2167,7 +2167,25 @@ function refreshTip(){
   updateStartBtn();
 }
 function updateStartBtn(){
-  var ready = !!((state.overview && state.overview.length>0) && state.shop && state.shop.file && state.menu && state.menu.file);
+  // 检查素材是否已上传（支持上传二维码图片或手动输入店铺链接）
+  var qrReady = !!(state.qr && (state.qr.file || state.qr.decoded));
+  var overviewReady = !!(state.overview && state.overview.length>0);
+  var shopReady = !!(state.shop && state.shop.parsed && state.shop.parsed.ok);
+  var menuReady = !!(state.menu && state.menu.parsed && state.menu.parsed.ok);
+  var orderReady = !!(state.order && state.order.parsed && state.order.parsed.ok);
+  var reviewReady = !!(state.review && state.review.parsed && state.review.parsed.ok);
+  
+  // 根据档位检查必填素材
+  var plan = getPlan();
+  var planId = plan ? plan.cost : 88;
+  var requiredByPlan = {
+    38: [qrReady, overviewReady, shopReady],
+    58: [qrReady, overviewReady, shopReady, menuReady],
+    88: [qrReady, overviewReady, shopReady, menuReady, orderReady, reviewReady]
+  };
+  var required = requiredByPlan[planId] || requiredByPlan[88];
+  var ready = required.every(function(item) { return item; });
+  
   $('startBtn').classList.toggle('enabled', ready);
   // 同步更新"需上传"标签状态
   if(typeof updatePlanRequirements==='function') updatePlanRequirements();
@@ -3437,8 +3455,9 @@ function completenessCheck(){
   };
   
   // 检查各素材是否已上传
+  // 二维码：支持上传二维码图片或手动输入店铺链接，只要其中一个存在即认为已上传
   var materialStatus={
-    qr:!!(state.qr&&state.qr.file),
+    qr:!!(state.qr&&(state.qr.file||state.qr.decoded)),
     overview:!!(state.overview&&state.overview.length),
     shop:!!(state.shop&&state.shop.parsed&&state.shop.parsed.ok),
     menu:!!(state.menu&&state.menu.parsed&&state.menu.parsed.ok),
