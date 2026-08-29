@@ -2160,6 +2160,8 @@ function refreshTip(){
 function updateStartBtn(){
   var ready = !!((state.overview && state.overview.length>0) && state.shop && state.shop.file && state.menu && state.menu.file);
   $('startBtn').classList.toggle('enabled', ready);
+  // 同步更新"需上传"标签状态
+  if(typeof updatePlanRequirements==='function') updatePlanRequirements();
 }
 function getPlan(){
   var r=document.querySelector('input[name=planTop]:checked') || document.querySelector('input[name=plan]:checked'); return r?PLANS[r.value]:null;
@@ -3108,7 +3110,25 @@ function renderOverviewThumbs(){
     if(s.recognition){
       var type=s.recognition.screenshot_type||'已识别';
       var notes=s.recognition.notes||'';
-      recogHtml='<div style="font-size:10px;color:#16A34A;margin-top:4px;word-break:break-all;">✅ '+type+(notes?'：'+notes.slice(0,30):'')+'</div>';
+      // 显示更详细的识别内容
+      var detailHtml='';
+      if(s.recognition.peer&&Object.keys(s.recognition.peer).length){
+        var peerDetails=[];
+        if(s.recognition.peer.exposure!=null) peerDetails.push('曝光:'+fmt(s.recognition.peer.exposure));
+        if(s.recognition.peer.enter_rate!=null) peerDetails.push('入店率:'+s.recognition.peer.enter_rate+'%');
+        if(s.recognition.peer.order_rate!=null) peerDetails.push('下单率:'+s.recognition.peer.order_rate+'%');
+        if(peerDetails.length) detailHtml+='<div style="font-size:9px;color:#16A34A;margin-top:2px;">同行: '+peerDetails.join(' ')+'</div>';
+      }
+      if(s.recognition.activity&&s.recognition.activity.length){
+        detailHtml+='<div style="font-size:9px;color:#2563EB;margin-top:2px;">活动: '+s.recognition.activity.length+'项</div>';
+      }
+      if(s.recognition.promotion&&s.recognition.promotion.length){
+        detailHtml+='<div style="font-size:9px;color:#7C3AED;margin-top:2px;">推广: '+s.recognition.promotion.length+'项</div>';
+      }
+      if(s.recognition.order_distribution&&Object.keys(s.recognition.order_distribution).length){
+        detailHtml+='<div style="font-size:9px;color:#DB2777;margin-top:2px;">订单分布: 已识别</div>';
+      }
+      recogHtml='<div style="font-size:10px;color:#16A34A;margin-top:4px;word-break:break-all;">✅ '+type+(notes?'：'+notes.slice(0,25):'')+'</div>'+detailHtml;
     } else if(s.recognition===null){
       recogHtml='<div style="font-size:10px;color:#B45309;margin-top:4px;">⚠️ 识别失败</div>';
     } else if(s.recognizing){
@@ -3118,6 +3138,7 @@ function renderOverviewThumbs(){
     box.appendChild(d);
   });
   updateStartBtn();
+  if(typeof updatePlanRequirements==='function') updatePlanRequirements();
 }
 function delOverview(i){ state.overview.splice(i,1); renderOverviewThumbs(); }
 setupZone('overviewZone','overviewInput',function(files){
