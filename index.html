@@ -1269,6 +1269,7 @@ h1,h2,h3,.lp-title{
         <span>🔳</span><span class="fname" id="qrName"></span>
         <button class="del" onclick="removeQr()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
       </div>
+      <div id="qrRecogResult"></div>
     </div>
 
     <div class="section" id="overviewSection">
@@ -2483,6 +2484,23 @@ setupZone('qrZone','qrInput',function(files){
     $('qrItem').classList.remove('hidden');
     $('qrZone').classList.add('hidden');
     updateStartBtn();
+    // 上传后立即识别二维码内容
+    recognizeQrFromDataUrl(d,function(qrText){
+      if(qrText){
+        state.qr.decoded=qrText;
+        // 显示二维码识别结果
+        var qrResultEl=$('qrRecogResult');
+        if(qrResultEl){
+          qrResultEl.innerHTML='<div style="font-size:11px;color:#16A34A;margin-top:6px;word-break:break-all;">✅ 二维码识别成功：'+qrText.slice(0,80)+(qrText.length>80?'...':'')+'</div>';
+        }
+        toast('二维码识别成功');
+      }else{
+        var qrResultEl=$('qrRecogResult');
+        if(qrResultEl){
+          qrResultEl.innerHTML='<div style="font-size:11px;color:#B45309;margin-top:6px;">⚠️ 二维码识别失败，请确保截图中包含清晰的二维码</div>';
+        }
+      }
+    });
   });
 });
 
