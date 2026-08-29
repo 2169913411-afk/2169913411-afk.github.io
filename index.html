@@ -3563,6 +3563,16 @@ function doAnalysis(){
   state.points-=plan.cost;
   state.pointsLog.unshift({t:nowStr(),delta:'-'+plan.cost,note:plan.name,balance:state.points});
   saveState(); updateBalanceUI();
+  // 分析开始时，按钮改为"报告生成中"且不可点击
+  var startBtn=$('startBtn');
+  if(startBtn){
+    startBtn.textContent='报告生成中...';
+    startBtn.classList.remove('enabled');
+    startBtn.classList.add('disabled');
+    startBtn.style.opacity='0.6';
+    startBtn.style.pointerEvents='none';
+    startBtn.style.cursor='not-allowed';
+  }
   renderLoading('AI正在解析店铺数据，生成外卖运营方案，请稍候');
   runAnalysis(plan);
 }
@@ -3706,14 +3716,22 @@ function runAnalysis(plan){
       return null;
     });
   }
-  if(state.qr&&state.qr.dataUrl){
-    qrP=callQrObserve(api,state.qr.dataUrl).then(function(v){
-      if(v&&v.frontend) structured.frontend_experience=Object.assign(structured.frontend_experience||{},v.frontend);
-      return v;
+  // 修复：只要有二维码图片或手动输入的店铺链接，都要调用云函数抓取门店数据
+  if(state.qr && (state.qr.dataUrl || state.qr.decoded)){
+    qrP = Promise.resolve().then(function(){
+      // 如果有二维码图片，先进行视觉识别
+      if(state.qr.dataUrl){
+        return callQrObserve(api,state.qr.dataUrl).then(function(v){
+          if(v&&v.frontend) structured.frontend_experience=Object.assign(structured.frontend_experience||{},v.frontend);
+          return v;
+        })['catch'](function(){ return null; });
+      }
+      return null;
     }).then(function(v){
-      // 二维码识别成功后，调用云函数抓取门店数据
+      // 只要有店铺链接，就调用云函数抓取门店数据（修复：之前只有上传二维码图片才会抓取）
       if(state.qr && state.qr.decoded){
-        console.log('二维码识别成功，开始抓取门店数据:', state.qr.decoded);
+        console.log('开始抓取门店数据:', state.qr.decoded);
+        toast('正在抓取门店线上菜单数据...');
         return callShopScraper(state.qr.decoded).then(function(shopData){
           if(shopData){
             // 将门店数据合并到structured对象中
@@ -3755,13 +3773,21 @@ function runAnalysis(plan){
               structured.data_availability.online_menu_recognized = !!(shopData.categories && shopData.categories.length);
             }
             
-            console.log('门店数据已合并到structured对象中');
+            console.log('门店数据已合并到structured对象中，商品数:', shopData.products ? shopData.products.length : 0);
+            toast('门店线上菜单数据抓取成功');
+          } else {
+            console.log('门店数据抓取失败，返回为空');
+            toast('门店线上菜单数据抓取失败，将基于已有数据分析');
           }
+          return v;
+        })['catch'](function(err){
+          console.error('门店数据抓取失败:', err);
+          toast('门店线上菜单数据抓取失败：' + err.message);
           return v;
         });
       }
       return v;
-    })['catch'](function(){ return null; });
+    });
   }
   Promise.all([peerP,qrP]).then(function(){
     return guardReport(api,structured,plan,state.notesText(),0);
@@ -3972,6 +3998,7 @@ var LLM_SYSTEM=[
 '8. 全部三个档位，均输出适配档位篇幅的商家沟通话术，档位越高话术越完整。',
 '9. 非本档位的素材，前端已经禁用上传，AI不接收、不解析该类数据。',
 '10. 严格遵守档位深度隔离：低档就算意外收到高档位素材，也禁止输出高档位才有的分析内容。',
+'11. ⚠️ 绝对禁止诊断或推荐门店推出新的特色菜品、特色套餐、新品类。只能基于门店现有的菜品和套餐进行优化（调整名称、描述、价格、排序、活动搭配等），绝对不能建议"推出XX特色菜"、"新增XX套餐"、"开发XX新品"这类内容。如果门店菜品结构确实有问题，只能建议优化现有菜品或调整现有菜品的组合方式，不能建议新增菜品。',
 '',
 '# 七、固定提示话术模板，条件触发直接调用',
 '- 无商圈同行对比："未上传商圈同行对比数据，流量、转化、客单价仅展示原始数值，无法判断店铺在本地商圈的强弱水平。"',
@@ -4395,14 +4422,15 @@ function finishAnalysis(structured,report,changes,plan){
   if(state.history.length>10) state.history.length=10;
   saveState();
   renderReport(report,structured,changes,plan);
-  // 生成报告后禁用"开始AI分析"按钮，防止重复点击
+  // 生成报告后恢复按钮为可点击状态（用户可以重新分析）
   var startBtn=$('startBtn');
   if(startBtn){
-    startBtn.classList.remove('enabled');
-    startBtn.classList.add('disabled');
-    startBtn.style.opacity='0.5';
-    startBtn.style.pointerEvents='none';
-    startBtn.textContent='已生成报告';
+    startBtn.textContent='开始AI分析';
+    startBtn.classList.remove('disabled');
+    startBtn.style.opacity='1';
+    startBtn.style.pointerEvents='auto';
+    startBtn.style.cursor='pointer';
+    updateStartBtn(); // 重新检查必填素材，决定是否启用按钮
   }
 }
 function renderError(err, plan){
@@ -4423,6 +4451,16 @@ function renderError(err, plan){
     '<div style="font-size:12px;color:var(--text3);margin-top:12px;">请检查：① API Key 是否正确 ② 接口地址/模型名是否正确 ③ 账户余额是否充足 ④ 网络是否通畅</div>'+
     refundHtml +
     '<div style="margin-top:20px;"><button class="btn-primary enabled" style="height:40px;font-size:14px;padding:0 32px;" onclick="location.reload()">重新分析</button></div></div>';
+  // 分析失败后恢复按钮为可点击状态
+  var startBtn=$('startBtn');
+  if(startBtn){
+    startBtn.textContent='开始AI分析';
+    startBtn.classList.remove('disabled');
+    startBtn.style.opacity='1';
+    startBtn.style.pointerEvents='auto';
+    startBtn.style.cursor='pointer';
+    updateStartBtn(); // 重新检查必填素材，决定是否启用按钮
+  }
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
