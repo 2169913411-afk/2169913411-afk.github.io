@@ -1250,7 +1250,7 @@ h1,h2,h3,.lp-title{
       </div>
       <div class="plan-requirement-tip" id="planRequirementTip" style="margin-top:10px;padding:10px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E40AF;line-height:1.6;">
         <b>当前档位（菜单全量优化+导出）需要：</b><br>
-        ✅ 需上传：门店二维码截图、经营数据截图、门店经营数据Excel、商品销售Excel、商家订单Excel、用户评价Excel<br>
+        ✅ 需上传：分享店铺链接、经营数据截图、门店经营数据Excel、商品销售Excel、商家订单Excel、用户评价Excel<br>
         ⚪ 可选：商品成本Excel
       </div>
       <div class="balance-tip" id="balanceTip" style="margin-top:10px;">当前可用积分：0，本次操作将消耗 88 积分</div>
@@ -1258,28 +1258,35 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="qrSection">
-      <div class="section-title">1. 门店二维码/店铺链接 <span class="tag tag-opt" id="qrTag">非必选</span></div>
-      <div class="upload-zone uz-qr" id="qrZone">
-        <i data-lucide="qr-code"></i>
-        <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传门店二维码</div>
-          <div class="sub">支持标准二维码识别；淘宝/美团小程序码请使用下方链接输入</div>
+      <div class="section-title">1. 分享店铺链接 <span class="tag tag-req" id="qrTag">需上传</span></div>
+      <div style="background:#F0F7FF;border:1px solid #BFDBFE;border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
+          <div style="width:36px;height:36px;background:#165DFF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0;">🔗</div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1E40AF;margin-bottom:4px;">粘贴淘宝闪购/美团外卖店铺分享链接</div>
+            <div style="font-size:12px;color:#3B82F6;line-height:1.5;">从淘宝/美团APP进入店铺，点击分享→复制链接，粘贴到下方输入框。系统会自动抓取门店菜单、商品、价格、月售等数据。</div>
+          </div>
         </div>
-        <div class="paste-hint">粘贴到：门店二维码截图</div>
-        <input type="file" id="qrInput" accept="image/*">
-      </div>
-      <div id="qrItem" class="file-item hidden" style="margin-top:10px;">
-        <span>🔳</span><span class="fname" id="qrName"></span>
-        <button class="del" onclick="removeQr()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
-      </div>
-      <div id="qrRecogResult"></div>
-      <div style="margin-top:12px;">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">或手动粘贴店铺链接（推荐，小程序码无法自动识别时使用）</div>
         <div style="display:flex;gap:8px;">
-          <input type="text" id="qrShopLink" placeholder="粘贴淘宝闪购/美团外卖店铺链接" style="flex:1;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;outline:none;" oninput="onQrLinkInput()">
-          <button onclick="applyQrShopLink()" style="padding:8px 16px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">应用链接</button>
+          <input type="text" id="qrShopLink" placeholder="粘贴淘宝闪购/美团外卖店铺分享链接（以https://开头）" style="flex:1;padding:10px 14px;border:1px solid #93C5FD;border-radius:8px;font-size:13px;outline:none;background:#fff;" oninput="onQrLinkInput()">
+          <button onclick="applyQrShopLink()" style="padding:10px 20px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">应用链接</button>
         </div>
-        <div id="qrLinkStatus" style="font-size:11px;margin-top:4px;"></div>
+        <div id="qrLinkStatus" style="font-size:12px;margin-top:8px;"></div>
+        <div id="qrAppliedInfo" class="hidden" style="margin-top:12px;padding:10px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#16A34A;font-size:16px;">✅</span>
+            <span style="font-size:13px;color:#065F46;font-weight:600;">店铺链接已应用</span>
+            <button onclick="removeQrLink()" style="margin-left:auto;padding:4px 10px;background:#DC2626;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">移除</button>
+          </div>
+          <div id="qrAppliedLink" style="font-size:11px;color:#059669;margin-top:6px;word-break:break-all;"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E;line-height:1.6;">
+        <b>💡 如何获取店铺链接：</b><br>
+        1. 打开淘宝/美团APP，进入目标店铺<br>
+        2. 点击右上角"分享"按钮<br>
+        3. 选择"复制链接"<br>
+        4. 回到本页面，粘贴到上方输入框，点击"应用链接"
       </div>
     </div>
 
@@ -1603,15 +1610,10 @@ h1,h2,h3,.lp-title{
   <div class="modal" style="max-width:620px;">
     <div class="modal-head"><h3>商家调研 · 店铺数据采集</h3><button class="modal-close" onclick="closeModal('scrapeMask')">✕</button></div>
 
-    <div style="font-size:13px;color:var(--text1);font-weight:700;">① 店铺信息（上传二维码 或 粘贴链接/口令）</div>
-    <div style="display:flex;gap:10px;margin:8px 0 6px;">
-      <div class="upload-zone" style="flex:0 0 128px;height:80px;margin:0;" id="qrZone2" onclick="document.getElementById('qrInput2').click()">
-        <div class="main" style="font-size:12px;">上传二维码</div>
-        <div class="sub" style="font-size:11px;">或 Ctrl+V 粘贴</div>
-        <input type="file" id="qrInput2" accept="image/*">
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-        <input type="text" id="shopLink" placeholder="粘贴店铺链接 / 淘宝口令（h5.ele.me 可直接抓；口令点「自动解码」）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
+    <div style="font-size:13px;color:var(--text1);font-weight:700;">① 店铺信息（粘贴店铺链接/口令）</div>
+    <div style="margin:8px 0 6px;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <input type="text" id="shopLink" placeholder="粘贴淘宝闪购/美团外卖店铺分享链接 或 淘宝口令（h5.ele.me 可直接抓；口令点「自动解码」）" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;box-sizing:border-box;width:100%;" oninput="checkTaoLink()">
         <div id="taoHint" style="display:none;font-size:12px;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:6px 10px;line-height:1.7;">
           检测到淘宝口令，点下方按钮自动解析出店铺直链
           <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -1621,6 +1623,7 @@ h1,h2,h3,.lp-title{
         </div>
       </div>
     </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6;">💡 从淘宝/美团APP进入店铺，点击分享→复制链接，粘贴到上方输入框。</div>
     <div id="qrResult" style="font-size:11px;color:var(--text2);min-height:16px;"></div>
 
     <div style="font-size:13px;color:var(--text1);font-weight:700;">② 外卖平台</div>
@@ -2209,7 +2212,7 @@ function updatePlanRequirements(){
   var planId = plan.cost;
   
   // 定义各档位的必须文件（按照餐谋长业务规则）
-  // qr=门店二维码截图, overview=经营数据截图, shop=门店经营数据Excel, menu=商品销售Excel
+  // qr=分享店铺链接, overview=经营数据截图, shop=门店经营数据Excel, menu=商品销售Excel
   // order=商家订单Excel, review=用户评价Excel, cost=商品成本Excel
   var requirements = {
     38: { 
@@ -2233,7 +2236,7 @@ function updatePlanRequirements(){
   
   // 素材名称映射
   var materialNames = {
-    qr: '门店二维码截图',
+    qr: '分享店铺链接',
     overview: '经营数据截图',
     shop: '门店经营数据Excel',
     menu: '商品销售Excel',
@@ -2606,6 +2609,7 @@ function applyQrShopLink(){
         linkInput.value=j.url;
         state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:j.url};
         if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 解码成功，店铺链接已应用</span>';
+        showAppliedLinkInfo(j.url);
         toast('店铺链接已应用');
         updateStartBtn();
       }else{
@@ -2620,7 +2624,29 @@ function applyQrShopLink(){
   // 直接应用链接
   state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:link};
   if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 店铺链接已应用</span>';
+  showAppliedLinkInfo(link);
   toast('店铺链接已应用');
+  updateStartBtn();
+}
+/* 显示已应用的链接信息 */
+function showAppliedLinkInfo(link){
+  var infoEl=$('qrAppliedInfo');
+  var linkEl=$('qrAppliedLink');
+  if(infoEl && linkEl){
+    infoEl.classList.remove('hidden');
+    linkEl.textContent=link;
+  }
+}
+/* 移除已应用的店铺链接 */
+function removeQrLink(){
+  state.qr=null;
+  var linkInput=$('qrShopLink');
+  if(linkInput) linkInput.value='';
+  var linkStatus=$('qrLinkStatus');
+  if(linkStatus) linkStatus.innerHTML='';
+  var infoEl=$('qrAppliedInfo');
+  if(infoEl) infoEl.classList.add('hidden');
+  toast('店铺链接已移除');
   updateStartBtn();
 }
 setupZone('qrZone','qrInput',function(files){
@@ -2706,7 +2732,7 @@ function handlePastedImage(f,target){
   }
   // 通用图片粘贴处理
   var targetNames = {
-    qr: '门店二维码截图',
+    qr: '分享店铺链接',
     overview: '经营数据截图',
     peer: '商圈同行对比数据',
     roi: '推广ROI数据'
@@ -3498,7 +3524,7 @@ function completenessCheck(){
   };
   
   var materialNames={
-    qr:'门店二维码截图',
+    qr:'分享店铺链接',
     overview:'经营数据截图',
     shop:'门店经营数据Excel',
     menu:'商品销售Excel',
@@ -3535,9 +3561,9 @@ function completenessCheck(){
     // 档位1固定话术
     if(planId===38){
       if(missingNames.indexOf('经营数据截图')>-1){
-        miss=['您选择的是【基础诊断】档位，门店二维码截图、经营数据截图两项均为必填，缺少经营数据截图无法读取曝光转化以及同行指标，请补充后再提交。'];
-      } else if(missingNames.indexOf('门店二维码截图')>-1){
-        miss=['您选择的是【基础诊断】档位，门店二维码截图、经营数据截图两项均为必填，缺少门店二维码截图无法做用户端前端体验排查，请补充后再提交。'];
+        miss=['您选择的是【基础诊断】档位，分享店铺链接、经营数据截图两项均为必填，缺少经营数据截图无法读取曝光转化以及同行指标，请补充后再提交。'];
+      } else if(missingNames.indexOf('分享店铺链接')>-1){
+        miss=['您选择的是【基础诊断】档位，分享店铺链接、经营数据截图两项均为必填，缺少分享店铺链接无法做用户端前端体验排查，请补充后再提交。'];
       }
     }
     // 档位2固定话术
@@ -3546,8 +3572,8 @@ function completenessCheck(){
         miss=['您选择【菜品菜单深度优化版】档位，商品销售Excel为必填素材，缺少该文件无法完成菜品优化、下架分析，请上传商品销售Excel后重新提交。'];
       } else if(missingNames.indexOf('经营数据截图')>-1){
         miss=['您选择【菜品菜单深度优化版】档位，经营数据截图为必填素材，缺少该文件无法做流量转化对标分析，请上传经营数据截图后重新提交。'];
-      } else if(missingNames.indexOf('门店二维码截图')>-1){
-        miss=['您选择【菜品菜单深度优化版】档位，门店二维码截图为必填素材，缺少该文件无法做用户端前端体验排查，请上传门店二维码截图后重新提交。'];
+      } else if(missingNames.indexOf('分享店铺链接')>-1){
+        miss=['您选择【菜品菜单深度优化版】档位，分享店铺链接为必填素材，缺少该文件无法做用户端前端体验排查，请上传分享店铺链接后重新提交。'];
       }
     }
     // 档位3固定话术
@@ -3562,8 +3588,8 @@ function completenessCheck(){
         miss=['您选择【全量专业版】档位，商品销售Excel为必填素材，缺少该文件无法完成菜单深度分析和优化版商品文件输出，请上传商品销售Excel。'];
       } else if(missingNames.indexOf('经营数据截图')>-1){
         miss=['您选择【全量专业版】档位，经营数据截图为必填素材，缺少该文件无法做流量转化对标分析，请上传经营数据截图。'];
-      } else if(missingNames.indexOf('门店二维码截图')>-1){
-        miss=['您选择【全量专业版】档位，门店二维码截图为必填素材，缺少该文件无法做用户端前端体验排查，请上传门店二维码截图。'];
+      } else if(missingNames.indexOf('分享店铺链接')>-1){
+        miss=['您选择【全量专业版】档位，分享店铺链接为必填素材，缺少该文件无法做用户端前端体验排查，请上传分享店铺链接。'];
       }
     }
   }
@@ -3904,8 +3930,8 @@ function callPeerExtract(api,peerImages){
   });
 }
 function callQrObserve(api,qrDataUrl){
-  var sys='你是外卖运营专家。用户提供了门店二维码/店铺首页截图。请模拟顾客扫码进店，做用户视角前端体验观察，输出简洁要点，不编造截图里没有的东西。\n要求：只输出一个JSON：{"frontend":{"notes":"一句话总结","dims":{"装修风格":"...","主图质量":"...","商品排序":"...","价格活动展示":"...","销量标签":"...","菜品信息":"...","下单路径":"..."}}}';
-  var parts=[{type:'text',text:'请观察这张门店二维码/首页截图，做前端体验观察。'},{type:'image_url',image_url:{url:qrDataUrl}}];
+  var sys='你是外卖运营专家。用户提供了店铺首页截图。请模拟顾客进店，做用户视角前端体验观察，输出简洁要点，不编造截图里没有的东西。\n要求：只输出一个JSON：{"frontend":{"notes":"一句话总结","dims":{"装修风格":"...","主图质量":"...","商品排序":"...","价格活动展示":"...","销量标签":"...","菜品信息":"...","下单路径":"..."}}}';
+  var parts=[{type:'text',text:'请观察这张店铺首页截图，做前端体验观察。'},{type:'image_url',image_url:{url:qrDataUrl}}];
   return callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.visionModel||API_DEFAULT.visionModel,
     [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024)
     .then(parseJson)
@@ -3913,16 +3939,16 @@ function callQrObserve(api,qrDataUrl){
       // 确保返回的frontend对象结构完整
       if(v&&v.frontend){
         if(!v.frontend.dims) v.frontend.dims={};
-        if(!v.frontend.notes) v.frontend.notes='已上传门店二维码截图，前端体验视觉识别完成';
+        if(!v.frontend.notes) v.frontend.notes='已上传分享店铺链接，前端体验视觉识别完成';
         return v;
       }
       // 如果视觉识别返回格式不正确，返回基本对象
-      return {frontend:{notes:'已上传门店二维码截图，但视觉识别结果格式不完整',dims:{}}};
+      return {frontend:{notes:'已上传分享店铺链接，但视觉识别结果格式不完整',dims:{}}};
     })
     ['catch'](function(e){
-      // 视觉识别失败时，返回基本对象，让AI知道有上传二维码截图
-      console.warn('二维码前端体验视觉识别失败:',e&&e.message);
-      return {frontend:{notes:'已上传门店二维码截图，但视觉识别失败（可能是网络或模型问题），请基于上传截图的文件名和其他数据进行分析',dims:{},recognition_failed:true}};
+      // 视觉识别失败时，返回基本对象，让AI知道有上传店铺首页截图
+      console.warn('店铺首页前端体验视觉识别失败:',e&&e.message);
+      return {frontend:{notes:'已上传分享店铺链接，但视觉识别失败（可能是网络或模型问题），请基于上传截图的文件名和其他数据进行分析',dims:{},recognition_failed:true}};
     });
 }
 
@@ -3990,33 +4016,33 @@ var LLM_SYSTEM=[
 '# 三、输入数据源说明',
 '你将接收后端预处理完成的结构化数据，所有数值、同行对比、高低判断均为准确值，你直接使用，禁止重新计算、禁止反向解读、禁止编造数据。',
 '数据可能包含：',
-'1. 门店二维码截图（用户端进店截图）：模拟普通消费者进店视角；分析维度：店铺头图、门店公告、起送价、配送费、评分、菜品分组、商品排序、商品展示效果、商品销量标签。',
+'1. 分享店铺链接（用户端进店截图）：模拟普通消费者进店视角；分析维度：店铺头图、门店公告、起送价、配送费、评分、菜品分组、商品排序、商品展示效果、商品销量标签。',
 '2. 经营数据截图：包含曝光、入店人数、入店转化率、下单转化率、有效订单、客单价；截图内同时读取商圈同行流量、转化指标。',
 '3. 商品销售Excel：菜品名称、售价、销量、销售额、成本、分类；用于菜品诊断、输出优化后的商品文件。',
 '4. 商家订单Excel：订单明细，用于核算平台扣点、平台补贴、实付金额、单店真实收益。',
 '5. 用户评价Excel：存储全部好评、差评、追评内容，用于差评归类、问题拆解、生成整改以及回复模板。',
 '6. 推广ROI数据截图/表格：各个推广渠道消耗、产出、ROI投产数据。',
 '7. 商圈同行对比数据：同品类周边同行流量、转化、客单价对标数据。',
-'8. 扫码抓取的线上门店数据（scraped_shop_data）：通过二维码识别后自动调用服务器端抓取的门店真实数据，包含：店铺名称、评分、月售、配送时间、起送价、配送费、菜单分组（categories）、商品列表（products，包含商品名称、价格、原价、月售、描述、图片、所属分组）。如果data_availability.shop_data_scraped为true且data_availability.online_menu_recognized为true，说明已成功抓取到线上菜单数据，必须在菜品/菜单分析中充分使用这些数据，与商品销售Excel进行交叉验证分析。如果没有商品销售Excel，则直接使用抓取到的商品数据进行菜品分析。',
+'8. 扫码抓取的线上门店数据（scraped_shop_data）：通过分享店铺链接自动调用服务器端抓取的门店真实数据，包含：店铺名称、评分、月售、配送时间、起送价、配送费、菜单分组（categories）、商品列表（products，包含商品名称、价格、原价、月售、描述、图片、所属分组）。如果data_availability.shop_data_scraped为true且data_availability.online_menu_recognized为true，说明已成功抓取到线上菜单数据，必须在菜品/菜单分析中充分使用这些数据，与商品销售Excel进行交叉验证分析。如果没有商品销售Excel，则直接使用抓取到的商品数据进行菜品分析。',
 '',
 '# 四、三档诊断档位完整规则（严格遵守档位深度隔离）',
 '## 档位1｜基础诊断（38积分）',
 '- 业务目标：流量转化核心问题定位，精简输出；输出简短版本商家沟通话术。',
 '- 禁止输出：深度菜品拆解、差评专项分析、差评回复模板、站外推广、多工具组合投放复杂方案，只输出最高优先级1‑2条方向性建议。',
-'- 必填素材：门店二维码截图、经营数据截图（两项必须同时上传，无备选方案）',
+'- 必填素材：分享店铺链接、经营数据截图（两项必须同时上传，无备选方案）',
 '- 前端禁用上传：商品销售Excel、商家订单Excel、用户评价Excel、推广ROI数据、商圈同行对比数据',
 '',
 '## 档位2｜菜品菜单深度优化版（58积分｜推荐）',
 '- 业务目标：进店体验诊断 + 流量转化分析 + 菜品深度分析，输出优化后的商品文件、基础活动推广诊断；输出对应档位篇幅的商家沟通话术。',
 '- 禁止输出：全套差评归类、差评回复模板。',
-'- 必填素材：门店二维码截图、经营数据截图、商品销售Excel',
+'- 必填素材：分享店铺链接、经营数据截图、商品销售Excel',
 '- 可选素材：商家订单Excel（有则做扣点、订单收益分析，没有就跳过该模块）、推广ROI数据截图（有则做基础推广建议；无ROI仅做定性方向，禁止输出预算调整数字）',
 '- 前端禁用上传：用户评价Excel、商圈同行对比数据',
 '- 商品文件输出约束：无需改动的菜品，原有信息原样保留，只修改需要优化的菜品。',
 '',
 '## 档位3｜全量专业版（88积分）',
 '- 业务目标：全模块完整输出：进店体验、流量转化对标、菜单深度分析、输出完整优化版商品文件（无需优化商品原样保留，不强制作修改）、差评专项拆解、完整站内+站外推广方案、完整版商家沟通话术。',
-'- 必填素材（6项全部必须上传）：门店二维码截图、经营数据截图、商品销售Excel、商家订单Excel（扣点、订单收益核算）、用户评价Excel（差评归类、整改、回复模板）、商圈同行对比数据（指标横向对标）',
+'- 必填素材（6项全部必须上传）：分享店铺链接、经营数据截图、商品销售Excel、商家订单Excel（扣点、订单收益核算）、用户评价Excel（差评归类、整改、回复模板）、商圈同行对比数据（指标横向对标）',
 '- 可选素材：推广ROI数据截图（强烈建议上传；没有该数据只能输出方向性建议，禁止输出预算调整数字）',
 '',
 '# 五、AI标准诊断执行流程（固定顺序，不可颠倒）',
@@ -4024,7 +4050,7 @@ var LLM_SYSTEM=[
 '2. 对照档位规则校验全部必填素材；任意一项缺失，直接返回缺失提示，终止诊断，不做任何分析。',
 '3. 告知用户哪些是可选素材，说明可选素材缺失会带来哪些分析能力限制。',
 '4. 素材校验全部通过，依次执行下面分析步骤：',
-'   ①门店用户端体验分析（基于二维码截图）',
+'   ①门店用户端体验分析（基于分享店铺链接和扫码抓取的线上门店数据）',
 '   ②门店流量、转化、客单价对标分析（结合经营概览+商圈同行）',
 '   ③菜品/菜单分析（按照当前档位控制分析深度）',
 '   ④评价差评分析（仅全量专业版档位才执行）',
@@ -4047,7 +4073,7 @@ var LLM_SYSTEM=[
 '10. 严格遵守档位深度隔离：低档就算意外收到高档位素材，也禁止输出高档位才有的分析内容。',
 '11. ⚠️ 新菜品推荐规则（必须严格遵守）：',
 '   - ❌ 绝对禁止：看到某个区域/商圈客单价高，就针对该区域推出特色菜品或特色套餐。不能基于区域消费水平推荐新菜品，必须基于门店自身品类。',
-'   - ✅ 允许且推荐：先从前端菜单（扫码抓取的线上菜单或二维码截图）判断门店的主营品类（如赣菜、川菜、湘菜、粤菜、火锅、烧烤、快餐等）。',
+'   - ✅ 允许且推荐：先从前端菜单（扫码抓取的线上菜单或分享店铺链接）判断门店的主营品类（如赣菜、川菜、湘菜、粤菜、火锅、烧烤、快餐等）。',
 '   - ✅ 允许且推荐：基于门店主营品类，分析该品类在当前市场的热销菜品、爆款菜品、高点击率菜品。',
 '   - ✅ 允许且推荐：如果门店菜单中缺少该品类的热销菜品/爆款菜品，可以推荐门店添加这些菜品，并给出建议的定价范围（基于品类均价、门店客单价、食材成本估算）。',
 '   - ✅ 允许且推荐：如果门店菜单中缺少合理的套餐组合，可以推荐基于现有菜品的套餐组合，并给出建议的套餐价格。',
@@ -4183,8 +4209,8 @@ var LLM_SYSTEM=[
 '- 引用数据时必须带上具体数值，比如"老客下单转化率32.8%"，而不是笼统地说"老客转化率较高"。',
 '',
 '## 10.6 前端体验诊断要求',
-'- 如果上传了门店二维码截图，必须进行前端体验诊断，禁止说"缺少前端体验详细数据，本模块暂不分析"。',
-'- 前端体验诊断必须基于二维码截图的视觉识别结果（frontend_experience字段），分析维度包括：店铺头图、门店公告、起送价、配送费、评分、菜品分组、商品排序、商品展示效果、商品销量标签等。',
+'- 如果上传了分享店铺链接，必须进行前端体验诊断，禁止说"缺少前端体验详细数据，本模块暂不分析"。',
+'- 前端体验诊断必须基于分享店铺链接和扫码抓取的线上门店数据（frontend_experience字段、scraped_shop_data字段），分析维度包括：店铺头图、门店公告、起送价、配送费、评分、菜品分组、商品排序、商品展示效果、商品销量标签等。',
 '- 如果视觉识别结果不完整或缺失，必须明确说明"前端体验视觉识别不完整，仅基于已有信息分析"，禁止直接跳过该模块。',
 '- 前端体验诊断必须给出具体的、可落地的优化建议，禁止输出"提升服务、加强管理"这类空话。',
 '',
@@ -4314,7 +4340,7 @@ var LLM_SYSTEM=[
 '- [ ] 活动建议是否结合了门店的客单价、补贴率、成本结构？',
 '- [ ] 是否准确引用了结构化数据中的数值，没有编造或错误引用？',
 '- [ ] 是否进行了多数据源交叉分析，而不是孤立地看单个数据？',
-'- [ ] 前端体验诊断是否基于二维码截图进行了分析，而不是直接跳过？',
+'- [ ] 前端体验诊断是否基于分享店铺链接和扫码抓取的线上门店数据进行了分析，而不是直接跳过？',
 '- [ ] 输出结构是否根据门店实际情况灵活调整，而不是严格按照固定模板？',
 '- [ ] 是否避免了"提升服务、加强管理、做好品控"这类无执行动作的空话？',
 '- 如果以上任何一项不满足，必须重新修改输出内容。',
@@ -4330,9 +4356,9 @@ var LLM_SYSTEM=[
 '- 低档档位（38积分）禁止输出高档档位（58/88积分）才有的分析内容，即使意外收到了高档位素材也必须严格遵守档位深度隔离。',
 '',
 '## 10.15 前端体验分析限制铁则',
-'- 前端体验分析（店铺头图、门店公告、商品排序、价格活动展示、销量标签、菜品信息、下单路径等）可以基于以下两种数据源：',
-'  1. 二维码截图的视觉识别结果（frontend_experience字段）',
-'  2. 手动输入的店铺链接（frontend_experience.shop_link字段）+ 扫码抓取的线上门店数据（scraped_shop_data字段）',
+'- 前端体验分析（店铺头图、门店公告、商品排序、价格活动展示、销量标签、菜品信息、下单路径等）可以基于以下数据源：',
+'  1. 分享店铺链接（frontend_experience.shop_link字段）+ 扫码抓取的线上门店数据（scraped_shop_data字段）',
+'  2. 店铺首页截图的视觉识别结果（frontend_experience字段，如有上传）',
 '- 如果 data_availability.frontend_experience_recognized 为 false，但是有手动输入的店铺链接（frontend_experience.has_shop_link为true）或扫码抓取的线上门店数据（data_availability.shop_data_scraped为true），可以基于店铺链接和抓取到的门店数据进行前端体验分析，包括：菜单结构分析、商品排序分析、价格带分析、月售分析、招牌商品分析、商品图片分析、商品描述分析等。',
 '- 如果既没有二维码截图，也没有手动输入的店铺链接，也没有扫码抓取的线上门店数据，绝对不要给出任何前端体验相关的分析或建议，包括但不限于：',
 '  - 优化店铺头图',
@@ -4417,7 +4443,7 @@ var LLM_SYSTEM=[
 '- 福利分组：当前福利商品是否有竞争力、价格是否到位、是否需要调整',
 '- 招牌分组：招牌菜是否搭配了合适的活动、是否需要做招牌专属优惠',
 '- 套餐分组：套餐定价是否合理、是否参与满减、套餐内商品组合是否最优',
-'### 6. 用户视角前端体验诊断（有截图/二维码才输出）',
+'### 6. 用户视角前端体验诊断（有分享店铺链接才输出）',
 '模拟用户从进店到下单全流程，按7个维度输出问题+优化建议：装修风格、主图质量、商品排序、价格活动展示、销量标签体系、菜品信息完整性、下单路径流畅度。遵守通用原则第7条。',
 '### 7. 优化优先级',
 '按投入产出比从高到低排序，明确先做什么、后做什么。',
@@ -4431,7 +4457,7 @@ var LLM_SYSTEM=[
 '【3｜菜品与菜单优化】',
 '【4｜差评专项深度整改】',
 '【5｜活动体系优化】',
-'【6｜用户视角前端体验诊断】（无截图/二维码则输出“缺少前端体验数据，本模块暂不分析”）',
+'【6｜用户视角前端体验诊断】（无分享店铺链接则输出“缺少前端体验数据，本模块暂不分析”）',
 '【7｜综合优化优先级】',
 '【8｜代运营对接商家沟通话术】',
 '【9｜数据缺失说明】',
