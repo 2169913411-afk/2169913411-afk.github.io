@@ -1302,7 +1302,7 @@ h1,h2,h3,.lp-title{
         <input type="file" id="overviewInput" accept="image/*" multiple>
       </div>
       <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">支持上传多种经营数据截图：①近7天/近30天经营概览（曝光、入店、下单转化、客单价、商圈同行对比）②活动数据截图（满减、神券、收藏有礼等活动参与情况）③推广数据截图（点金推广、铂金展位、推广魔方、斗金推广等消耗与产出）④商品销售截图 ⑤其他经营相关截图。AI会自动识别每张截图的内容并纳入分析。</div>
-      <div id="overviewList" style="margin-top:10px;"></div>
+      <div class="thumb-grid" id="overviewThumbs" style="margin-top:10px;"></div>
     </div>
 
     <div class="section" id="shopSection">
@@ -3297,57 +3297,53 @@ function recognizeOverviewImage(dataUrl, callback){
 }
 
 function renderOverviewThumbs(){
-  var box=$('overviewList'); if(!box) return;
+  var box=$('overviewThumbs'); if(!box) return;
   box.innerHTML='';
   if(!state.overview || !state.overview.length) return;
   (state.overview||[]).forEach(function(s,i){
     var d=document.createElement('div');
-    d.style.cssText='border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fff;';
+    d.className='thumb';
+    d.style.cssText='position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;cursor:pointer;';
     var statusHtml='';
     var detailHtml='';
     if(s.recognition){
       var type=s.recognition.screenshot_type||'已识别';
       var notes=s.recognition.notes||'';
-      statusHtml='<span style="color:#16A34A;font-size:12px;font-weight:600;">✅ 已识别</span>';
+      statusHtml='<div style="position:absolute;top:4px;left:4px;background:#16A34A;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;z-index:2;">✅ '+type+'</div>';
       // 显示更详细的识别内容
       var details=[];
-      details.push('<span style="color:#2563EB;">类型：'+type+'</span>');
-      if(notes) details.push('<span style="color:var(--text2);">说明：'+notes+'</span>');
+      if(notes) details.push('<span style="color:var(--text2);">'+notes+'</span>');
       if(s.recognition.peer&&Object.keys(s.recognition.peer).length){
         var peerDetails=[];
         if(s.recognition.peer.exposure!=null) peerDetails.push('曝光:'+fmt(s.recognition.peer.exposure));
         if(s.recognition.peer.enter_rate!=null) peerDetails.push('入店率:'+s.recognition.peer.enter_rate+'%');
         if(s.recognition.peer.order_rate!=null) peerDetails.push('下单率:'+s.recognition.peer.order_rate+'%');
-        if(peerDetails.length) details.push('<span style="color:#16A34A;">同行数据：'+peerDetails.join('，')+'</span>');
+        if(peerDetails.length) details.push('<span style="color:#16A34A;">同行：'+peerDetails.join(' ')+'</span>');
       }
       if(s.recognition.activity&&s.recognition.activity.length){
-        var activityNames=s.recognition.activity.map(function(a){return a.name||a.activity_name||'活动';}).slice(0,5).join('、');
-        details.push('<span style="color:#2563EB;">活动数据：'+s.recognition.activity.length+'项（'+activityNames+'）</span>');
+        details.push('<span style="color:#2563EB;">活动：'+s.recognition.activity.length+'项</span>');
       }
       if(s.recognition.promotion&&s.recognition.promotion.length){
-        var promoNames=s.recognition.promotion.map(function(p){return p.channel||p.name||'推广';}).slice(0,5).join('、');
-        details.push('<span style="color:#7C3AED;">推广数据：'+s.recognition.promotion.length+'项（'+promoNames+'）</span>');
+        details.push('<span style="color:#7C3AED;">推广：'+s.recognition.promotion.length+'项</span>');
       }
       if(s.recognition.order_distribution&&Object.keys(s.recognition.order_distribution).length){
-        details.push('<span style="color:#DB2777;">订单分布：已识别</span>');
+        details.push('<span style="color:#DB2777;">订单分布</span>');
       }
       if(s.recognition.products&&s.recognition.products.length){
-        details.push('<span style="color:#059669;">商品销售：'+s.recognition.products.length+'个商品</span>');
+        details.push('<span style="color:#059669;">商品：'+s.recognition.products.length+'个</span>');
       }
-      detailHtml='<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;line-height:1.6;">'+details.join('')+'</div>';
+      detailHtml='<div style="padding:6px 8px;font-size:10px;line-height:1.5;display:flex;flex-wrap:wrap;gap:4px 8px;border-top:1px solid var(--border);">'+details.join('')+'</div>';
     } else if(s.recognition===null){
-      statusHtml='<span style="color:#B45309;font-size:12px;font-weight:600;">⚠️ 识别失败</span>';
-      detailHtml='<div style="margin-top:6px;font-size:11px;color:var(--text3);">图片可能不清晰或不是经营数据截图，请重新上传</div>';
+      statusHtml='<div style="position:absolute;top:4px;left:4px;background:#B45309;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;z-index:2;">⚠️ 识别失败</div>';
+      detailHtml='<div style="padding:6px 8px;font-size:10px;color:var(--text3);border-top:1px solid var(--border);">图片可能不清晰，请重新上传</div>';
     } else if(s.recognizing){
-      statusHtml='<span style="color:#2563EB;font-size:12px;font-weight:600;">⏳ 识别中...</span>';
-      detailHtml='<div style="margin-top:6px;font-size:11px;color:var(--text3);">AI正在识别截图内容，请稍候</div>';
+      statusHtml='<div style="position:absolute;top:4px;left:4px;background:#2563EB;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;z-index:2;">⏳ 识别中...</div>';
+      detailHtml='<div style="padding:6px 8px;font-size:10px;color:var(--text3);border-top:1px solid var(--border);">AI正在识别...</div>';
     }
-    d.innerHTML='<div style="display:flex;align-items:center;gap:8px;">'+
-      '<span style="font-size:14px;">📊</span>'+
-      '<span style="font-size:12px;color:var(--text1);font-weight:500;flex:1;word-break:break-all;">'+s.name+'</span>'+
-      statusHtml+
-      '<button onclick="delOverview('+i+')" style="width:20px;height:20px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;cursor:pointer;flex-shrink:0;">✕</button>'+
-      '</div>'+detailHtml;
+    d.innerHTML=statusHtml+
+      '<img src="'+s.dataUrl+'" style="width:100%;height:120px;object-fit:cover;display:block;" onclick="window.open(\''+s.dataUrl+'\',\'_blank\')">'+
+      '<button onclick="event.stopPropagation();delOverview('+i+')" style="position:absolute;top:4px;right:4px;width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.7);color:#fff;font-size:10px;cursor:pointer;z-index:2;">✕</button>'+
+      detailHtml;
     box.appendChild(d);
   });
   updateStartBtn();
