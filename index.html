@@ -1861,97 +1861,154 @@ var __meituanOcrInterval = setInterval(function(){
 // 15秒后停止检查
 setTimeout(function(){ clearInterval(__meituanOcrInterval); }, 15000);
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-/* ========== 美团自动抓取（简化版） ========== */
-var __meituanAutoInterval = setInterval(function(){
+/* ========== 美团iframe嵌入 + 自动长截图 + AI识别 ========== */
+var __meituanIframeInterval = setInterval(function(){
   var scrapeMask=document.getElementById('scrapeMask');
   if(scrapeMask && !scrapeMask.classList.contains('hidden')){
     var activePlat=document.querySelector('#scrapePlatRow .plat-opt.active');
     if(activePlat && activePlat.getAttribute('data-plat')==='美团外卖'){
-      var autoArea=document.getElementById('meituanAutoArea');
-      if(!autoArea){
+      var iframeArea=document.getElementById('meituanIframeArea');
+      if(!iframeArea){
         var startButton=document.querySelector('button[onclick="confirmScrape()"]');
         if(startButton){
           var div=document.createElement('div');
-          div.id='meituanAutoArea';
+          div.id='meituanIframeArea';
           div.style.cssText='margin-top:12px;padding:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;';
-          div.innerHTML='<div style="font-size:13px;font-weight:700;color:#1D4ED8;margin-bottom:8px;">🚀 美团自动抓取（半自动）</div>'+
+          div.innerHTML='<div style="font-size:13px;font-weight:700;color:#1D4ED8;margin-bottom:8px;">🚀 美团店铺内嵌抓取（全自动）</div>'+
             '<div style="font-size:12px;color:#4E5969;line-height:1.7;margin-bottom:10px;">'+
-            '<b>使用方法：</b><br>1. 点击"打开美团店铺"，在新标签页登录<br>2. 手机长截图截取完整菜单<br>3. 回到本页面按 Ctrl+V 粘贴截图<br>4. 点击"识别粘贴的截图"，AI自动识别</div>'+
+            '<b>使用方法：</b><br>1. 粘贴美团店铺链接，点击"加载店铺"<br>2. 在下方内嵌页面中登录美团账号<br>3. 等待菜单加载完成后，点击"自动长截图"<br>4. 点击"AI识别菜品"，自动提取菜品数据</div>'+
+            '<div style="display:flex;gap:6px;margin-bottom:10px;">'+
+            '<input type="text" id="meituanShopUrl" placeholder="粘贴美团店铺链接..." style="flex:1;height:32px;padding:0 8px;border:1px solid #C9CDD4;border-radius:6px;font-size:12px;outline:none;">'+
+            '<button style="background:#1D4ED8;color:#fff;border:none;border-radius:6px;padding:0 12px;font-size:12px;cursor:pointer;height:32px;white-space:nowrap;" onclick="loadMeituanShop()">📱 加载店铺</button></div>'+
+            '<div id="meituanIframeContainer" style="display:none;margin-bottom:10px;border:1px solid #BFDBFE;border-radius:8px;overflow:hidden;">'+
+            '<div style="background:#1D4ED8;color:#fff;padding:6px 10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;">'+
+            '<span>美团店铺页面（登录后菜单会显示在这里）</span>'+
+            '<button style="background:#fff;color:#1D4ED8;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;" onclick="captureMeituanIframe()">📸 自动长截图</button></div>'+
+            '<iframe id="meituanIframe" style="width:100%;height:500px;border:none;" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'+
+            '<div id="meituanCapturePreview" style="display:none;margin-bottom:10px;">'+
+            '<div style="font-size:12px;font-weight:600;color:#1D2129;margin-bottom:6px;">📸 长截图预览</div>'+
+            '<img id="meituanCaptureImg" style="width:100%;border:1px solid #E5E6EB;border-radius:8px;max-height:300px;object-fit:contain;background:#fff;"></div>'+
             '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
-            '<button style="flex:1;background:#1D4ED8;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;cursor:pointer;height:36px;" onclick="openMeituanShop()">📱 打开美团店铺</button>'+
-            '<button style="flex:1;background:#16A34A;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;cursor:pointer;height:36px;" onclick="recognizeMeituanPaste()">🤖 识别粘贴的截图</button></div>'+
-            '<div id="meituanPasteArea" style="border:2px dashed #BFDBFE;border-radius:8px;padding:15px;text-align:center;background:#fff;cursor:pointer;" onclick="document.getElementById(\'meituanPasteInput\').click()">'+
-            '<div style="font-size:14px;color:#1D4ED8;font-weight:600;margin-bottom:4px;">📋 按 Ctrl+V 粘贴截图</div>'+
-            '<div style="font-size:11px;color:#999;">或点击此处上传（支持多张）</div>'+
-            '<input type="file" id="meituanPasteInput" accept="image/*" multiple style="display:none;"></div>'+
-            '<div id="meituanPasteList" style="margin-top:8px;font-size:11px;color:#666;max-height:60px;overflow-y:auto;">暂无截图</div>'+
-            '<div id="meituanAutoStatus" style="display:none;margin-top:8px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;background:#FFF7ED;color:#B45309;"></div>'+
-            '<div id="meituanAutoResult" style="display:none;margin-top:8px;"></div>';
+            '<button style="flex:1;background:#16A34A;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;cursor:pointer;height:36px;" onclick="recognizeMeituanCapture()">🤖 AI识别菜品</button>'+
+            '<button style="flex:1;background:#FF7D00;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;cursor:pointer;height:36px;" onclick="exportMeituanCaptureExcel()">📥 导出Excel</button></div>'+
+            '<div id="meituanIframeStatus" style="display:none;margin-top:8px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;background:#FFF7ED;color:#B45309;"></div>'+
+            '<div id="meituanIframeResult" style="display:none;margin-top:8px;"></div>';
           startButton.parentNode.insertBefore(div, startButton.nextSibling);
-          
-          window.meituanPasteScreenshots = [];
-          document.addEventListener('paste',function(e){
-            if(e.clipboardData && e.clipboardData.items){
-              for(var i=0;i<e.clipboardData.items.length;i++){
-                var item=e.clipboardData.items[i];
-                if(item.type.indexOf('image')>-1){
-                  var file=item.getAsFile();
-                  var reader=new FileReader();
-                  reader.onload=function(ev){
-                    window.meituanPasteScreenshots=window.meituanPasteScreenshots||[];
-                    window.meituanPasteScreenshots.push({name:'粘贴截图_'+(window.meituanPasteScreenshots.length+1)+'.png',data:ev.target.result});
-                    var listEl=document.getElementById('meituanPasteList');
-                    if(listEl){ listEl.innerHTML=window.meituanPasteScreenshots.map(function(s){return '<div style="color:#16A34A;">✅ '+s.name+'</div>';}).join(''); }
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }
-            }
-          });
-          
-          var pasteInput=document.getElementById('meituanPasteInput');
-          if(pasteInput){
-            pasteInput.addEventListener('change',function(e){
-              var files=e.target.files;
-              for(var i=0;i<files.length;i++){
-                (function(file){
-                  var reader=new FileReader();
-                  reader.onload=function(ev){
-                    window.meituanPasteScreenshots=window.meituanPasteScreenshots||[];
-                    window.meituanPasteScreenshots.push({name:file.name,data:ev.target.result});
-                    var listEl=document.getElementById('meituanPasteList');
-                    if(listEl){ listEl.innerHTML=window.meituanPasteScreenshots.map(function(s){return '<div style="color:#16A34A;">✅ '+s.name+'</div>';}).join(''); }
-                  };
-                  reader.readAsDataURL(file);
-                })(files[i]);
-              }
-            });
-          }
         }
       }
     }
   }
 }, 1000);
-setTimeout(function(){ clearInterval(__meituanAutoInterval); }, 20000);
+setTimeout(function(){ clearInterval(__meituanIframeInterval); }, 20000);
 
-window.openMeituanShop = function(){
-  var shopUrl = prompt('请输入美团店铺链接：', 'https://h5.waimai.meituan.com/waimai/mindex/menu?poi_id_str=');
-  if(shopUrl && shopUrl.trim()){ window.open(shopUrl.trim(), '_blank'); }
+window.meituanCaptureData = null;
+window.meituanCaptureDishes = [];
+
+window.loadMeituanShop = function(){
+  var urlInput = document.getElementById('meituanShopUrl');
+  var container = document.getElementById('meituanIframeContainer');
+  var iframe = document.getElementById('meituanIframe');
+  if(!urlInput || !urlInput.value.trim()){ alert('请先粘贴美团店铺链接'); return; }
+  var url = urlInput.value.trim();
+  var urlMatch = url.match(/https?:\/\/[^\s]+/);
+  if(urlMatch) url = urlMatch[0];
+  container.style.display = 'block';
+  iframe.src = url;
+  var statusEl = document.getElementById('meituanIframeStatus');
+  if(statusEl){ statusEl.style.display='block'; statusEl.textContent='⏳ 正在加载美团店铺页面，请在下方登录账号...'; statusEl.style.color='#B45309'; statusEl.style.background='#FFF7ED'; }
 };
 
-window.recognizeMeituanPaste = async function(){
-  if(!window.meituanPasteScreenshots || window.meituanPasteScreenshots.length === 0){
-    alert('请先按 Ctrl+V 粘贴截图，或点击上传截图'); return;
+window.captureMeituanIframe = async function(){
+  var statusEl = document.getElementById('meituanIframeStatus');
+  var preview = document.getElementById('meituanCapturePreview');
+  var previewImg = document.getElementById('meituanCaptureImg');
+  if(statusEl){ statusEl.style.display='block'; statusEl.textContent='📸 正在自动长截图，请稍候...'; statusEl.style.color='#B45309'; statusEl.style.background='#FFF7ED'; }
+  try{
+    var iframe = document.getElementById('meituanIframe');
+    // 尝试截图iframe内容（由于跨域限制，可能只能截图iframe容器）
+    var canvas = await html2canvas(iframe, {
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      scale: 2
+    });
+    var dataUrl = canvas.toDataURL('image/png');
+    window.meituanCaptureData = dataUrl;
+    previewImg.src = dataUrl;
+    preview.style.display = 'block';
+    if(statusEl){ statusEl.textContent='✅ 长截图完成！点击"AI识别菜品"开始识别'; statusEl.style.color='#16A34A'; statusEl.style.background='#F0FDF4'; }
+  }catch(e){
+    console.error('截图失败', e);
+    if(statusEl){ statusEl.textContent='⚠️ 自动截图受浏览器跨域限制，请手动截图后按Ctrl+V粘贴。错误：'+e.message; statusEl.style.color='#F59E0B'; statusEl.style.background='#FFFBEB'; }
+    // 启用手动粘贴功能
+    enableManualPaste();
   }
-  var statusEl = document.getElementById('meituanAutoStatus');
-  if(statusEl){ statusEl.style.display='block'; statusEl.textContent='🤖 AI正在识别，请稍候...'; }
+};
+
+function enableManualPaste(){
+  var statusEl = document.getElementById('meituanIframeStatus');
+  if(statusEl && statusEl.innerHTML.indexOf('粘贴区域') === -1){
+    var pasteDiv = document.createElement('div');
+    pasteDiv.style.cssText = 'margin-top:8px;padding:10px;border:2px dashed #F59E0B;border-radius:8px;background:#FFFBEB;text-align:center;cursor:pointer;';
+    pasteDiv.innerHTML = '<div style="font-size:13px;color:#B45309;font-weight:600;margin-bottom:4px;">📋 按 Ctrl+V 粘贴截图</div><div style="font-size:11px;color:#92400E;">或点击此处上传截图（支持多张）</div><input type="file" id="meituanManualInput" accept="image/*" multiple style="display:none;">';
+    pasteDiv.onclick = function(){ document.getElementById('meituanManualInput').click(); };
+    statusEl.parentNode.insertBefore(pasteDiv, statusEl.nextSibling);
+    
+    window.meituanCaptureDishes = [];
+    document.addEventListener('paste', function(e){
+      if(e.clipboardData && e.clipboardData.items){
+        for(var i=0;i<e.clipboardData.items.length;i++){
+          var item=e.clipboardData.items[i];
+          if(item.type.indexOf('image')>-1){
+            var file=item.getAsFile();
+            var reader=new FileReader();
+            reader.onload=function(ev){
+              window.meituanCaptureDishes.push(ev.target.result);
+              if(statusEl){ statusEl.textContent='✅ 已粘贴 '+window.meituanCaptureDishes.length+' 张截图，点击"AI识别菜品"开始识别'; statusEl.style.color='#16A34A'; statusEl.style.background='#F0FDF4'; }
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+      }
+    });
+    
+    var manualInput = document.getElementById('meituanManualInput');
+    if(manualInput){
+      manualInput.addEventListener('change', function(e){
+        var files=e.target.files;
+        for(var i=0;i<files.length;i++){
+          (function(file){
+            var reader=new FileReader();
+            reader.onload=function(ev){
+              window.meituanCaptureDishes.push(ev.target.result);
+              if(statusEl){ statusEl.textContent='✅ 已上传 '+window.meituanCaptureDishes.length+' 张截图，点击"AI识别菜品"开始识别'; statusEl.style.color='#16A34A'; statusEl.style.background='#F0FDF4'; }
+            };
+            reader.readAsDataURL(file);
+          })(files[i]);
+        }
+      });
+    }
+  }
+}
+
+window.recognizeMeituanCapture = async function(){
+  var statusEl = document.getElementById('meituanIframeStatus');
+  var resultEl = document.getElementById('meituanIframeResult');
+  var screenshots = [];
+  if(window.meituanCaptureData) screenshots.push(window.meituanCaptureData);
+  if(window.meituanCaptureDishes && window.meituanCaptureDishes.length > 0) screenshots = screenshots.concat(window.meituanCaptureDishes);
+  
+  if(screenshots.length === 0){ alert('请先长截图或粘贴截图'); return; }
+  if(statusEl){ statusEl.style.display='block'; statusEl.textContent='🤖 AI正在识别菜品，请稍候...'; statusEl.style.color='#B45309'; statusEl.style.background='#FFF7ED'; }
+  
   try{
     var apiKey='f556e493ee9540ab82d696d4dada4d5c.4W9S0BVvIWVcz7W9';
     var allDishes=[];
-    for(var i=0;i<window.meituanPasteScreenshots.length;i++){
-      if(statusEl) statusEl.textContent='🤖 识别第 '+(i+1)+'/'+window.meituanPasteScreenshots.length+' 张...';
-      var content=[{type:'text',text:'识别美团菜单截图中的菜品，返回JSON：{"dishes":[{"name":"菜名","price":12.5,"sales":100,"category":"分组"}]'},{type:'image_url',image_url:{url:window.meituanPasteScreenshots[i].data}}];
+    for(var i=0;i<screenshots.length;i++){
+      if(statusEl) statusEl.textContent='🤖 识别第 '+(i+1)+'/'+screenshots.length+' 张...';
+      var content=[{type:'text',text:'识别美团菜单截图中的菜品，返回JSON：{"dishes":[{"name":"菜名","price":12.5,"sales":100,"category":"分组"}]'},{type:'image_url',image_url:{url:screenshots[i]}}];
       var resp=await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:'glm-4v-flash',messages:[{role:'user',content:content}],temperature:0.1,max_tokens:4096})});
       var data=await resp.json();
       var text=data.choices[0].message.content;
@@ -1961,11 +2018,10 @@ window.recognizeMeituanPaste = async function(){
     var unique=[]; var seen={};
     allDishes.forEach(function(d){ var k=d.name+'_'+d.price; if(!seen[k]){seen[k]=true;unique.push(d);} });
     if(statusEl){ statusEl.textContent='✅ 识别完成！共 '+unique.length+' 个菜品'; statusEl.style.color='#16A34A'; statusEl.style.background='#F0FDF4'; }
-    window.__meituanAutoDishes=unique;
-    var resultEl=document.getElementById('meituanAutoResult');
+    window.__meituanCaptureDishes=unique;
     if(resultEl){
       resultEl.style.display='block';
-      var html='<div style="margin-top:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-weight:600;">识别结果（'+unique.length+'个）</span><button style="background:#165DFF;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;" onclick="exportMeituanAutoExcel()">导出Excel</button></div><div style="max-height:180px;overflow-y:auto;border:1px solid #ddd;border-radius:6px;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr style="background:#f5f5f5;position:sticky;top:0;"><th style="padding:5px;text-align:left;">分组</th><th style="padding:5px;text-align:left;">菜品</th><th style="padding:5px;text-align:right;">价格</th><th style="padding:5px;text-align:right;">月售</th></tr></thead><tbody>';
+      var html='<div style="margin-top:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-weight:600;">识别结果（'+unique.length+'个）</span></div><div style="max-height:180px;overflow-y:auto;border:1px solid #ddd;border-radius:6px;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr style="background:#f5f5f5;position:sticky;top:0;"><th style="padding:5px;text-align:left;">分组</th><th style="padding:5px;text-align:left;">菜品</th><th style="padding:5px;text-align:right;">价格</th><th style="padding:5px;text-align:right;">月售</th></tr></thead><tbody>';
       unique.forEach(function(d){ html+='<tr><td style="padding:5px;border-bottom:1px solid #eee;color:#999;">'+(d.category||'')+'</td><td style="padding:5px;border-bottom:1px solid #eee;">'+(d.name||'')+'</td><td style="padding:5px;border-bottom:1px solid #eee;text-align:right;color:#FF7D00;">¥'+(d.price||'')+'</td><td style="padding:5px;border-bottom:1px solid #eee;text-align:right;">'+(d.sales||'')+'</td></tr>'; });
       html+='</tbody></table></div></div>';
       resultEl.innerHTML=html;
@@ -1973,9 +2029,9 @@ window.recognizeMeituanPaste = async function(){
   }catch(e){ if(statusEl){ statusEl.textContent='❌ 识别失败：'+e.message; statusEl.style.color='#F53F3F'; statusEl.style.background='#FEF2F2'; } }
 };
 
-window.exportMeituanAutoExcel = function(){
-  var dishes=window.__meituanAutoDishes||[];
-  if(!dishes.length){ alert('没有数据'); return; }
+window.exportMeituanCaptureExcel = function(){
+  var dishes=window.__meituanCaptureDishes||[];
+  if(!dishes.length){ alert('没有数据，请先识别'); return; }
   var csv='\uFEFF分组,菜品名称,价格,月售\n';
   dishes.forEach(function(d){ csv+=(d.category||'')+','+(d.name||'')+','+(d.price||'')+','+(d.sales||'')+'\n'; });
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
