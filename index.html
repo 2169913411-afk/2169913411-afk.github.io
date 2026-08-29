@@ -4042,6 +4042,10 @@ function callQrObserve(api,qrDataUrl){
 
 /* 调用云函数抓取门店数据（月售、评分、分组、商品名称、价格等） */
 function callShopScraper(shopUrl, platform){
+  // 标准化店铺链接（把淘宝闪购APP跳转链接转换成饿了么H5店铺链接）
+  shopUrl = normalizeShopUrl(shopUrl);
+  console.log('标准化后的店铺链接:', shopUrl);
+  
   var scraperUrl = decodeCfgUrl();
   if(!scraperUrl){
     console.warn('未配置云函数地址，跳过门店数据抓取');
