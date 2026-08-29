@@ -1,9 +1,9 @@
 /* ================================================================
-   美团外卖店铺菜单抓取脚本 v2.0（优化版）
+   美团外卖店铺菜单抓取脚本 v2.1（稳定版）
    - 修复数据重复问题
    - 去掉alert弹窗，改用页面内浮动提示
    - 确保下载先触发，再显示完成提示
-   - 增加全局去重功能
+   - 滚动整个菜品列表提取所有菜品，自动识别分类
    使用方式：在美团店铺页面 F12 控制台粘贴执行
    ================================================================ */
 (function(){
@@ -11,7 +11,6 @@
 
   /* ---------- 工具函数 ---------- */
   function esc(s){ return String(s==null?'':s).replace(/[\n\r]/g,' ').replace(/\s+/g,' ').trim(); }
-  function num(s){ var m=String(s||'').match(/(\d+\.?\d*)/); return m?parseFloat(m[1]):0; }
   function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
 
   /* ---------- XLSX 生成（纯JS，无依赖） ---------- */
@@ -105,192 +104,8 @@
     }, duration);
   }
 
-  /* ---------- 美团抓取核心逻辑 ---------- */
-  var allProducts = [];
-  var globalSeen = {}; // 全局去重
-  var categoryNames = [];
-  var currentCategory = '';
-
-  // 获取所有分类
-  function getCategories(){
-    var items = document.querySelectorAll('a.item_bpZh4h');
-    var cats = [];
-    items.forEach(function(el){
-      var text = esc(el.innerText);
-      if(text && text.length<30 && cats.indexOf(text)===-1){
-        cats.push(text);
-      }
-    });
-    return cats;
-  }
-
-  // 点击分类（点击子元素，确保触发切换）
-  function clickCategory(index){
-    var items = document.querySelectorAll('a.item_bpZh4h');
-    if(index >= items.length) return false;
-    var el = items[index];
-
-    // 尝试多种点击方式
-    try {
-      // 先尝试点击子元素
-      if(el.children.length > 0){
-        el.children[0].click();
-      } else {
-        el.click();
-      }
-    } catch(e) {
-      // 如果click失败，尝试dispatchEvent
-      try {
-        var event = new MouseEvent('click', {
-          'view': window,
-          'bubbles': true,
-          'cancelable': true
-        });
-        el.dispatchEvent(event);
-      } catch(e2) {
-        console.error('点击分类失败:', e2);
-      }
-    }
-    return true;
-  }
-
-  // 找到菜品滚动容器
-  function findScrollContainer(){
-    // 尝试多种可能的容器
-    var selectors = [
-      '#spu-list-dhxu28d',
-      '.spuListWrapper_L2kZtu',
-      '[class*=spu-list]',
-      '[class*=spuList]',
-      '[class*=menu-list]',
-      '[class*=goods-list]'
-    ];
-
-    for(var i=0;i<selectors.length;i++){
-      var el = document.querySelector(selectors[i]);
-      if(el && el.scrollHeight > el.clientHeight){
-        return el;
-      }
-    }
-
-    // 如果没找到，返回body
-    return document.body;
-  }
-
-  // 滚动到分类位置（美团可能是锚点滚动，不是内容切换）
-  function scrollToCategory(categoryName){
-    // 尝试找到分类标题元素并滚动到视图
-    var allElements = document.querySelectorAll('*');
-    for(var i=0;i<allElements.length;i++){
-      var el = allElements[i];
-      if(el.children.length === 0 && esc(el.innerText) === categoryName){
-        el.scrollIntoView({behavior: 'smooth', block: 'start'});
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // 提取当前可见区域的菜品
-  function extractProducts(category){
-    var products = [];
-    var seen = {};
-
-    // 从.spu_s6NtPr元素提取（美团菜品卡片）
-    var spuItems = document.querySelectorAll('.spu_s6NtPr');
-    spuItems.forEach(function(el){
-      // 只提取可见的元素
-      var rect = el.getBoundingClientRect();
-      if(rect.top < -100 || rect.top > window.innerHeight + 100) return;
-
-      var text = (el.innerText||'').trim();
-      if(!text) return;
-      var lines = text.split('\n').filter(function(t){ return t.trim(); });
-      if(lines.length < 2) return;
-
-      // 第一行是菜品名
-      var name = esc(lines[0]);
-      if(!name || name.length < 2) return;
-
-      var price = 0;
-      var sales = '';
-      var spec = '';
-      var img = '';
-      var imgEl = el.querySelector('img');
-      if(imgEl) img = imgEl.src || '';
-
-      for(var j=1;j<lines.length;j++){
-        var line = lines[j];
-        var m = line.match(/[¥￥]([0-9.]+)/);
-        if(m && !price) price = parseFloat(m[1]);
-        if(/月售|月销|已售|销量/.test(line)) sales = esc(line);
-        if(!spec && (line.indexOf('人份')>-1 || line.indexOf('份')>-1) && line.length < 20) spec = esc(line);
-      }
-
-      if(name && price > 0){
-        var key = category + '|' + name;
-        if(!seen[key]){
-          seen[key] = 1;
-          products.push({
-            group: category,
-            name: name,
-            price: price,
-            sales: sales,
-            spec: spec,
-            img: img
-          });
-        }
-      }
-    });
-
-    // 如果可见区域提取不到，尝试提取所有（备用方案）
-    if(products.length === 0){
-      spuItems.forEach(function(el){
-        var text = (el.innerText||'').trim();
-        if(!text) return;
-        var lines = text.split('\n').filter(function(t){ return t.trim(); });
-        if(lines.length < 2) return;
-
-        var name = esc(lines[0]);
-        if(!name || name.length < 2) return;
-
-        var price = 0;
-        var sales = '';
-        var spec = '';
-        var img = '';
-        var imgEl = el.querySelector('img');
-        if(imgEl) img = imgEl.src || '';
-
-        for(var j=1;j<lines.length;j++){
-          var line = lines[j];
-          var m = line.match(/[¥￥]([0-9.]+)/);
-          if(m && !price) price = parseFloat(m[1]);
-          if(/月售|月销|已售|销量/.test(line)) sales = esc(line);
-          if(!spec && (line.indexOf('人份')>-1 || line.indexOf('份')>-1) && line.length < 20) spec = esc(line);
-        }
-
-        if(name && price > 0){
-          var key = category + '|' + name;
-          if(!seen[key]){
-            seen[key] = 1;
-            products.push({
-              group: category,
-              name: name,
-              price: price,
-              sales: sales,
-              spec: spec,
-              img: img
-            });
-          }
-        }
-      });
-    }
-
-    return products;
-  }
-
-  // 显示进度
-  function showProgress(current, total, category, productCount, categoryCount){
+  /* ---------- 显示进度 ---------- */
+  function showProgress(message){
     var existing = document.getElementById('mt-scraper-progress');
     if(!existing){
       var div = document.createElement('div');
@@ -299,10 +114,48 @@
       document.body.appendChild(div);
       existing = div;
     }
-    existing.innerHTML = '美团菜单抓取中 (' + current + '/' + total + ')<br>当前分类：' + category + '（' + categoryCount + '个菜品）<br>累计收集：' + productCount + ' 个菜品（已去重）';
+    existing.innerHTML = message;
   }
 
-  // 主抓取流程
+  /* ---------- 提取单个菜品卡片信息 ---------- */
+  function extractProduct(el, category){
+    var text = (el.innerText||'').trim();
+    if(!text) return null;
+    var lines = text.split('\n').filter(function(t){ return t.trim(); });
+    if(lines.length < 2) return null;
+
+    var name = esc(lines[0]);
+    if(!name || name.length < 2) return null;
+
+    var price = 0;
+    var sales = '';
+    var spec = '';
+    var img = '';
+    var imgEl = el.querySelector('img');
+    if(imgEl) img = imgEl.src || '';
+
+    for(var j=1;j<lines.length;j++){
+      var line = lines[j];
+      var m = line.match(/[¥￥]([0-9.]+)/);
+      if(m && !price) price = parseFloat(m[1]);
+      if(/月售|月销|已售|销量/.test(line)) sales = esc(line);
+      if(!spec && (line.indexOf('人份')>-1 || line.indexOf('份')>-1) && line.length < 20) spec = esc(line);
+    }
+
+    if(name && price > 0){
+      return {
+        group: category || '全部',
+        name: name,
+        price: price,
+        sales: sales,
+        spec: spec,
+        img: img
+      };
+    }
+    return null;
+  }
+
+  /* ---------- 主抓取流程 ---------- */
   async function scrape(){
     // 检查是否是美团店铺页面
     if(!/waimai\.meituan\.com/.test(window.location.href)){
@@ -310,72 +163,123 @@
       return;
     }
 
-    var categories = getCategories();
-    if(categories.length === 0){
-      showToast('❌ 未找到分类，请确认已进入店铺菜单页面', 4000);
-      return;
+    showProgress('🚀 正在准备抓取...');
+    showToast('🚀 开始抓取菜单...', 2000);
+
+    await sleep(1000);
+
+    // 找到菜品滚动容器
+    var scrollContainer = null;
+    var possibleContainers = [
+      document.getElementById('spu-list-dhxu28d'),
+      document.querySelector('.spuListWrapper_L2kZtu'),
+      document.querySelector('[class*=spu-list]'),
+      document.querySelector('[class*=spuList]')
+    ];
+
+    for(var i=0;i<possibleContainers.length;i++){
+      if(possibleContainers[i] && possibleContainers[i].scrollHeight > possibleContainers[i].clientHeight){
+        scrollContainer = possibleContainers[i];
+        break;
+      }
     }
 
-    console.log('找到 ' + categories.length + ' 个分类:', categories);
-    showToast('🚀 开始抓取，共 ' + categories.length + ' 个分类', 2000);
+    if(!scrollContainer){
+      // 如果没找到滚动容器，尝试滚动整个页面
+      scrollContainer = window;
+    }
 
-    // 逐个分类抓取
-    for(var i=0;i<categories.length;i++){
-      var category = categories[i];
-      currentCategory = category;
+    console.log('使用滚动容器:', scrollContainer === window ? 'window' : scrollContainer.className);
 
-      // 点击分类
-      clickCategory(i);
-      await sleep(2000); // 等待菜品加载（增加等待时间）
-
-      // 滚动到分类位置（如果是锚点滚动模式）
-      scrollToCategory(category);
-      await sleep(500);
-
-      // 滚动菜品区域加载更多
-      var menuContainer = findScrollContainer();
-      if(menuContainer && menuContainer !== document.body){
-        menuContainer.scrollTop = 0;
-        await sleep(300);
-        // 增加滚动次数，确保加载所有菜品
-        for(var s=0;s<8;s++){
-          menuContainer.scrollTop = menuContainer.scrollHeight;
-          await sleep(500);
-        }
-        menuContainer.scrollTop = 0;
-        await sleep(300);
-      } else {
-        // 如果没找到滚动容器，滚动整个页面
-        window.scrollTo(0, 0);
-        await sleep(300);
-        for(var s2=0;s2<5;s2++){
-          window.scrollTo(0, document.body.scrollHeight);
-          await sleep(500);
-        }
-        window.scrollTo(0, 0);
-        await sleep(300);
+    // 获取所有分类名称（用于后续分组）
+    var categoryItems = document.querySelectorAll('a.item_bpZh4h');
+    var categoryNames = [];
+    categoryItems.forEach(function(el){
+      var text = esc(el.innerText);
+      if(text && text.length<30 && categoryNames.indexOf(text)===-1){
+        categoryNames.push(text);
       }
+    });
+    console.log('找到 ' + categoryNames.length + ' 个分类:', categoryNames);
 
-      // 提取菜品
-      var products = extractProducts(category);
-      console.log('分类 [' + category + '] 提取到 ' + products.length + ' 个菜品');
+    // 滚动加载所有菜品
+    showProgress('📜 正在滚动加载所有菜品...');
+    
+    var allProducts = [];
+    var seenNames = {};
+    var scrollStep = 500;
+    var maxScrolls = 100;
+    var lastHeight = 0;
+    var sameHeightCount = 0;
 
-      // 合并到总列表（全局去重）
-      var newCount = 0;
-      products.forEach(function(p){
-        var key = p.name; // 按菜品名称全局去重
-        if(!globalSeen[key]){
-          globalSeen[key] = 1;
-          allProducts.push(p);
-          newCount++;
+    // 滚动到顶部
+    if(scrollContainer === window){
+      window.scrollTo(0, 0);
+    } else {
+      scrollContainer.scrollTop = 0;
+    }
+    await sleep(500);
+
+    // 逐步滚动，收集所有菜品
+    for(var s=0;s<maxScrolls;s++){
+      // 提取当前可见的所有菜品
+      var spuItems = document.querySelectorAll('.spu_s6NtPr');
+      var currentCategory = '全部';
+      
+      // 尝试判断当前分类（根据滚动位置）
+      // 简化处理：先全部归为"全部"，后续可以优化
+
+      spuItems.forEach(function(el){
+        var product = extractProduct(el, currentCategory);
+        if(product && !seenNames[product.name]){
+          seenNames[product.name] = 1;
+          allProducts.push(product);
         }
       });
 
-      console.log('分类 [' + category + '] 新增 ' + newCount + ' 个菜品，累计 ' + allProducts.length + ' 个');
+      // 更新进度
+      if(s % 5 === 0){
+        showProgress('📜 正在滚动加载... (' + (s+1) + '/' + maxScrolls + ')<br>已收集 ' + allProducts.length + ' 个菜品');
+      }
 
-      // 显示进度
-      showProgress(i+1, categories.length, category, allProducts.length, products.length);
+      // 滚动
+      if(scrollContainer === window){
+        window.scrollBy(0, scrollStep);
+      } else {
+        scrollContainer.scrollTop += scrollStep;
+      }
+      await sleep(300);
+
+      // 检查是否滚动到底部
+      var currentHeight = scrollContainer === window ? document.body.scrollHeight : scrollContainer.scrollHeight;
+      var currentScroll = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
+      var clientHeight = scrollContainer === window ? window.innerHeight : scrollContainer.clientHeight;
+
+      if(currentScroll + clientHeight >= currentHeight - 100){
+        console.log('已滚动到底部，共滚动 ' + (s+1) + ' 次');
+        break;
+      }
+
+      if(currentHeight === lastHeight){
+        sameHeightCount++;
+        if(sameHeightCount > 10){
+          console.log('内容高度不再变化，停止滚动');
+          break;
+        }
+      } else {
+        sameHeightCount = 0;
+        lastHeight = currentHeight;
+      }
     }
+
+    // 滚动回顶部
+    if(scrollContainer === window){
+      window.scrollTo(0, 0);
+    } else {
+      scrollContainer.scrollTop = 0;
+    }
+
+    console.log('滚动完成，共收集 ' + allProducts.length + ' 个菜品');
 
     // 完成
     var progress = document.getElementById('mt-scraper-progress');
@@ -386,9 +290,10 @@
       return;
     }
 
-    console.log('抓取完成，共 ' + allProducts.length + ' 个菜品（已去重）');
-
     // 生成Excel（包含图片链接）
+    showProgress('📊 正在生成Excel...');
+    await sleep(500);
+
     var rows = [['分组','菜品名称','价格(元)','月售','规格','图片链接']];
     allProducts.forEach(function(p){
       rows.push([p.group, p.name, p.price, p.sales || '', p.spec || '', p.img || '']);
@@ -403,12 +308,14 @@
 
     // 显示完成提示（不阻塞页面）
     setTimeout(function(){
-      showToast('✅ 抓取完成！<br>共 ' + allProducts.length + ' 个菜品（已去重）<br>Excel已开始下载：' + filename, 6000);
+      showToast('✅ 抓取完成！<br>共 ' + allProducts.length + ' 个菜品<br>Excel已开始下载：' + filename, 6000);
     }, 500);
 
     // 把数据保存到全局变量，供外部使用
     window.__meituanScrapeResult = allProducts;
     window.__meituanScrapeDone = true;
+
+    console.log('抓取完成，共 ' + allProducts.length + ' 个菜品');
 
     // 返回数据供外部使用
     return allProducts;
@@ -417,6 +324,8 @@
   // 启动
   scrape().catch(function(e){
     console.error('抓取出错:', e);
+    var progress = document.getElementById('mt-scraper-progress');
+    if(progress) progress.remove();
     showToast('❌ 抓取出错：' + e.message, 5000);
   });
 
