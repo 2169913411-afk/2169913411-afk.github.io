@@ -1628,7 +1628,6 @@ h1,h2,h3,.lp-title{
       .then(function(){ return loadScript('app.js.3?v='+V); })
       .then(function(){ return loadScript('app.js.4?v='+V); })
       .then(function(){ return loadScript('app.js.5?v='+V); })
-      .then(function(){ return loadScript('app.js.6?v='+V); })
       .then(function(){
         // 覆盖extractShopId函数，支持从restaurant_id和URL编码链接中提取店铺ID
         window.extractShopId = function(url){
@@ -1647,6 +1646,10 @@ h1,h2,h3,.lp-title{
           }catch(e){}
           return '';
         };
+        console.log('extractShopId已更新');
+      })
+      ['catch'](function(e){
+        console.log('脚本加载完成（部分脚本可能不存在）', e);
       });
   })['catch'](function(e){
     console.error('LOAD_ERROR',e);
