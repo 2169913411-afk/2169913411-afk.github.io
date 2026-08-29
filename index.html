@@ -1567,6 +1567,28 @@ h1,h2,h3,.lp-title{
       <span id="scrapeInstallArea"></span>
     </div>
 
+    <!-- 美团专用操作指南（后台监听模式） -->
+    <div id="meituanMonitorGuide" style="display:none;margin:10px 0;padding:12px;background:#F0F5FF;border:1px solid #C6D9FF;border-radius:10px;">
+      <div style="font-size:13px;font-weight:700;color:#165DFF;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        <span>📡</span> 美团抓取专用指南（后台监听模式 · 推荐）
+      </div>
+      <div style="font-size:12px;color:#4E5969;line-height:1.9;">
+        <div style="margin-bottom:6px;"><b style="color:#1D2129;">⚠️ 重要：</b>美团反爬严格，每次调研前请按以下步骤操作，否则会触发403错误导致无法抓取</div>
+        <div style="background:#fff;border-radius:8px;padding:10px 12px;margin:8px 0;border:1px solid #E5E6EB;">
+          <div style="font-weight:600;color:#165DFF;margin-bottom:6px;">操作步骤：</div>
+          <div>① <b>重新登录</b>：点下方按钮打开美团登录页，用手机「美团」App扫码登录（每次调研前都要重新登录）</div>
+          <div>② <b>正常进店</b>：登录后在美团H5正常搜索/浏览，像正常点外卖一样进入目标店铺</div>
+          <div>③ <b>启动监听</b>：进入店铺后，点击浏览器书签栏「餐谋长抓取」，选择「后台监听模式」</div>
+          <div>④ <b>正常浏览</b>：像正常用户一样逐个点击左侧分类，每个分类停留2-3秒，脚本会在后台自动收集</div>
+          <div>⑤ <b>导出数据</b>：浏览完所有分类后，点击右上角浮动面板的「导出全部」按钮</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn-blue-ghost" style="height:32px;font-size:12px;flex:1;" onclick="openMeituanLogin()">🔐 重新登录美团</button>
+          <button class="btn-ghost" style="height:32px;font-size:12px;flex:1;" onclick="toast('已复制操作指南到剪贴板')">📋 复制指南</button>
+        </div>
+      </div>
+    </div>
+
     <button class="btn-primary enabled" style="width:100%;height:42px;margin-top:4px;" onclick="confirmScrape()">开始抓取</button>
 
     <div id="scrapeFlow" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
@@ -3205,6 +3227,11 @@ function pickScrapePlat(el){
   var hint=$('meituanLoginHint');
   if(hint){
     hint.style.display = (p==='美团外卖') ? 'block' : 'none';
+  }
+  // 美团后台监听模式操作指南显示/隐藏
+  var guide=$('meituanMonitorGuide');
+  if(guide){
+    guide.style.display = (p==='美团外卖') ? 'block' : 'none';
   }
 }
 /* 打开美团登录页 */
