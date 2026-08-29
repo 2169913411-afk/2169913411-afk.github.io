@@ -414,20 +414,53 @@
   }
 
   /* ---------- 主抓取流程 ---------- */
-  async function scrape(scrapeType){
+  async function scrape(scrapeType, appendMode){
     // 检查是否是美团店铺页面
     if(!/waimai\.meituan\.com/.test(window.location.href)){
       showToast('❌ 请在美团外卖店铺页面执行此脚本', 4000);
       return;
     }
 
-    showProgress('🚀 正在准备抓取...');
-    showToast('🚀 开始抓取...', 2000);
+    // 检查是否是追加模式
+    var isAppend = appendMode === true || (window.__meituanScrapeResult && window.__meituanScrapeResult.length > 0 && confirm('检测到已有 ' + window.__meituanScrapeResult.length + ' 个菜品的抓取结果，是否追加到已有结果中？\\n\\n点击"确定"追加（适合手动切换分类后继续抓取）\\n点击"取消"重新开始抓取'));
+
+    if(isAppend){
+      showProgress('📝 追加模式：将新抓取的菜品添加到已有结果中...');
+    } else {
+      // 清空之前的抓取结果
+      window.__meituanScrapeResult = null;
+      window.__meituanScrapeDone = false;
+      showProgress('🚀 正在准备抓取...');
+    }
+
+    showToast(isAppend ? '📝 追加模式开始抓取...' : '🚀 开始抓取...', 2000);
     await sleep(1000);
 
     try {
       // 收集所有菜品
-      var products = await collectProducts();
+      var newProducts = await collectProducts();
+
+      // 合并已有结果和新结果（去重）
+      var products = [];
+      var seenNames = {};
+
+      // 先添加已有结果
+      if(isAppend && window.__meituanScrapeResult){
+        window.__meituanScrapeResult.forEach(function(p){
+          if(!seenNames[p.name]){
+            seenNames[p.name] = 1;
+            products.push(p);
+          }
+        });
+      }
+
+      // 再添加新结果
+      newProducts.forEach(function(p){
+        if(!seenNames[p.name]){
+          seenNames[p.name] = 1;
+          products.push(p);
+        }
+      });
 
       // 移除进度条
       var progress = document.getElementById('mt-scraper-progress');
@@ -439,6 +472,7 @@
       }
 
       var shopName = (document.title || '美团店铺').replace(/[\\/:*?"<>|]/g, '_');
+      var newCount = products.length - (isAppend && window.__meituanScrapeResult ? window.__meituanScrapeResult.length : 0);
 
       // 根据选择执行相应操作
       if(scrapeType === 'menu' || scrapeType === 'both'){
@@ -454,7 +488,14 @@
       window.__meituanScrapeResult = products;
       window.__meituanScrapeDone = true;
 
-      console.log('抓取完成，共 ' + products.length + ' 个菜品');
+      console.log('抓取完成，共 ' + products.length + ' 个菜品' + (isAppend ? '（新增 ' + newCount + ' 个）' : ''));
+
+      // 显示完成提示，告诉用户可以继续抓取其他分类
+      if(products.length > 0){
+        setTimeout(function(){
+          showToast('✅ 抓取完成！共 ' + products.length + ' 个菜品' + (isAppend ? '（新增 ' + newCount + ' 个）' : '') + '<br><br>💡 提示：如需抓取其他分类，请手动点击左侧分类切换，然后再次点击书签继续抓取（会自动追加到已有结果中）', 8000);
+        }, 1000);
+      }
 
     } catch(e){
       console.error('抓取出错:', e);
