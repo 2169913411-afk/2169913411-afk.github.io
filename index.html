@@ -1306,7 +1306,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section">
-      <div class="section-title">5. 上传门店评价数据 <span class="tag tag-opt">非必选</span></div>
+      <div class="section-title">5. 上传门店评价数据 <span class="tag tag-opt" id="reviewTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
         <div class="uz-body">
@@ -2181,7 +2181,7 @@ function updatePlanRequirements(){
 document.addEventListener('change', function(e){
   if(e.target.name === 'planTop'){
     updatePlanRequirements();
-    updateBalanceTip();
+    refreshTip();
   }
 });
 
