@@ -2775,7 +2775,7 @@ function handleShopFile(f){
 }
 function removeShop(){ state.shop=null; RECOGNIZED.shop=null; $('shopItem').classList.add('hidden'); $('shopZone').classList.remove('hidden'); $('shopRecog').classList.add('hidden'); var shopTag=$('shopTag'); if(shopTag) shopTag.style.display=''; updateStartBtn(); }
 
-/* 菜单数据文件：识别 商品名称/是否招牌/销售额/销量，并合计相同商品 */
+/* 商品销售数据文件：识别 商品名称/是否招牌/销售额/销量，并合计相同商品 */
 function parseMenuFile(rows){
   var headIdx=-1, head=null;
   for(var i=0;i<Math.min(rows.length,8);i++){
@@ -2788,12 +2788,9 @@ function parseMenuFile(rows){
     return -1;
   }
   var idxName=findCol(['商品名称','菜名','品名','名称']);
-  var idxGroup=findCol(['菜单分组','分组','分类','类目']);
-  var idxPrice=findCol(['现价','价格','售价','单价']);
   var idxSales=findCol(['月售','销量','售出','销售数量']);
   var idxAmount=findCol(['销售额','营业额','收入','实收','销售金额','金额']);
   var idxSignature=findCol(['是否招牌','招牌','招牌菜','推荐','是否推荐']);
-  var idxDesc=findCol(['描述','说明','介绍','卖点']);
   if(idxName<0) return {ok:false,msg:'未找到商品名称列'};
   var products=[];
   for(var r=headIdx+1;r<rows.length;r++){
@@ -2801,9 +2798,6 @@ function parseMenuFile(rows){
     if(!row.some(function(c){return c!=null&&String(c).trim()!=='';})) continue;
     var name=String(row[idxName]==null?'':row[idxName]).trim();
     if(!name||name.indexOf('说明')>-1) continue;
-    var g=idxGroup>-1?(row[idxGroup]==null?'':String(row[idxGroup]).trim()):'';
-    var p=idxPrice>-1?num(row[idxPrice]):0;
-    var d=idxDesc>-1?(row[idxDesc]==null?'':String(row[idxDesc]).trim()):'';
     var sRaw=idxSales>-1?(row[idxSales]==null?'':String(row[idxSales]).trim()):'';
     var sNum=0;
     if(sRaw){ var sm=sRaw.match(/(\d+(?:\.\d+)?)/); if(sm) sNum=parseFloat(sm[1]); }
@@ -2815,8 +2809,7 @@ function parseMenuFile(rows){
       var sigVal=row[idxSignature]==null?'':String(row[idxSignature]).trim();
       isSignature = sigVal==='是'||sigVal==='招牌'||sigVal==='推荐'||sigVal==='1'||sigVal==='true'||sigVal==='是招牌';
     }
-    if(g==='/') g='';
-    products.push({name:name,group:g,price:p,desc:d,salesRaw:sRaw,sales:sNum,amountRaw:aRaw,amount:aNum,isSignature:isSignature});
+    products.push({name:name,sales:sNum,amount:aNum,isSignature:isSignature});
     if(products.length>=500) break;
   }
   
@@ -2827,9 +2820,6 @@ function parseMenuFile(rows){
     if(!productMap[key]){
       productMap[key]={
         name:p.name,
-        group:p.group,
-        price:p.price,
-        desc:p.desc,
         isSignature:p.isSignature,
         totalSales:0,
         totalAmount:0,
@@ -2839,19 +2829,12 @@ function parseMenuFile(rows){
     productMap[key].totalSales += p.sales || 0;
     productMap[key].totalAmount += p.amount || 0;
     productMap[key].count++;
-    // 保留第一个非空的分组、价格、描述
-    if(!productMap[key].group && p.group) productMap[key].group=p.group;
-    if(!productMap[key].price && p.price) productMap[key].price=p.price;
-    if(!productMap[key].desc && p.desc) productMap[key].desc=p.desc;
     if(!productMap[key].isSignature && p.isSignature) productMap[key].isSignature=p.isSignature;
   });
   
   var aggregatedProducts=Object.values(productMap).map(function(p){
     return {
       name:p.name,
-      group:p.group,
-      price:p.price,
-      desc:p.desc,
       isSignature:p.isSignature,
       sales:p.totalSales,
       amount:p.totalAmount,
@@ -2864,12 +2847,9 @@ function parseMenuFile(rows){
   
   var found=[];
   if(idxName>-1) found.push('商品名称');
-  if(idxGroup>-1) found.push('菜单分组');
-  if(idxPrice>-1) found.push('价格');
   if(idxSales>-1) found.push('销量');
   if(idxAmount>-1) found.push('销售额');
   if(idxSignature>-1) found.push('是否招牌');
-  if(idxDesc>-1) found.push('描述');
   
   // 统计招牌商品数量
   var signatureCount=aggregatedProducts.filter(function(p){return p.isSignature;}).length;
@@ -2883,7 +2863,6 @@ function parseMenuFile(rows){
     found:found,
     products:aggregatedProducts,
     rawProducts:products,
-    groupCount:new Set(aggregatedProducts.map(function(x){return x.group||'未分组';})).size,
     signatureCount:signatureCount,
     totalSales:totalSales,
     totalAmount:totalAmount,
@@ -2910,7 +2889,6 @@ function handleMenuFile(f){
       if(res.totalAmount>0) statsHtml += '<span style="background:#ECFDF5;color:#047857;padding:2px 8px;border-radius:4px;font-size:11px;">总销售额：¥'+fmt(res.totalAmount)+'</span>';
       if(res.signatureCount>0) statsHtml += '<span style="background:#FFFBEB;color:#B45309;padding:2px 8px;border-radius:4px;font-size:11px;">招牌商品：'+res.signatureCount+'个</span>';
       if(res.duplicateCount>0) statsHtml += '<span style="background:#F3F4F6;color:#4B5563;padding:2px 8px;border-radius:4px;font-size:11px;">合并重复：'+res.duplicateCount+'条</span>';
-      statsHtml += '<span style="background:#F3F4F6;color:#4B5563;padding:2px 8px;border-radius:4px;font-size:11px;">分组数：'+res.groupCount+'</span>';
       statsHtml += '</div>';
       
       // 显示销量TOP5商品
