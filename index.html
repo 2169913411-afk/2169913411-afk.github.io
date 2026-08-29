@@ -1269,8 +1269,26 @@ h1,h2,h3,.lp-title{
       </div>
     </div>
 
+    <div class="section" id="shopSection">
+      <div class="section-title">2. 门店数据Excel <span class="tag tag-req" id="shopTag">必选</span></div>
+      <div class="upload-zone uz-qr" id="shopZone">
+        <i data-lucide="store"></i>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传门店数据Excel</div>
+          <div class="sub">包含日期、有效订单、收入、营业额、曝光、进店、下单转化等核心经营数据</div>
+        </div>
+        <div class="paste-hint">粘贴到：门店数据Excel</div>
+        <input type="file" id="shopInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="shopItem" class="file-item hidden" style="margin-top:10px;">
+        <span>🏪</span><span class="fname" id="shopName"></span><span class="fsize" id="shopSize"></span>
+        <button class="del" onclick="removeShop()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="shopRecog" class="recog-box hidden"></div>
+    </div>
+
     <div class="section" id="overviewSection">
-      <div class="section-title">2. 经营概览截图 <span class="tag tag-opt" id="overviewTag">非必选</span></div>
+      <div class="section-title">3. 经营概览截图 <span class="tag tag-opt" id="overviewTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="overviewZone">
         <i data-lucide="bar-chart-3"></i>
         <div class="uz-body">
@@ -1285,7 +1303,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="menuSection">
-      <div class="section-title">3. 商品销售Excel <span class="tag tag-req" id="menuTag">必选</span></div>
+      <div class="section-title">4. 商品销售Excel <span class="tag tag-req" id="menuTag">必选</span></div>
       <div class="upload-zone uz-qr" id="menuZone">
         <i data-lucide="utensils"></i>
         <div class="uz-body">
@@ -1303,7 +1321,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="orderSection">
-      <div class="section-title">4. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
+      <div class="section-title">5. 商家订单Excel <span class="tag tag-opt" id="orderTag">可选</span></div>
       <div class="upload-zone uz-qr" id="orderZone">
         <i data-lucide="file-text"></i>
         <div class="uz-body">
@@ -1321,7 +1339,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="reviewSection">
-      <div class="section-title">5. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
+      <div class="section-title">6. 用户评价Excel <span class="tag tag-opt" id="reviewTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="reviewZone">
         <i data-lucide="star"></i>
         <div class="uz-body">
@@ -1339,7 +1357,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="peerSection">
-      <div class="section-title">6. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
+      <div class="section-title">7. 商圈同行对比数据 <span class="tag tag-opt" id="peerTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="peerZone">
         <i data-lucide="users"></i>
         <div class="uz-body">
@@ -1353,7 +1371,7 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="roiSection">
-      <div class="section-title">7. 推广ROI数据 <span class="tag tag-opt" id="roiTag">可选</span></div>
+      <div class="section-title">8. 推广ROI数据 <span class="tag tag-opt" id="roiTag">可选</span></div>
       <div class="upload-zone uz-qr" id="roiZone">
         <i data-lucide="trending-up"></i>
         <div class="uz-body">
@@ -2936,6 +2954,73 @@ function removeReview(){ state.review=null; RECOGNIZED.review=null; $('reviewIte
 setupZone('shopZone','shopInput',function(files){ if(files.length) handleShopFile(files[0]); });
 setupZone('menuZone','menuInput',function(files){ if(files.length) handleMenuFile(files[0]); });
 setupZone('reviewZone','reviewInput',function(files){ if(files.length) handleReviewFile(files[0]); });
+
+/* 经营概览截图上传 */
+function renderOverviewThumbs(){
+  var box=$('overviewThumbs'); if(!box) return;
+  box.innerHTML='';
+  (state.overview||[]).forEach(function(s,i){
+    var d=document.createElement('div'); d.className='thumb';
+    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delOverview('+i+')">✕</button>';
+    box.appendChild(d);
+  });
+  updateStartBtn();
+}
+function delOverview(i){ state.overview.splice(i,1); renderOverviewThumbs(); }
+setupZone('overviewZone','overviewInput',function(files){
+  if(!files.length) return;
+  if(!state.overview) state.overview=[];
+  if(state.overview.length>=8){ toast('最多8张截图，请先删除部分再上传'); return; }
+  var arr=Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image')>-1;}).slice(0,8-state.overview.length);
+  var tasks=arr.map(function(f){ return fileToDataUrl(f,0).then(function(d){ state.overview.push({file:f,dataUrl:d,name:f.name}); }); });
+  Promise.all(tasks).then(renderOverviewThumbs);
+});
+
+/* 商家订单Excel上传 */
+function handleOrderFile(f){
+  $('orderName').textContent=f.name; $('orderSize').textContent=fmtSize(f.size);
+  $('orderItem').classList.remove('hidden'); $('orderZone').classList.add('hidden');
+  $('orderRecog').classList.add('hidden');
+  readSheetArray(f).then(function(rows){
+    var res={ok:true, recognizedCount: rows.length>1?rows.length-1:0, msg:''};
+    state.order={file:f,rows:rows,parsed:res};
+    var box=$('orderRecog');
+    if(res.ok){
+      box.className='recog-box';
+      box.innerHTML='<div class="r-title">已识别 '+res.recognizedCount+' 条订单明细</div>';
+      box.classList.remove('hidden');
+    }else{
+      box.className='recog-box err';
+      box.innerHTML='<div class="r-title">⚠️ 识别异常</div>'+res.msg;
+      box.classList.remove('hidden');
+    }
+    RECOGNIZED.order=res;
+    updateStartBtn();
+  });
+}
+function removeOrder(){ state.order=null; RECOGNIZED.order=null; $('orderItem').classList.add('hidden'); $('orderZone').classList.remove('hidden'); $('orderRecog').classList.add('hidden'); updateStartBtn(); }
+setupZone('orderZone','orderInput',function(files){ if(files.length) handleOrderFile(files[0]); });
+
+/* 推广ROI数据上传 */
+function renderRoiThumbs(){
+  var box=$('roiThumbs'); if(!box) return;
+  box.innerHTML='';
+  (state.roi||[]).forEach(function(s,i){
+    var d=document.createElement('div'); d.className='thumb';
+    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delRoi('+i+')">✕</button>';
+    box.appendChild(d);
+  });
+  updateStartBtn();
+}
+function delRoi(i){ state.roi.splice(i,1); renderRoiThumbs(); }
+setupZone('roiZone','roiInput',function(files){
+  if(!files.length) return;
+  if(!state.roi) state.roi=[];
+  if(state.roi.length>=8){ toast('最多8张截图，请先删除部分再上传'); return; }
+  var arr=Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image')>-1||f.name.indexOf('.xls')>-1||f.name.indexOf('.xlsx')>-1;}).slice(0,8-state.roi.length);
+  var tasks=arr.map(function(f){ return fileToDataUrl(f,0).then(function(d){ state.roi.push({file:f,dataUrl:d,name:f.name}); }); });
+  Promise.all(tasks).then(renderRoiThumbs);
+});
 
 /* 平台选择 */
 document.querySelectorAll('.plat-opt').forEach(function(el){
