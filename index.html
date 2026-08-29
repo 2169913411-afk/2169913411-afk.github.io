@@ -28,8 +28,9 @@ button{font-family:inherit;cursor:pointer;transition:opacity .15s ease,transform
 input,textarea,select{font-family:inherit;}
 .num{font-variant-numeric:tabular-nums;}
 .hidden{display:none !important;}
-/* 文件上传input使用opacity:0而不是display:none，确保能正常触发点击 */
-.upload-zone input[type="file"]{position:absolute !important;opacity:0 !important;display:block !important;width:1px;height:1px;overflow:hidden;}
+/* 文件上传input覆盖整个上传区域，确保点击能正常触发 */
+.upload-zone{position:relative;overflow:hidden;}
+.upload-zone input[type="file"]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:10;}
 
 /* Lucide 图标统一：16px、和文字垂直居中、间距 gap */
 .lucide{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;vertical-align:-3px;flex-shrink:0;}
