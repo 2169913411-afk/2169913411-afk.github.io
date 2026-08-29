@@ -2601,7 +2601,10 @@ setupZone('qrZone','qrInput',function(files){
       }else{
         var qrResultEl=$('qrRecogResult');
         if(qrResultEl){
-          qrResultEl.innerHTML='<div style="font-size:11px;color:#B45309;margin-top:6px;">⚠️ 二维码识别失败（可能是淘宝/美团小程序码，无法自动识别）。请使用下方"手动粘贴店铺链接"功能，或在商家调研中抓取菜单数据。</div>';
+          qrResultEl.innerHTML='<div style="font-size:12px;color:#B45309;margin-top:8px;padding:10px;background:#FFFBEB;border-radius:6px;border:1px solid #FDE68A;">'+
+            '<div style="font-weight:600;margin-bottom:4px;">⚠️ 检测到淘宝/美团小程序码，无法自动识别</div>'+
+            '<div style="font-size:11px;line-height:1.6;">这种圆形带logo的小程序码不是标准二维码，浏览器无法直接解码。<br><b>解决方案：</b>请在下方"手动粘贴店铺链接"输入框中，粘贴从淘宝/美团APP分享的店铺链接（以https://开头的完整链接），点击"应用链接"即可。</div>'+
+            '</div>';
         }
       }
     });
@@ -2649,9 +2652,9 @@ function handlePastedImage(f,target){
           if(isUrl&&$('shopLink')) $('shopLink').value=txt;
           toast('已粘贴二维码并识别'+(isUrl?'链接':'内容'));
         }else{
-          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 二维码未能自动识别，可改为粘贴链接</span>';
+          if($('qrResult')) $('qrResult').innerHTML='<span style="color:#B45309;">⚠️ 检测到淘宝/美团小程序码，无法自动识别。请在下方"店铺链接"输入框中粘贴从APP分享的完整店铺链接（以https://开头）。</span>';
           window.__scrapeQR='';
-          toast('二维码未能识别，请改为粘贴链接');
+          toast('小程序码无法识别，请粘贴店铺链接');
         }
       });
     });
