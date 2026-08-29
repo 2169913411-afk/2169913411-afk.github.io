@@ -1867,7 +1867,7 @@ setTimeout(function(){ clearInterval(__meituanOcrInterval); }, 15000);
 var __meituanIframeInterval = setInterval(function(){
   try {
     var scrapeMask=document.getElementById('scrapeMask');
-    if(scrapeMask && scrapeMask.offsetParent !== null){
+    if(scrapeMask && !scrapeMask.classList.contains('hidden') && scrapeMask.style.display !== 'none'){
       var iframeArea=document.getElementById('meituanIframeArea');
       if(!iframeArea){
         var startButton=document.querySelector('button[onclick="confirmScrape()"]');
