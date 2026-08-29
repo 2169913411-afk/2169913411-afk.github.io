@@ -1223,33 +1223,6 @@ h1,h2,h3,.lp-title{
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title" style="font-size:14px;">第一步：选择分析档位</div>
-      <div id="planListTop">
-        <label class="plan-opt" data-plan="38">
-          <input type="radio" name="planTop" value="38">
-          <div><div class="p-name">基础数据诊断</div><div class="p-desc">识别数据 + 简单诊断</div></div>
-          <span class="p-cost">38积分</span>
-        </label>
-        <label class="plan-opt" data-plan="58">
-          <input type="radio" name="planTop" value="58">
-          <div><div class="p-name">深度运营诊断 + 话术</div><div class="p-desc">全维度诊断 + 商家沟通话术</div></div>
-          <span class="p-cost">58积分</span>
-        </label>
-        <label class="plan-opt active" data-plan="88">
-          <input type="radio" name="planTop" value="88" checked>
-          <span class="reco">推荐</span>
-          <div><div class="p-name">菜单全量优化 + 导出</div><div class="p-desc">商品标题/描述/定价优化 + 导出Excel + 同步话术</div></div>
-          <span class="p-cost">88积分</span>
-        </label>
-      </div>
-      <div class="plan-requirement-tip" id="planRequirementTip" style="margin-top:10px;padding:10px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E40AF;line-height:1.6;">
-        <b>当前档位（菜单全量优化+导出）需要：</b><br>
-        ✅ 必选：门店数据文件、菜单数据文件<br>
-        ⚪ 可选：门店二维码、同行数据截图、评价数据
-      </div>
-    </div>
-
     <div class="section" id="qrSection">
       <div class="section-title">1. 门店二维码截图 <span class="tag tag-opt" id="qrTag">非必选</span></div>
       <div class="upload-zone uz-qr" id="qrZone">
@@ -3467,7 +3440,7 @@ function callReport(api,structured,plan,extra){
     plan:plan.name,
     extra:extra||'无'
   };
-  var msg='请基于以下结构化数据（平台：'+(user.platform)+'），生成本次【'+(user.plan)+'】的完整外卖运营诊断报告。\n分析依据必须是数据本身：文件真实数值、同行对比、扫码用户端前端体验。\n【结构化数据】\n'+JSON.stringify(user.structured,function(k,v){return v==null?null:v;})+'\n【补充说明】'+user.extra;
+  var msg='请基于以下结构化数据（平台：'+(user.platform)+'），生成本次【'+(user.plan)+'】的完整外卖运营诊断报告。\n分析依据必须是数据本身：文件真实数值、同行对比、扫码用户端前端体验。\n\n⚠️ 重要：请务必仔细阅读并参考下方【代运营补充说明】中的内容，这些是代运营人员提供的门店特殊情况、品类特征、商圈环境、重点关注方向等关键信息，必须在分析中充分考虑和体现。\n\n【结构化数据】\n'+JSON.stringify(user.structured,function(k,v){return v==null?null:v;})+'\n\n【代运营补充说明】\n'+(user.extra&&user.extra!=='无'?user.extra:'（无补充说明，按通用标准分析）');
   return callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.model,
     [{role:'system',content:LLM_SYSTEM + (typeof getStyleSuffix==='function'?getStyleSuffix():'')},{role:'user',content:msg}],api.timeout);
 }
