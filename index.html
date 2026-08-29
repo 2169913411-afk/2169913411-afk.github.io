@@ -3067,8 +3067,8 @@ function renderLoading(msg){
 }
 
 /* ---------- 主分析流程 ---------- */
-/* ---------- 红线守卫：扫描+重生成+自动移除（用户铁则兜底） v2 ---------- */
-var REPORT_RED_LINES=[
+/* ---------- 红线守卫：扫描+重生成+自动移除（用户铁则兜底） v3 ---------- */
+window.REPORT_RED_LINES=[
   {re:/(8\.?8折|9折|8折|折扣券|会员日)/, label:'老客折扣券/会员折扣（平台不支持）'},
   {re:/(月销\s*[Xx\d]+\s*\+?|月销标签|增加\s*(月销|销量标签))/i, label:'月销/销量标签建议'},
   {re:/(总补贴率|补贴率).{0,8}\d+\s*%|预算.{0,10}(占|分配).{0,6}\d+\s*%/, label:'预算分项比例'},
@@ -3080,6 +3080,7 @@ var REPORT_RED_LINES=[
   {re:/(饿了么).{0,5}(等于|=|就是|即).{0,5}(淘宝闪购|闪购)/, label:'淘宝闪购等于饿了么（错误表述）'},
   {re:/(淘宝闪购).{0,5}(等于|=|就是|即).{0,5}(饿了么)/, label:'淘宝闪购等于饿了么（错误表述）'}
 ];
+var REPORT_RED_LINES=window.REPORT_RED_LINES;
 function findViolations(text){
   var v=[];
   REPORT_RED_LINES.forEach(function(it){ if(it.re.test(text||'')) v.push(it.label); });
