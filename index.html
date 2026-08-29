@@ -1365,6 +1365,24 @@ h1,h2,h3,.lp-title{
       <div class="thumb-grid" id="roiThumbs"></div>
     </div>
 
+    <div class="section" id="costSection">
+      <div class="section-title">8. 商品成本Excel <span class="tag tag-opt" id="costTag">可选</span></div>
+      <div class="upload-zone uz-qr" id="costZone">
+        <i data-lucide="calculator"></i>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传商品成本Excel</div>
+          <div class="sub">商品名称、批发价/成本价，用于精确计算外卖毛利率（未上传则AI自动估算）</div>
+        </div>
+        <div class="paste-hint">粘贴到：商品成本Excel</div>
+        <input type="file" id="costInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+      <div id="costItem" class="file-item hidden" style="margin-top:10px;">
+        <span>💰</span><span class="fname" id="costName"></span><span class="fsize" id="costSize"></span>
+        <button class="del" onclick="removeCost()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="costRecog" class="recog-box hidden"></div>
+    </div>
+
     <div class="section">
       <div class="section-title" style="font-size:14px;">补充说明（可选）</div>
       <textarea id="notesInput" placeholder="填写门店品类、商圈、近期特殊情况、想要重点分析的方向"></textarea>
@@ -2162,21 +2180,21 @@ function updatePlanRequirements(){
   
   // 定义各档位的必须文件（按照餐谋长业务规则）
   // qr=门店二维码截图, overview=经营概览截图, menu=商品销售Excel
-  // order=商家订单Excel, review=用户评价Excel, peer=商圈同行对比数据, roi=推广ROI数据
+  // order=商家订单Excel, review=用户评价Excel, peer=商圈同行对比数据, roi=推广ROI数据, cost=商品成本Excel
   var requirements = {
     38: { 
       required: ['qr', 'overview'], 
       optional: [], 
-      disabled: ['menu', 'order', 'review', 'peer', 'roi']
+      disabled: ['menu', 'order', 'review', 'peer', 'roi', 'cost']
     },
     58: { 
       required: ['qr', 'overview', 'menu'], 
-      optional: ['order', 'roi'], 
-      disabled: ['review', 'peer']
+      optional: ['roi'], 
+      disabled: ['order', 'review', 'peer', 'cost']
     },
     88: { 
       required: ['qr', 'overview', 'menu', 'order', 'review', 'peer'], 
-      optional: ['roi'], 
+      optional: ['roi', 'cost'], 
       disabled: []
     }
   };
@@ -2191,7 +2209,8 @@ function updatePlanRequirements(){
     order: '商家订单Excel',
     review: '用户评价Excel',
     peer: '商圈同行对比数据',
-    roi: '推广ROI数据'
+    roi: '推广ROI数据',
+    cost: '商品成本Excel'
   };
   
   // 更新标签和禁用状态
@@ -2219,27 +2238,23 @@ function updatePlanRequirements(){
     }
   }
   
-  var allMaterials = ['qr', 'overview', 'menu', 'order', 'review', 'peer', 'roi'];
+  var allMaterials = ['qr', 'overview', 'menu', 'order', 'review', 'peer', 'roi', 'cost'];
   allMaterials.forEach(function(m){
     var isRequired = req.required.indexOf(m) > -1;
     var isDisabled = req.disabled.indexOf(m) > -1;
     updateMaterial(m, isRequired, isDisabled);
   });
   
-  // 更新需求提示
+  // 更新需求提示（不显示禁用内容）
   var tip = document.getElementById('planRequirementTip');
   if(tip){
     var requiredItems = req.required.map(function(m){ return materialNames[m]; });
     var optionalItems = req.optional.map(function(m){ return materialNames[m]; });
-    var disabledItems = req.disabled.map(function(m){ return materialNames[m]; });
     
     var html = '<b>当前档位（' + plan.name + '）需要：</b><br>' +
-      '✅ 必选：' + requiredItems.join('、') + '<br>';
+      '✅ 需上传：' + requiredItems.join('、') + '<br>';
     if(optionalItems.length > 0){
-      html += '⚪ 可选：' + optionalItems.join('、') + '<br>';
-    }
-    if(disabledItems.length > 0){
-      html += '🚫 本档禁用：' + disabledItems.join('、');
+      html += '⚪ 可选：' + optionalItems.join('、');
     }
     
     tip.innerHTML = html;
@@ -3005,6 +3020,57 @@ setupZone('roiZone','roiInput',function(files){
   Promise.all(tasks).then(renderRoiThumbs);
 });
 
+/* 商品成本Excel上传 */
+function parseCostFile(rows){
+  var headIdx=-1, head=null;
+  for(var i=0;i<Math.min(rows.length,8);i++){
+    var h=cleanHead(rows[i]||[]);
+    if(h.some(function(x){return x.indexOf('商品名称')>-1||x.indexOf('菜名')>-1||x.indexOf('名称')>-1||x.indexOf('品名')>-1;})){ headIdx=i; head=h; break; }
+  }
+  if(headIdx<0) return {ok:false,msg:'未识别到商品名称表头'};
+  function findCol(keys){
+    for(var i=0;i<head.length;i++){ for(var j=0;j<keys.length;j++){ if(head[i]&&head[i].indexOf(keys[j])>-1) return i; } }
+    return -1;
+  }
+  var idxName=findCol(['商品名称','菜名','品名','名称']);
+  var idxCost=findCol(['成本价','批发价','进价','采购价','成本']);
+  if(idxName<0) return {ok:false,msg:'未找到商品名称列'};
+  if(idxCost<0) return {ok:false,msg:'未找到成本价/批发价列'};
+  var costs=[];
+  for(var r=headIdx+1;r<rows.length;r++){
+    var row=rows[r]||[];
+    if(!row.some(function(c){return c!=null&&String(c).trim()!=='';})) continue;
+    var name=String(row[idxName]==null?'':row[idxName]).trim();
+    if(!name) continue;
+    var cost=num(row[idxCost]);
+    costs.push({name:name,cost:cost});
+  }
+  return {ok:true,costs:costs,count:costs.length};
+}
+function handleCostFile(f){
+  $('costName').textContent=f.name; $('costSize').textContent=fmtSize(f.size);
+  $('costItem').classList.remove('hidden'); $('costZone').classList.add('hidden');
+  $('costRecog').classList.add('hidden');
+  readSheetArray(f).then(function(rows){
+    var res=parseCostFile(rows);
+    state.cost={file:f,rows:rows,parsed:res};
+    var box=$('costRecog');
+    if(res.ok){
+      box.className='recog-box';
+      box.innerHTML='<div class="r-title">已识别 '+res.count+' 个商品成本</div>';
+      box.classList.remove('hidden');
+    }else{
+      box.className='recog-box err';
+      box.innerHTML='<div class="r-title">⚠️ 识别异常</div>'+res.msg;
+      box.classList.remove('hidden');
+    }
+    RECOGNIZED.cost=res;
+    updateStartBtn();
+  });
+}
+function removeCost(){ state.cost=null; RECOGNIZED.cost=null; $('costItem').classList.add('hidden'); $('costZone').classList.remove('hidden'); $('costRecog').classList.add('hidden'); updateStartBtn(); }
+setupZone('costZone','costInput',function(files){ if(files.length) handleCostFile(files[0]); });
+
 /* 平台选择 */
 document.querySelectorAll('.plat-opt').forEach(function(el){
   el.addEventListener('click',function(){
@@ -3522,6 +3588,30 @@ var LLM_SYSTEM=[
 '- 总补贴率控制建议（基于当前补贴率和行业基准）',
 '- 预算方向：补贴向哪些活动倾斜（如满减>新客>配送费），不输出分项金额',
 '- 重点活动单品成本测算：列出核心活动商品的食材成本占比、预估商家实收、毛利率',
+'',
+'### 6. 外卖毛利率专项分析（全量专业版必须输出）',
+'#### 6.1 毛利率计算口径',
+'- 外卖毛利率 = (商家实收 - 商品成本) ÷ 商家实收 × 100%',
+'- 商家实收 = 商品原价 + 打包费 - 商家订单优惠(活动) - 平台佣金 - 商家配送补贴 - 平台配送服务费',
+'- 商品成本：有上传商品成本Excel的，按照上传的批发价/成本价精确计算；未上传的，AI根据品类行业基准自动估算（如快餐类食材成本占比30-40%，火锅类35-45%，烧烤类30-40%等）',
+'',
+'#### 6.2 整体毛利率分析',
+'- 基于订单明细数据，计算统计周期内的整体外卖毛利率',
+'- 拆解毛利率构成：食材成本占比、平台佣金占比、配送费占比、活动补贴占比、打包费占比',
+'- 对比行业基准，判断毛利率水平是否健康',
+'',
+'#### 6.3 分品类/分菜品毛利率分析',
+'- 结合商品销售数据和成本数据，计算各菜品的毛利率',
+'- 识别高毛利菜品（毛利率>60%）、中毛利菜品（40-60%）、低毛利菜品（<40%）、亏损菜品（毛利率<0）',
+'- 分析菜品销量与毛利率的关系，找出"高销量低毛利"和"低销量高毛利"的菜品',
+'- 给出菜品结构优化建议：提升高毛利菜品曝光、整合低毛利菜品、淘汰亏损菜品',
+'',
+'#### 6.4 毛利率优化建议',
+'- 基于成本结构分析，给出可落地的毛利率提升方案',
+'- 定价优化：哪些菜品需要提价、提价多少、对销量的影响预估',
+'- 成本控制：食材采购、损耗控制、出餐标准等方面的建议',
+'- 活动优化：哪些活动补贴过高、如何调整活动力度保证毛利率',
+'- 菜单结构优化：套餐组合、凑单设计、引流款与利润款搭配',
 '',
 '#### 5.6 菜单分组活动适配检查',
 '- 福利分组：当前福利商品是否有竞争力、价格是否到位、是否需要调整',
