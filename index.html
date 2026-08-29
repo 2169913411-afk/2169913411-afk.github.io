@@ -2536,7 +2536,7 @@ function handlePastedImage(f,target){
   // 通用图片粘贴处理
   var targetNames = {
     qr: '门店二维码截图',
-    overview: '经营概览截图',
+    overview: '经营数据截图',
     peer: '商圈同行对比数据',
     roi: '推广ROI数据'
   };
@@ -2546,9 +2546,16 @@ function handlePastedImage(f,target){
     if(!state.overview) state.overview=[];
     if(state.overview.length>=8){ toast('最多8张截图，请先删除部分再粘贴'); return; }
     fileToDataUrl(f,0).then(function(d){
-      state.overview.push({file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png')});
+      var item={file:f,dataUrl:d,name:f.name||('粘贴截图_'+Date.now()+'.png'),recognizing:true};
+      state.overview.push(item);
       renderOverviewThumbs();
-      toast('已粘贴到「经营概览截图」');
+      toast('已粘贴到「经营数据截图」');
+      // 粘贴后立即进行视觉识别
+      recognizeOverviewImage(d,function(res){
+        item.recognizing=false;
+        item.recognition=res;
+        renderOverviewThumbs();
+      });
     });
     return;
   }
@@ -3078,13 +3085,36 @@ setupZone('shopZone','shopInput',function(files){ if(files.length) handleShopFil
 setupZone('menuZone','menuInput',function(files){ if(files.length) handleMenuFile(files[0]); });
 setupZone('reviewZone','reviewInput',function(files){ if(files.length) handleReviewFile(files[0]); });
 
-/* 经营概览截图上传 */
+/* 经营数据截图上传 */
+// 识别单张经营数据截图
+function recognizeOverviewImage(dataUrl, callback){
+  var api=getApi();
+  if(!api.apiKey){ api.apiKey=API_DEFAULT.apiKey; }
+  var sys='你是外卖运营数据录入助手。用户上传了【经营数据截图】，可能包含：同行对比数据、活动数据、推广数据、商品销售数据、订单分布数据等。任务：从截图中提取所有有价值的经营数据。\n要求：\n1. 只输出一个JSON对象，禁止输出其他文字。\n2. 先识别这张截图的类型（同行对比/活动数据/推广数据/商品销售/订单分布/其他），然后提取对应的数据：\n   - 同行对比截图 → peer对象：exposure(同行曝光)、enter_rate(同行入店转化率)、order_rate(同行下单转化率)\n   - 活动数据截图 → activity对象：活动名称、活动类型、参与状态、活动力度、活动效果\n   - 推广数据截图 → promotion对象：推广渠道、消耗金额、产出金额、ROI、曝光、点击\n   - 商品销售截图 → products对象：商品名称、销量、销售额\n   - 订单分布截图 → order_distribution对象：客单价分布、时间分布、地点分布\n   - 其他经营数据 → other对象：其他有价值的经营信息\n   数值必须是截图中的真实数值，看不清或没有就填 null，绝对禁止编造。\n输出JSON：{"screenshot_type":"同行对比/活动数据/推广数据/商品销售/订单分布/其他","peer":{},"activity":[],"promotion":[],"products":[],"order_distribution":{},"other":[],"notes":"截图内容简要说明"}';
+  var parts=[{type:'text',text:'请识别这一张经营数据截图中的所有有价值数据。'},{type:'image_url',image_url:{url:dataUrl}}];
+  callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.visionModel||API_DEFAULT.visionModel,
+    [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024)
+  .then(parseJson)
+  .then(function(v){ if(callback) callback(v); })
+  ['catch'](function(e){ if(callback) callback(null); });
+}
+
 function renderOverviewThumbs(){
   var box=$('overviewThumbs'); if(!box) return;
   box.innerHTML='';
   (state.overview||[]).forEach(function(s,i){
     var d=document.createElement('div'); d.className='thumb';
-    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delOverview('+i+')">✕</button>';
+    var recogHtml='';
+    if(s.recognition){
+      var type=s.recognition.screenshot_type||'已识别';
+      var notes=s.recognition.notes||'';
+      recogHtml='<div style="font-size:10px;color:#16A34A;margin-top:4px;word-break:break-all;">✅ '+type+(notes?'：'+notes.slice(0,30):'')+'</div>';
+    } else if(s.recognition===null){
+      recogHtml='<div style="font-size:10px;color:#B45309;margin-top:4px;">⚠️ 识别失败</div>';
+    } else if(s.recognizing){
+      recogHtml='<div style="font-size:10px;color:#2563EB;margin-top:4px;">⏳ 识别中...</div>';
+    }
+    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delOverview('+i+')">✕</button>'+recogHtml;
     box.appendChild(d);
   });
   updateStartBtn();
@@ -3095,8 +3125,20 @@ setupZone('overviewZone','overviewInput',function(files){
   if(!state.overview) state.overview=[];
   if(state.overview.length>=8){ toast('最多8张截图，请先删除部分再上传'); return; }
   var arr=Array.prototype.slice.call(files).filter(function(f){return f.type.indexOf('image')>-1;}).slice(0,8-state.overview.length);
-  var tasks=arr.map(function(f){ return fileToDataUrl(f,0).then(function(d){ state.overview.push({file:f,dataUrl:d,name:f.name}); }); });
-  Promise.all(tasks).then(renderOverviewThumbs);
+  var tasks=arr.map(function(f){ 
+    return fileToDataUrl(f,0).then(function(d){ 
+      var item={file:f,dataUrl:d,name:f.name,recognizing:true};
+      state.overview.push(item);
+      renderOverviewThumbs();
+      // 上传后立即进行视觉识别
+      recognizeOverviewImage(d,function(res){
+        item.recognizing=false;
+        item.recognition=res;
+        renderOverviewThumbs();
+      });
+    }); 
+  });
+  Promise.all(tasks).then(function(){ renderOverviewThumbs(); });
 });
 
 /* 商家订单Excel上传 */
