@@ -1175,9 +1175,7 @@ h1,h2,h3,.lp-title{
     <div class="brand"><span class="logo">餐</span>餐谋长·运营助手</div>
     <div class="top-actions">
       <span class="points-pill" id="pointsPill" onclick="openRecharge()"><i data-lucide="coins"></i>脑容量：0 积分</span>
-      <button class="style-toggle professional" id="styleToggleBtn" onclick="toggleOutputStyle()" title="切换报告输出风格">📊 专业化</button>
       <button class="btn-blue-ghost" onclick="openScrape()"><i data-lucide="search-check"></i>商家调研</button>
-      <button class="btn-ghost" onclick="openHistory()"><i data-lucide="history"></i>历史</button>
       <button class="btn-ghost" onclick="openProfile()"><i data-lucide="user"></i>个人中心</button>
       <button class="btn-ghost" onclick="doLogout()"><i data-lucide="log-out"></i>退出登录</button>
     </div>
@@ -1190,21 +1188,21 @@ h1,h2,h3,.lp-title{
     <div class="lp-title">外卖店铺AI运营诊断</div>
     <div class="lp-sub">上传数据截图与文件，一键生成专业运营方案 + 商家沟通话术</div>
 
-    <!-- v0.39 四格统计卡（诊断数据中心样式） -->
-    <div class="stat-grid-4" onclick="openDataCenter()" title="点击查看历史诊断与节省价值">
-      <div class="sg4-item">
+    <!-- v0.39 四格统计卡（独立可点击） -->
+    <div class="stat-grid-4">
+      <div class="sg4-item clickable" onclick="openShopHistory()" title="点击查看最近诊断店铺历史记录">
         <div class="sg4-num num" id="statShops">0</div>
         <div class="sg4-label">累计诊断店铺</div>
       </div>
-      <div class="sg4-item">
+      <div class="sg4-item clickable" onclick="openReportHistory()" title="点击查看历史报告记录">
         <div class="sg4-num num" id="statReports">0</div>
         <div class="sg4-label">累计生成报告</div>
       </div>
-      <div class="sg4-item">
+      <div class="sg4-item clickable" onclick="openValueCalc()" title="点击查看节省工时明细">
         <div class="sg4-num num"><span id="savedHoursVal">0</span><span class="sg4-unit">小时</span></div>
         <div class="sg4-label">节省工时</div>
       </div>
-      <div class="sg4-item">
+      <div class="sg4-item clickable" onclick="openValueCalc()" title="点击查看节省人力开支明细">
         <div class="sg4-num num">¥<span id="savedMoneyVal">0</span></div>
         <div class="sg4-label">节省人力开支</div>
       </div>
@@ -1394,6 +1392,7 @@ h1,h2,h3,.lp-title{
     <div class="result-head">
       <h2>运营诊断报告</h2>
       <div class="head-actions">
+        <button class="btn-mini style-toggle professional" id="reportStyleBtn" onclick="toggleReportStyle()" title="切换报告输出风格">📊 专业化</button>
         <button class="btn-mini" onclick="downloadReport()">下载报告</button>
         <button class="btn-mini" onclick="copyFull()">复制全文</button>
       </div>
@@ -4668,7 +4667,17 @@ setTimeout(initLucide, 800);
     renderDataCenter();
     openModal('dataCenterMask');
   }
-  function renderDataCenter(){
+  function openShopHistory(){
+    renderDataCenter('shop');
+    document.querySelector('#dataCenterMask .modal-head h3').textContent = '累计诊断店铺历史记录';
+    openModal('dataCenterMask');
+  }
+  function openReportHistory(){
+    renderDataCenter('report');
+    document.querySelector('#dataCenterMask .modal-head h3').textContent = '累计生成报告历史记录';
+    openModal('dataCenterMask');
+  }
+  function renderDataCenter(mode){
     renderStats();
     var vip=isVip();
     var rule=document.getElementById('dcRule');
@@ -4689,13 +4698,15 @@ setTimeout(initLucide, 800);
       var idx=i;
       var free = idx<5 || vip;
       var locked=!free;
+      var ico = mode==='shop' ? '🏪' : (mode==='report' ? '📄' : '📄');
+      var actText = mode==='shop' ? '查看店铺' : (mode==='report' ? '查看报告' : '查看报告');
       html+='<div class="dc-list-item'+(locked?' locked':'')+'" onclick="'+(locked?'openVipTip()':'loadHistory('+idx+')')+'" title="'+(locked?'开通黄砖解锁该报告':'点击查看完整报告')+'">'+
-        '<div class="dc-li-ico">'+(locked?'🔒':'📄')+'</div>'+
+        '<div class="dc-li-ico">'+(locked?'🔒':ico)+'</div>'+
         '<div class="dc-li-main">'+
           '<div class="dc-li-name">'+esc(item.shopName||'未命名店铺')+'</div>'+
           '<div class="dc-li-meta">'+esc(item.t)+' ｜ '+esc(item.plan)+' ｜ 消耗'+item.cost+'积分</div>'+
         '</div>'+
-        '<div class="dc-li-act">'+(locked?'黄砖解锁':'查看报告')+'</div>'+
+        '<div class="dc-li-act">'+(locked?'黄砖解锁':actText)+'</div>'+
       '</div>';
     });
     list.innerHTML=html;
@@ -4967,8 +4978,18 @@ function toggleOutputStyle(){
     btn.textContent = OUTPUT_STYLE === 'professional' ? '📊 专业化' : '💬 口语化';
     btn.className = 'style-toggle ' + OUTPUT_STYLE;
   }
+  var reportBtn = $('reportStyleBtn');
+  if(reportBtn){
+    reportBtn.textContent = OUTPUT_STYLE === 'professional' ? '📊 专业化' : '💬 口语化';
+    reportBtn.className = 'btn-mini style-toggle ' + OUTPUT_STYLE;
+  }
   // 保存偏好
   try{ localStorage.setItem('cmz_output_style', OUTPUT_STYLE); }catch(e){}
+}
+
+function toggleReportStyle(){
+  toggleOutputStyle();
+  toast('已切换到' + (OUTPUT_STYLE === 'professional' ? '专业化' : '口语化') + '模式，下次分析生效');
 }
 
 function getStyleSuffix(){
@@ -4986,6 +5007,14 @@ function getStyleSuffix(){
       OUTPUT_STYLE = saved;
     }
   }catch(e){}
+  // 初始化报告区域的按钮状态
+  setTimeout(function(){
+    var reportBtn = document.getElementById('reportStyleBtn');
+    if(reportBtn){
+      reportBtn.textContent = OUTPUT_STYLE === 'professional' ? '📊 专业化' : '💬 口语化';
+      reportBtn.className = 'btn-mini style-toggle ' + OUTPUT_STYLE;
+    }
+  }, 100);
 })();
 
 /* ---------- 活动成本计算器（辅助展示） ---------- */
