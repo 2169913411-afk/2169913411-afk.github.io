@@ -3518,7 +3518,23 @@ function callQrObserve(api,qrDataUrl){
   var sys='你是外卖运营专家。用户提供了门店二维码/店铺首页截图。请模拟顾客扫码进店，做用户视角前端体验观察，输出简洁要点，不编造截图里没有的东西。\n要求：只输出一个JSON：{"frontend":{"notes":"一句话总结","dims":{"装修风格":"...","主图质量":"...","商品排序":"...","价格活动展示":"...","销量标签":"...","菜品信息":"...","下单路径":"..."}}}';
   var parts=[{type:'text',text:'请观察这张门店二维码/首页截图，做前端体验观察。'},{type:'image_url',image_url:{url:qrDataUrl}}];
   return callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.visionModel||API_DEFAULT.visionModel,
-    [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024).then(parseJson);
+    [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024)
+    .then(parseJson)
+    .then(function(v){
+      // 确保返回的frontend对象结构完整
+      if(v&&v.frontend){
+        if(!v.frontend.dims) v.frontend.dims={};
+        if(!v.frontend.notes) v.frontend.notes='已上传门店二维码截图，前端体验视觉识别完成';
+        return v;
+      }
+      // 如果视觉识别返回格式不正确，返回基本对象
+      return {frontend:{notes:'已上传门店二维码截图，但视觉识别结果格式不完整',dims:{}}};
+    })
+    ['catch'](function(e){
+      // 视觉识别失败时，返回基本对象，让AI知道有上传二维码截图
+      console.warn('二维码前端体验视觉识别失败:',e&&e.message);
+      return {frontend:{notes:'已上传门店二维码截图，但视觉识别失败（可能是网络或模型问题），请基于上传截图的文件名和其他数据进行分析',dims:{},recognition_failed:true}};
+    });
 }
 
 /* 强约束系统提示（融入餐谋长业务规则） */
