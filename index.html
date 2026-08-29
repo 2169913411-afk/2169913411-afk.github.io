@@ -1259,34 +1259,27 @@ h1,h2,h3,.lp-title{
 
     <div class="section" id="qrSection">
       <div class="section-title">1. 分享店铺链接 <span class="tag tag-req" id="qrTag">需上传</span></div>
-      <div style="background:#F0F7FF;border:1px solid #BFDBFE;border-radius:10px;padding:16px;">
-        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
-          <div style="width:36px;height:36px;background:#165DFF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0;">🔗</div>
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#1E40AF;margin-bottom:4px;">粘贴淘宝闪购/美团外卖店铺分享链接</div>
-            <div style="font-size:12px;color:#3B82F6;line-height:1.5;">从淘宝/美团APP进入店铺，点击分享→复制链接，粘贴到下方输入框。系统会自动抓取门店菜单、商品、价格、月售等数据。</div>
-          </div>
+      <div class="upload-zone uz-qr" id="qrZone" style="display:none;">
+        <i data-lucide="link"></i>
+        <div class="uz-body">
+          <div class="main">点击、拖拽或粘贴上传门店二维码</div>
+          <div class="sub">支持标准二维码识别；淘宝/美团小程序码请使用下方链接输入</div>
         </div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="qrShopLink" placeholder="粘贴淘宝闪购/美团外卖店铺分享链接（以https://开头）" style="flex:1;padding:10px 14px;border:1px solid #93C5FD;border-radius:8px;font-size:13px;outline:none;background:#fff;" oninput="onQrLinkInput()">
-          <button onclick="applyQrShopLink()" style="padding:10px 20px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">应用链接</button>
-        </div>
-        <div id="qrLinkStatus" style="font-size:12px;margin-top:8px;"></div>
-        <div id="qrAppliedInfo" class="hidden" style="margin-top:12px;padding:10px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="color:#16A34A;font-size:16px;">✅</span>
-            <span style="font-size:13px;color:#065F46;font-weight:600;">店铺链接已应用</span>
-            <button onclick="removeQrLink()" style="margin-left:auto;padding:4px 10px;background:#DC2626;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">移除</button>
-          </div>
-          <div id="qrAppliedLink" style="font-size:11px;color:#059669;margin-top:6px;word-break:break-all;"></div>
-        </div>
+        <div class="paste-hint">粘贴到：门店二维码截图</div>
+        <input type="file" id="qrInput" accept="image/*">
       </div>
-      <div style="margin-top:10px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E;line-height:1.6;">
-        <b>💡 如何获取店铺链接：</b><br>
-        1. 打开淘宝/美团APP，进入目标店铺<br>
-        2. 点击右上角"分享"按钮<br>
-        3. 选择"复制链接"<br>
-        4. 回到本页面，粘贴到上方输入框，点击"应用链接"
+      <div id="qrItem" class="file-item hidden" style="margin-top:10px;">
+        <span>🔳</span><span class="fname" id="qrName"></span>
+        <button class="del" onclick="removeQr()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
+      </div>
+      <div id="qrRecogResult"></div>
+      <div style="margin-top:12px;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">粘贴店铺分享链接（淘宝闪购/美团外卖）</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="qrShopLink" placeholder="粘贴从APP分享的店铺链接，点击应用链接后自动抓取门店数据" style="flex:1;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;outline:none;" oninput="onQrLinkInput()">
+          <button onclick="applyQrShopLink()" style="padding:8px 16px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">应用链接</button>
+        </div>
+        <div id="qrLinkStatus" style="font-size:11px;margin-top:4px;"></div>
       </div>
     </div>
 
