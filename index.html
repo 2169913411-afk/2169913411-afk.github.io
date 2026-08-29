@@ -1272,17 +1272,17 @@ h1,h2,h3,.lp-title{
     </div>
 
     <div class="section" id="overviewSection">
-      <div class="section-title">2. 经营概览截图 <span class="tag tag-req" id="overviewTag">需上传</span></div>
+      <div class="section-title">2. 经营数据截图 <span class="tag tag-req" id="overviewTag">需上传</span></div>
       <div class="upload-zone uz-qr" id="overviewZone">
         <i data-lucide="bar-chart-3"></i>
         <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传经营概览截图</div>
-          <div class="sub">包含曝光、入店、下单转化、客单价，同时读取商圈同行指标</div>
+          <div class="main">点击、拖拽或粘贴上传经营数据截图（可多张）</div>
+          <div class="sub">包含流量转化、商圈同行对比、活动数据、推广数据等所有经营相关截图</div>
         </div>
-        <div class="paste-hint">粘贴到：经营概览截图</div>
+        <div class="paste-hint">粘贴到：经营数据截图</div>
         <input type="file" id="overviewInput" accept="image/*" multiple>
       </div>
-      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天经营概览：曝光人数、入店人数、下单人数、入店转化率、下单转化率、有效订单、客单价；截图内需包含商圈同行对比数据</div>
+      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">支持上传多种经营数据截图：①近7天/近30天经营概览（曝光、入店、下单转化、客单价、商圈同行对比）②活动数据截图（满减、神券、收藏有礼等活动参与情况）③推广数据截图（点金推广、铂金展位、推广魔方、斗金推广等消耗与产出）④商品销售截图 ⑤其他经营相关截图。AI会自动识别每张截图的内容并纳入分析。</div>
       <div class="thumb-grid" id="overviewThumbs"></div>
     </div>
 
@@ -3309,6 +3309,11 @@ function onStart(){
   setTimeout(function(){
     var chk=completenessCheck();
     closeModal('checkingMask');
+    if(chk.count===0){
+      // 核心数据已齐备，直接跳过警告弹窗，进入积分确认
+      proceedAnalysis();
+      return;
+    }
     $('precheckBody').innerHTML=
       (chk.count?'<div class="warn-list"><div class="w-title">检测到以下数据缺失，可能影响分析精准度：</div><ul>'+chk.miss.map(function(m){return '<li>'+m+'</li>';}).join('')+'</ul></div>'
                  :'<p style="font-size:13px;color:#166534;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;">✅ 核心数据已齐备，可直接开始分析。</p>');
@@ -3456,9 +3461,17 @@ function runAnalysis(plan){
           structured.flow={peer_exposure:v.peer.exposure,peer_enter_rate:toF(v.peer.enter_rate),peer_order_rate:toF(v.peer.order_rate)};
         }
       }
+      // 存储视觉识别到的额外经营数据（活动数据、推广数据、商品销售数据等）
+      if(v){
+        if(v.activity&&v.activity.length) structured.screenshot_activity=v.activity;
+        if(v.promotion&&v.promotion.length) structured.screenshot_promotion=v.promotion;
+        if(v.products&&v.products.length) structured.screenshot_products=v.products;
+        if(v.other&&v.other.length) structured.screenshot_other=v.other;
+        if(v.notes) structured.screenshot_notes=v.notes;
+      }
       return v;
     })['catch'](function(err){
-      toast('同行对比数据识别失败（'+err.message+'），将跳过该部分');
+      toast('经营数据截图识别失败（'+err.message+'），将跳过该部分');
       return null;
     });
   }
@@ -3486,22 +3499,29 @@ function runAnalysis(plan){
 }
 state.notesText=function(){ return $('notesInput').value.trim(); };
 
-/* 视觉提取 prompt（只提取同行对比值 + 前端体验；本店指标已由门店文件精确计算） */
+/* 视觉提取 prompt（识别同行对比值 + 活动数据 + 推广数据 + 其他经营数据；本店指标已由门店文件精确计算） */
 function callPeerExtract(api,peerImages){
-  var sys='你是外卖运营数据录入助手。用户上传了【同行数据对比截图】。任务：从同行对比截图中提取【同行（商圈均值）】数值。\n要求：\n1. 只输出一个JSON对象，禁止输出其他文字。\n2. 先识别这张截图的顾客维度（全部顾客/新客/老客，看截图中的维度选中项），提取该维度下【同行/商圈均值】的真实数值并按维度归位：\n   - 全部顾客截图 → exposure(同行曝光人数)、enter_rate(同行入店转化率)、order_rate(同行下单转化率)\n   - 新客截图 → new_customer_enter(同行新客进店转化率)、new_customer_order(同行新客下单转化率)\n   - 老客截图 → old_customer_enter(同行老客进店转化率)、old_customer_order(同行老客下单转化率)\n   数值必须是截图中的真实数值（同行/商圈均值那一列），看不清或没有就填 null，绝对禁止编造。不要提取本店数值（本店数值由系统文件精确计算，不需要你提供）。\n输出JSON：{"peer":{"exposure":number|null,"enter_rate":number|null,"order_rate":number|null,"new_customer_enter":number|null,"new_customer_order":number|null,"old_customer_enter":number|null,"old_customer_order":number|null}}';
+  var sys='你是外卖运营数据录入助手。用户上传了【经营数据截图】，可能包含：同行对比数据、活动数据、推广数据、商品销售数据等。任务：从截图中提取所有有价值的经营数据。\n要求：\n1. 只输出一个JSON对象，禁止输出其他文字。\n2. 先识别这张截图的类型（同行对比/活动数据/推广数据/商品销售/其他），然后提取对应的数据：\n   - 同行对比截图 → peer对象：exposure(同行曝光)、enter_rate(同行入店转化率)、order_rate(同行下单转化率)、new_customer_enter、new_customer_order、old_customer_enter、old_customer_order\n   - 活动数据截图 → activity对象：活动名称、活动类型、参与状态、活动力度、活动效果等\n   - 推广数据截图 → promotion对象：推广渠道、消耗金额、产出金额、ROI、曝光、点击等\n   - 商品销售截图 → products对象：商品名称、销量、销售额等\n   - 其他经营数据 → other对象：其他有价值的经营信息\n   数值必须是截图中的真实数值，看不清或没有就填 null，绝对禁止编造。不要提取本店核心指标（本店数值由系统文件精确计算）。\n输出JSON：{"peer":{"exposure":number|null,"enter_rate":number|null,"order_rate":number|null,"new_customer_enter":number|null,"new_customer_order":number|null,"old_customer_enter":number|null,"old_customer_order":number|null},"activity":[],"promotion":[],"products":[],"other":[],"screenshot_type":"同行对比/活动数据/推广数据/商品销售/其他","notes":"截图内容简要说明"}';
   var keys=['exposure','enter_rate','order_rate','new_customer_enter','new_customer_order','old_customer_enter','old_customer_order'];
-  var merged={};
+  var merged={peer:{},activity:[],promotion:[],products:[],other:[],notes:[]};
   // 逐张识别（每次只传1张图，规避视觉模型单次图片数量上限1210），小并发池加速，结果合并取并集
   var imgs=(peerImages||[]).slice();
   function work(img){
-    var parts=[{type:'text',text:'请识别这一张同行对比截图中的同行（商圈均值）数值，按顾客维度归位。'}];
+    var parts=[{type:'text',text:'请识别这一张经营数据截图中的所有有价值数据，包括同行对比、活动数据、推广数据等。'}];
     parts.push({type:'image_url',image_url:{url:img.data}});
     return callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.visionModel||API_DEFAULT.visionModel,
       [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024)
     .then(parseJson)['catch'](function(){ return null; })
     .then(function(v){
-      if(v&&v.peer){
-        keys.forEach(function(k){ if(v.peer[k]!=null&&merged[k]==null) merged[k]=v.peer[k]; });
+      if(v){
+        if(v.peer){
+          keys.forEach(function(k){ if(v.peer[k]!=null&&merged.peer[k]==null) merged.peer[k]=v.peer[k]; });
+        }
+        if(Array.isArray(v.activity)&&v.activity.length) merged.activity=merged.activity.concat(v.activity);
+        if(Array.isArray(v.promotion)&&v.promotion.length) merged.promotion=merged.promotion.concat(v.promotion);
+        if(Array.isArray(v.products)&&v.products.length) merged.products=merged.products.concat(v.products);
+        if(Array.isArray(v.other)&&v.other.length) merged.other=merged.other.concat(v.other);
+        if(v.notes) merged.notes.push(v.notes);
       }
       return null;
     });
@@ -3512,7 +3532,21 @@ function callPeerExtract(api,peerImages){
     while(imgs.length&&batch.length<3){ batch.push(imgs.shift()); }
     return Promise.all(batch.map(work)).then(pump);
   }
-  return pump().then(function(){ return merged&&keys.some(function(k){return merged[k]!=null;})?{peer:merged}:null; });
+  return pump().then(function(){
+    var hasPeer=keys.some(function(k){return merged.peer[k]!=null;});
+    var hasExtra=merged.activity.length||merged.promotion.length||merged.products.length||merged.other.length;
+    if(hasPeer||hasExtra){
+      return {
+        peer:hasPeer?merged.peer:null,
+        activity:merged.activity,
+        promotion:merged.promotion,
+        products:merged.products,
+        other:merged.other,
+        notes:merged.notes.join('；')
+      };
+    }
+    return null;
+  });
 }
 function callQrObserve(api,qrDataUrl){
   var sys='你是外卖运营专家。用户提供了门店二维码/店铺首页截图。请模拟顾客扫码进店，做用户视角前端体验观察，输出简洁要点，不编造截图里没有的东西。\n要求：只输出一个JSON：{"frontend":{"notes":"一句话总结","dims":{"装修风格":"...","主图质量":"...","商品排序":"...","价格活动展示":"...","销量标签":"...","菜品信息":"...","下单路径":"..."}}}';
@@ -3729,9 +3763,24 @@ var LLM_SYSTEM=[
 '- 所有活动建议必须基于门店的实际数据进行测算，禁止输出通用的、与门店数据无关的活动建议。',
 '- 满减活动档位必须结合门店的客单价（shop_base.avg_pay）、订单结构、补贴率（shop_base.subsidy_rate）进行测算，禁止输出通用的"满25减5、满40减8"。',
 '- 活动力度必须考虑门店的成本结构、毛利率、平台扣点，禁止不考虑成本盲目报活动。',
-'- 必须分析门店现有的活动参与情况（activity字段），诊断现有活动是否合理，再给出优化建议。',
+'- 必须分析门店现有的活动参与情况（activity字段、screenshot_activity字段），诊断现有活动是否合理，再给出优化建议。',
+'- 如果上传了活动数据截图（screenshot_activity字段），必须详细分析截图中的活动参与情况、活动效果、活动力度等，并将分析结果纳入报告。',
+'- 如果上传了推广数据截图（screenshot_promotion字段），必须详细分析截图中的推广渠道、消耗金额、产出金额、ROI等，并将分析结果纳入报告。',
 '- 二级端口活动（神枪手/拼好饭/超抢手/爆品团）必须从现有菜单中挑选或组合产品，给出建议到手价，并说明选品理由、成本测算、预期效果。',
 '- 如果缺少成本数据，必须明确说明"缺少商品成本数据，活动力度仅为方向性建议，实际执行前请核算成本"。',
+'',
+'## 10.8 经营数据截图分析要求',
+'- 如果上传了经营数据截图（除同行对比外的其他截图），视觉识别结果会存储在以下字段中，必须详细分析并纳入报告：',
+'  - screenshot_activity：活动数据截图识别结果（活动名称、活动类型、参与状态、活动力度、活动效果等）',
+'  - screenshot_promotion：推广数据截图识别结果（推广渠道、消耗金额、产出金额、ROI、曝光、点击等）',
+'  - screenshot_products：商品销售截图识别结果（商品名称、销量、销售额等）',
+'  - screenshot_other：其他经营数据截图识别结果',
+'  - screenshot_notes：截图内容简要说明',
+'- 必须根据每张截图的内容进行针对性分析，不能忽略这些数据。',
+'- 活动数据截图必须分析：现有活动参与情况、活动力度是否合理、活动效果如何、是否需要调整活动配置。',
+'- 推广数据截图必须分析：各推广渠道的消耗、产出、ROI，哪些渠道值得加大投入，哪些渠道应该暂停或调整。',
+'- 商品销售截图必须分析：商品销售表现、爆品识别、滞销品识别、与商品销售Excel数据的交叉验证。',
+'- 如果截图数据与文件数据不一致，必须指出差异并分析原因。',
 '',
 '## 10.8 反模板化检查清单（输出前必须自检）',
 '- [ ] 每个结论是否都有对应的具体数据支撑？',
