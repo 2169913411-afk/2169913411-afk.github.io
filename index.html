@@ -1699,7 +1699,7 @@ h1,h2,h3,.lp-title{
     });
   }
   fetch('app.body.html?v='+V).then(function(r){ return r.text(); }).then(function(html){
-    root.outerHTML=html;
+    if(root){ root.outerHTML=html; }
     return loadScript('app.js.1?v='+V)
       .then(function(){ return loadScript('app.js.2?v='+V); })
       .then(function(){ return loadScript('app.js.3?v='+V); })
