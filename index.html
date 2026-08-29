@@ -3290,6 +3290,22 @@ function buildStructured(){
   }
   if(!data.flow) data.flow={}; // 无文件流量列时由 vision 填充
   data.frontend_experience={has_qr:!!(state.qr&&state.qr.file)};
+  
+  // 添加数据上传状态标记，AI必须严格根据此标记决定是否分析对应模块
+  data.data_availability={
+    qr_screenshot: !!(state.qr&&state.qr.file),
+    overview_screenshots: !!(state.overview&&state.overview.length>0),
+    shop_excel: !!(state.shop&&state.shop.parsed&&state.shop.parsed.ok),
+    menu_excel: !!(state.menu&&state.menu.parsed&&state.menu.parsed.ok),
+    order_excel: !!(state.order&&state.order.parsed&&state.order.parsed.ok),
+    review_excel: !!(state.review&&state.review.parsed&&state.review.parsed.ok),
+    cost_excel: !!(state.cost&&state.cost.parsed&&state.cost.parsed.ok),
+    frontend_experience_recognized: !!(data.frontend_experience&&data.frontend_experience.notes&&data.frontend_experience.notes.length>0),
+    peer_data_recognized: !!(data.peer&&Object.keys(data.peer).length>0),
+    activity_data_recognized: !!(data.screenshot_activity&&data.screenshot_activity.length>0),
+    promotion_data_recognized: !!(data.screenshot_promotion&&data.screenshot_promotion.length>0)
+  };
+  
   return data;
 }
 function completenessCheck(){
@@ -3515,7 +3531,8 @@ function runAnalysis(plan){
   var images=[];
   var tasks=[];
   if(state.qr&&state.qr.dataUrl) images.push({type:'qr',data:state.qr.dataUrl});
-  state.peer.forEach(function(s){ images.push({type:'peer',data:s.dataUrl}); });
+  // 修复：经营数据截图存储在state.overview中，不是state.peer
+  (state.overview||[]).forEach(function(s){ if(s&&s.dataUrl) images.push({type:'peer',data:s.dataUrl}); });
 
   // Pass 1: 视觉提取（同行对比值 + 前端体验）
   var peerP=Promise.resolve(null), qrP=Promise.resolve(null);
@@ -3876,12 +3893,26 @@ var LLM_SYSTEM=[
 '- [ ] 是否避免了"提升服务、加强管理、做好品控"这类无执行动作的空话？',
 '- 如果以上任何一项不满足，必须重新修改输出内容。',
 '',
-'## 10.9 缺失数据处理铁则',
+'## 10.9 缺失数据处理铁则（最高优先级，必须严格执行）',
+'- 结构化数据中包含 data_availability 字段，标记了每个数据源是否已上传或已识别。AI必须严格根据此标记决定是否分析对应模块。',
 '- 严格根据当前档位和实际上传的数据进行分析，没有上传或没有权限上传的文件/数据，绝对不要在报告中提及、分析或给出相关建议。',
-'- 如果某个模块的数据完全缺失（如没有上传用户评价Excel），直接跳过该模块，不要在报告中出现该模块的标题或内容。',
+'- 如果某个模块的数据完全缺失（data_availability中对应字段为false），直接跳过该模块，不要在报告中出现该模块的标题、内容或任何相关提及。',
 '- 如果某个模块的数据部分缺失，可以简要说明"缺少XX数据，本模块仅基于已有数据分析"，但不要展开分析缺失数据相关的内容。',
-'- 绝对禁止在报告中出现"建议上传XX数据"、"缺少XX数据可能影响分析"这类提示性内容（数据缺失说明只在分析前的预检环节显示，不进入最终报告）。',
+'- 绝对禁止在报告中出现"建议上传XX数据"、"缺少XX数据可能影响分析"、"无法进行XX分析"这类提示性内容（数据缺失说明只在分析前的预检环节显示，不进入最终报告）。',
 '- 低档档位（38积分）禁止输出高档档位（58/88积分）才有的分析内容，即使意外收到了高档位素材也必须严格遵守档位深度隔离。',
+'',
+'## 10.10 前端体验分析限制铁则',
+'- 前端体验分析（店铺头图、门店公告、商品排序、价格活动展示、销量标签、菜品信息、下单路径等）必须基于二维码截图的视觉识别结果（frontend_experience字段）。',
+'- 如果 data_availability.frontend_experience_recognized 为 false（没有上传二维码截图，或视觉识别失败/不完整），绝对不要给出任何前端体验相关的分析或建议，包括但不限于：',
+'  - 优化店铺头图',
+'  - 优化门店公告',
+'  - 优化商品排序',
+'  - 优化价格活动展示',
+'  - 优化销量标签',
+'  - 优化菜品信息展示',
+'  - 优化下单路径',
+'- 如果没有前端体验数据，直接跳过前端体验模块，不要在报告中出现任何前端体验相关的内容。',
+'- 绝对禁止在没有前端体验数据的情况下，根据通用的外卖运营知识给出"优化店铺头图和公告"这类凭空猜想的建议。',
 '',
 '## 分模块分析逻辑（参考框架，非固定输出模板）',
 '### 1. 核心问题总结',
