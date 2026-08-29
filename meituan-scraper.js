@@ -1,19 +1,31 @@
 /* ================================================================
-   美团外卖店铺菜单抓取脚本 v2.1（稳定版）
+   美团外卖店铺菜单+图片抓取脚本 v3.0
+   - 支持菜单抓取（生成Excel）
+   - 支持图片抓取（打包成ZIP）
+   - 支持两者同时抓取
    - 修复数据重复问题
    - 去掉alert弹窗，改用页面内浮动提示
    - 确保下载先触发，再显示完成提示
-   - 滚动整个菜品列表提取所有菜品，自动识别分类
    使用方式：在美团店铺页面 F12 控制台粘贴执行
    ================================================================ */
 (function(){
   'use strict';
 
+  /* ---------- 配置 ---------- */
+  var CONFIG = {
+    maxImages: 200,        // 最大下载图片数量
+    scrollStep: 400,       // 滚动步长
+    maxScrolls: 80,        // 最大滚动次数
+    scrollWait: 350,       // 滚动后等待时间(ms)
+    imageTimeout: 10000    // 单张图片下载超时(ms)
+  };
+
   /* ---------- 工具函数 ---------- */
   function esc(s){ return String(s==null?'':s).replace(/[\n\r]/g,' ').replace(/\s+/g,' ').trim(); }
+  function escFileName(s){ return String(s==null?'':s).replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,' ').trim(); }
   function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
 
-  /* ---------- XLSX 生成（纯JS，无依赖） ---------- */
+  /* ---------- ZIP/XLSX 生成（纯JS，无依赖） ---------- */
   function u8(s){ return new TextEncoder().encode(s); }
   function crc(b){
     var c,t=[],k,n;
@@ -110,11 +122,68 @@
     if(!existing){
       var div = document.createElement('div');
       div.id = 'mt-scraper-progress';
-      div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#165DFF;color:#fff;padding:12px 24px;border-radius:8px;z-index:999999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-align:center;line-height:1.6;';
+      div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#165DFF;color:#fff;padding:12px 24px;border-radius:8px;z-index:999999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-align:center;line-height:1.6;max-width:80%;';
       document.body.appendChild(div);
       existing = div;
     }
     existing.innerHTML = message;
+  }
+
+  /* ---------- 显示选择对话框 ---------- */
+  function showScrapeTypeDialog(callback){
+    var existing = document.getElementById('mt-scraper-dialog');
+    if(existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'mt-scraper-dialog';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999998;display:flex;align-items:center;justify-content:center;';
+
+    var dialog = document.createElement('div');
+    dialog.style.cssText = 'background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+    dialog.innerHTML = `
+      <h3 style="margin:0 0 16px 0;font-size:18px;color:#1D2129;">选择抓取内容</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
+          <input type="radio" name="scrapeType" value="menu" checked style="width:18px;height:18px;accent-color:#165DFF;">
+          <div>
+            <div style="font-weight:600;color:#1D2129;">仅抓取菜单</div>
+            <div style="font-size:12px;color:#86909C;">生成Excel表格，包含分组、名称、价格、月售、规格、图片链接</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
+          <input type="radio" name="scrapeType" value="images" style="width:18px;height:18px;accent-color:#165DFF;">
+          <div>
+            <div style="font-weight:600;color:#1D2129;">仅抓取图片</div>
+            <div style="font-size:12px;color:#86909C;">下载所有菜品图片，打包成ZIP文件</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
+          <input type="radio" name="scrapeType" value="both" style="width:18px;height:18px;accent-color:#165DFF;">
+          <div>
+            <div style="font-weight:600;color:#1D2129;">菜单+图片</div>
+            <div style="font-size:12px;color:#86909C;">同时生成Excel表格和图片ZIP包</div>
+          </div>
+        </label>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:20px;">
+        <button id="mt-scraper-cancel" style="flex:1;padding:10px;border:1px solid #E5E6EB;border-radius:8px;background:#fff;color:#4E5969;cursor:pointer;font-size:14px;transition:all 0.2s;" onmouseover="this.style.background='#F7F8FA'" onmouseout="this.style.background='#fff'">取消</button>
+        <button id="mt-scraper-confirm" style="flex:1;padding:10px;border:none;border-radius:8px;background:#165DFF;color:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#0E42D2'" onmouseout="this.style.background='#165DFF'">开始抓取</button>
+      </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    document.getElementById('mt-scraper-cancel').onclick = function(){
+      overlay.remove();
+      callback(null);
+    };
+
+    document.getElementById('mt-scraper-confirm').onclick = function(){
+      var selected = document.querySelector('input[name="scrapeType"]:checked');
+      overlay.remove();
+      callback(selected ? selected.value : 'menu');
+    };
   }
 
   /* ---------- 提取单个菜品卡片信息 ---------- */
@@ -155,19 +224,8 @@
     return null;
   }
 
-  /* ---------- 主抓取流程 ---------- */
-  async function scrape(){
-    // 检查是否是美团店铺页面
-    if(!/waimai\.meituan\.com/.test(window.location.href)){
-      showToast('❌ 请在美团外卖店铺页面执行此脚本', 4000);
-      return;
-    }
-
-    showProgress('🚀 正在准备抓取...');
-    showToast('🚀 开始抓取菜单...', 2000);
-
-    await sleep(1000);
-
+  /* ---------- 滚动收集所有菜品 ---------- */
+  async function collectProducts(){
     // 找到菜品滚动容器
     var scrollContainer = null;
     var possibleContainers = [
@@ -185,13 +243,12 @@
     }
 
     if(!scrollContainer){
-      // 如果没找到滚动容器，尝试滚动整个页面
       scrollContainer = window;
     }
 
     console.log('使用滚动容器:', scrollContainer === window ? 'window' : scrollContainer.className);
 
-    // 获取所有分类名称（用于后续分组）
+    // 获取所有分类名称
     var categoryItems = document.querySelectorAll('a.item_bpZh4h');
     var categoryNames = [];
     categoryItems.forEach(function(el){
@@ -203,12 +260,8 @@
     console.log('找到 ' + categoryNames.length + ' 个分类:', categoryNames);
 
     // 滚动加载所有菜品
-    showProgress('📜 正在滚动加载所有菜品...');
-    
     var allProducts = [];
     var seenNames = {};
-    var scrollStep = 500;
-    var maxScrolls = 100;
     var lastHeight = 0;
     var sameHeightCount = 0;
 
@@ -221,16 +274,12 @@
     await sleep(500);
 
     // 逐步滚动，收集所有菜品
-    for(var s=0;s<maxScrolls;s++){
+    for(var s=0;s<CONFIG.maxScrolls;s++){
       // 提取当前可见的所有菜品
       var spuItems = document.querySelectorAll('.spu_s6NtPr');
-      var currentCategory = '全部';
-      
-      // 尝试判断当前分类（根据滚动位置）
-      // 简化处理：先全部归为"全部"，后续可以优化
 
       spuItems.forEach(function(el){
-        var product = extractProduct(el, currentCategory);
+        var product = extractProduct(el, '全部');
         if(product && !seenNames[product.name]){
           seenNames[product.name] = 1;
           allProducts.push(product);
@@ -239,16 +288,16 @@
 
       // 更新进度
       if(s % 5 === 0){
-        showProgress('📜 正在滚动加载... (' + (s+1) + '/' + maxScrolls + ')<br>已收集 ' + allProducts.length + ' 个菜品');
+        showProgress('📜 正在滚动加载... (' + (s+1) + '/' + CONFIG.maxScrolls + ')<br>已收集 ' + allProducts.length + ' 个菜品');
       }
 
       // 滚动
       if(scrollContainer === window){
-        window.scrollBy(0, scrollStep);
+        window.scrollBy(0, CONFIG.scrollStep);
       } else {
-        scrollContainer.scrollTop += scrollStep;
+        scrollContainer.scrollTop += CONFIG.scrollStep;
       }
-      await sleep(300);
+      await sleep(CONFIG.scrollWait);
 
       // 检查是否滚动到底部
       var currentHeight = scrollContainer === window ? document.body.scrollHeight : scrollContainer.scrollHeight;
@@ -280,53 +329,160 @@
     }
 
     console.log('滚动完成，共收集 ' + allProducts.length + ' 个菜品');
+    return allProducts;
+  }
 
-    // 完成
-    var progress = document.getElementById('mt-scraper-progress');
-    if(progress) progress.remove();
+  /* ---------- 下载所有菜品图片 ---------- */
+  async function downloadImages(products, shopName){
+    var imageProducts = products.filter(function(p){ return p.img && p.img.indexOf('http') === 0; });
+    var maxDownload = Math.min(imageProducts.length, CONFIG.maxImages);
 
-    if(allProducts.length === 0){
-      showToast('❌ 未抓取到菜品，请确认已进入店铺菜单页面', 5000);
-      return;
+    if(maxDownload === 0){
+      showToast('❌ 没有找到菜品图片', 4000);
+      return 0;
     }
 
-    // 生成Excel（包含图片链接）
-    showProgress('📊 正在生成Excel...');
+    showProgress('🖼️ 开始下载 ' + maxDownload + ' 张菜品图片...');
     await sleep(500);
 
+    var files = [];
+    var failed = 0;
+
+    for(var i=0;i<maxDownload;i++){
+      try {
+        showProgress('🖼️ 正在下载图片 (' + (i+1) + '/' + maxDownload + ')<br>' + imageProducts[i].name);
+
+        var imgUrl = imageProducts[i].img.split('?')[0]; // 去掉参数，获取原图
+        var response = await fetch(imgUrl);
+        if(!response.ok) throw new Error('HTTP ' + response.status);
+        var blob = await response.blob();
+        var ab = await blob.arrayBuffer();
+
+        var ext = 'jpg';
+        var mm = imgUrl.match(/\.(jpe?g|png|webp|gif)$/i);
+        if(mm) ext = mm[1].toLowerCase();
+
+        files.push({
+          name: String(i+1).padStart(3,'0') + '_' + escFileName(imageProducts[i].name).slice(0,40) + '.' + ext,
+          data: new Uint8Array(ab)
+        });
+      } catch(e) {
+        failed++;
+        console.error('下载失败:', imageProducts[i].name, e.message);
+      }
+    }
+
+    if(files.length > 0){
+      showProgress('📦 正在打包 ' + files.length + ' 张图片...');
+      await sleep(500);
+
+      var zipData = zip(files);
+      var blob = new Blob([zipData], {type:'application/zip'});
+      var filename = '美团菜品图_' + shopName + '_' + new Date().toISOString().slice(0,10) + '.zip';
+      downloadBlob(blob, filename);
+
+      showToast('✅ 图片下载完成！<br>共 ' + imageProducts.length + ' 个菜品，成功 ' + files.length + ' 张，失败 ' + failed + ' 张<br>ZIP已开始下载：' + filename, 6000);
+      return files.length;
+    } else {
+      showToast('❌ 没有成功下载任何图片', 4000);
+      return 0;
+    }
+  }
+
+  /* ---------- 生成Excel菜单 ---------- */
+  function generateExcel(products, shopName){
+    if(products.length === 0){
+      showToast('❌ 未抓取到菜品', 4000);
+      return false;
+    }
+
+    showProgress('📊 正在生成Excel...');
+
     var rows = [['分组','菜品名称','价格(元)','月售','规格','图片链接']];
-    allProducts.forEach(function(p){
+    products.forEach(function(p){
       rows.push([p.group, p.name, p.price, p.sales || '', p.spec || '', p.img || '']);
     });
 
     var blob = new Blob([xlsx(rows)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    var shopName = (document.title || '美团店铺').replace(/[\\/:*?"<>|]/g, '_');
     var filename = '美团菜单_' + shopName + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
-
-    // 先触发下载，再显示完成提示
     downloadBlob(blob, filename);
 
-    // 显示完成提示（不阻塞页面）
-    setTimeout(function(){
-      showToast('✅ 抓取完成！<br>共 ' + allProducts.length + ' 个菜品<br>Excel已开始下载：' + filename, 6000);
-    }, 500);
-
-    // 把数据保存到全局变量，供外部使用
-    window.__meituanScrapeResult = allProducts;
-    window.__meituanScrapeDone = true;
-
-    console.log('抓取完成，共 ' + allProducts.length + ' 个菜品');
-
-    // 返回数据供外部使用
-    return allProducts;
+    showToast('✅ 菜单抓取完成！<br>共 ' + products.length + ' 个菜品<br>Excel已开始下载：' + filename, 6000);
+    return true;
   }
 
-  // 启动
-  scrape().catch(function(e){
-    console.error('抓取出错:', e);
-    var progress = document.getElementById('mt-scraper-progress');
-    if(progress) progress.remove();
-    showToast('❌ 抓取出错：' + e.message, 5000);
-  });
+  /* ---------- 主抓取流程 ---------- */
+  async function scrape(scrapeType){
+    // 检查是否是美团店铺页面
+    if(!/waimai\.meituan\.com/.test(window.location.href)){
+      showToast('❌ 请在美团外卖店铺页面执行此脚本', 4000);
+      return;
+    }
+
+    showProgress('🚀 正在准备抓取...');
+    showToast('🚀 开始抓取...', 2000);
+    await sleep(1000);
+
+    try {
+      // 收集所有菜品
+      var products = await collectProducts();
+
+      // 移除进度条
+      var progress = document.getElementById('mt-scraper-progress');
+      if(progress) progress.remove();
+
+      if(products.length === 0){
+        showToast('❌ 未抓取到菜品，请确认已进入店铺菜单页面', 5000);
+        return;
+      }
+
+      var shopName = (document.title || '美团店铺').replace(/[\\/:*?"<>|]/g, '_');
+
+      // 根据选择执行相应操作
+      if(scrapeType === 'menu' || scrapeType === 'both'){
+        generateExcel(products, shopName);
+        await sleep(1000);
+      }
+
+      if(scrapeType === 'images' || scrapeType === 'both'){
+        await downloadImages(products, shopName);
+      }
+
+      // 把数据保存到全局变量，供外部使用
+      window.__meituanScrapeResult = products;
+      window.__meituanScrapeDone = true;
+
+      console.log('抓取完成，共 ' + products.length + ' 个菜品');
+
+    } catch(e){
+      console.error('抓取出错:', e);
+      var progress = document.getElementById('mt-scraper-progress');
+      if(progress) progress.remove();
+      showToast('❌ 抓取出错：' + e.message, 5000);
+    }
+  }
+
+  /* ---------- 读取URL参数，自动选择抓取类型 ---------- */
+  function getUrlParam(name){
+    var m=location.href.match(new RegExp('[?&#]'+name+'=([^&#]*)'));
+    return m?decodeURIComponent(m[1]):'';
+  }
+
+  // 启动：优先读取URL参数，否则显示选择对话框
+  var urlMode = getUrlParam('cmz_scrape');
+  if(urlMode === 'menu' || urlMode === 'img' || urlMode === 'all'){
+    // 将URL参数转换为脚本使用的类型
+    var scrapeType = urlMode === 'menu' ? 'menu' : (urlMode === 'img' ? 'images' : 'both');
+    scrape(scrapeType);
+  } else {
+    // 没有URL参数，显示选择对话框
+    showScrapeTypeDialog(function(scrapeType){
+      if(scrapeType){
+        scrape(scrapeType);
+      } else {
+        console.log('用户取消抓取');
+      }
+    });
+  }
 
 })();

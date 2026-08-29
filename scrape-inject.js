@@ -1,16 +1,28 @@
-/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.2
+/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.3
+   v3.3 更新：
+   - 新增美团外卖支持（自动识别美团页面，使用美团选择器和抓取逻辑）
+   - 美团抓取支持菜单、图片、菜单+图片三种模式
    v3.2 更新：
    - 抓取完成后不再自动下载，改为顶部下载面板（用户点击下载，可自选保存位置 showSaveFilePicker）
    - 菜品图文件名去掉分组前缀，只保留菜品名
    v3.1：修复菜品图（CSS background-image 解析 + 取高清原图）
    由「餐谋长抓取」书签在店铺页动态加载执行：
    1) 读取 URL 参数 cmz_scrape=menu|img|all（网站在打开店铺时已自动写入）
-   2) 依次点击左侧全部分类tab + 滚动到底，加载全部菜品
-   3) 菜单 -> CSV(Excel可打开)；菜品图 -> zip 打包下载（高清原图）
+   2) 自动识别平台（淘宝闪购/美团外卖），使用对应选择器
+   3) 依次点击左侧全部分类tab + 滚动到底，加载全部菜品
+   4) 菜单 -> CSV(Excel可打开)；菜品图 -> zip 打包下载（高清原图）
    仅抓取用户端公开展示的店铺菜单数据，用于商家调研分析。 */
 (function(){
   'use strict';
   var BRAND='餐谋长·抓取';
+
+  /* ---------- 平台检测 ---------- */
+  function isMeituanPage(){
+    return /waimai\.meituan\.com|meituan\.com\/waimai/i.test(location.href);
+  }
+  function isElemePage(){
+    return /h5\.ele\.me|ele\.me/i.test(location.href);
+  }
   function banner(msg, color){
     var id='cmz-banner';
     var b=document.getElementById(id);
@@ -206,6 +218,18 @@
     banner(parts.join(' '),'#F0FDF4');
   }
   (async function(){
+    /* ---------- 美团外卖：动态加载美团专用抓取脚本 ---------- */
+    if(isMeituanPage()){
+      banner('⏳ '+BRAND+'：识别到美团外卖店铺，正在加载美团抓取脚本…');
+      try{
+        await loadJS('https://2169913411-afk.github.io/meituan-scraper.js?v=3.0');
+        return; // 美团脚本会自行处理抓取流程
+      }catch(e){
+        banner('❌ '+BRAND+'：美团抓取脚本加载失败，请检查网络后重试。','#FEF2F2');
+        return;
+      }
+    }
+
     if(isPunish()){
       banner('⚠️ '+BRAND+'：当前是平台安全验证页。请先用手机「饿了么」App 扫码登录后，再重新打开店铺点书签。','#FEF3C7');
       return;
