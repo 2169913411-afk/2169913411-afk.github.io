@@ -1259,27 +1259,34 @@ h1,h2,h3,.lp-title{
 
     <div class="section" id="qrSection">
       <div class="section-title">1. 分享店铺链接 <span class="tag tag-req" id="qrTag">需上传</span></div>
-      <div class="upload-zone uz-qr" id="qrZone" style="display:none;">
-        <i data-lucide="link"></i>
-        <div class="uz-body">
-          <div class="main">点击、拖拽或粘贴上传门店二维码</div>
-          <div class="sub">支持标准二维码识别；淘宝/美团小程序码请使用下方链接输入</div>
+      <div style="background:#F0F7FF;border:1px solid #BFDBFE;border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
+          <div style="width:36px;height:36px;background:#165DFF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0;">🔗</div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1E40AF;margin-bottom:4px;">粘贴淘宝闪购/美团外卖店铺分享链接</div>
+            <div style="font-size:12px;color:#3B82F6;line-height:1.5;">从淘宝/美团APP进入店铺，点击分享→复制链接，粘贴到下方输入框。系统会自动抓取门店菜单、商品、价格、月售等数据。</div>
+          </div>
         </div>
-        <div class="paste-hint">粘贴到：门店二维码截图</div>
-        <input type="file" id="qrInput" accept="image/*">
-      </div>
-      <div id="qrItem" class="file-item hidden" style="margin-top:10px;">
-        <span>🔳</span><span class="fname" id="qrName"></span>
-        <button class="del" onclick="removeQr()" style="width:18px;height:18px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;">✕</button>
-      </div>
-      <div id="qrRecogResult"></div>
-      <div style="margin-top:12px;">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">粘贴店铺分享链接（淘宝闪购/美团外卖）</div>
         <div style="display:flex;gap:8px;">
-          <input type="text" id="qrShopLink" placeholder="粘贴从APP分享的店铺链接，点击应用链接后自动抓取门店数据" style="flex:1;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;outline:none;" oninput="onQrLinkInput()">
-          <button onclick="applyQrShopLink()" style="padding:8px 16px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">应用链接</button>
+          <input type="text" id="qrShopLink" placeholder="粘贴淘宝闪购/美团外卖店铺分享链接（以https://开头）" style="flex:1;padding:10px 14px;border:1px solid #93C5FD;border-radius:8px;font-size:13px;outline:none;background:#fff;" oninput="onQrLinkInput()">
+          <button onclick="applyQrShopLink()" style="padding:10px 20px;background:#165DFF;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">应用链接</button>
         </div>
-        <div id="qrLinkStatus" style="font-size:11px;margin-top:4px;"></div>
+        <div id="qrLinkStatus" style="font-size:12px;margin-top:8px;"></div>
+        <div id="qrAppliedInfo" class="hidden" style="margin-top:12px;padding:10px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#16A34A;font-size:16px;">✅</span>
+            <span style="font-size:13px;color:#065F46;font-weight:600;">店铺链接已应用</span>
+            <button onclick="removeQrLink()" style="margin-left:auto;padding:4px 10px;background:#DC2626;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">移除</button>
+          </div>
+          <div id="qrAppliedLink" style="font-size:11px;color:#059669;margin-top:6px;word-break:break-all;"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E;line-height:1.6;">
+        <b>💡 如何获取店铺链接：</b><br>
+        1. 打开淘宝/美团APP，进入目标店铺<br>
+        2. 点击右上角"分享"按钮<br>
+        3. 选择"复制链接"<br>
+        4. 回到本页面，粘贴到上方输入框，点击"应用链接"
       </div>
     </div>
 
@@ -1295,7 +1302,7 @@ h1,h2,h3,.lp-title{
         <input type="file" id="overviewInput" accept="image/*" multiple>
       </div>
       <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">支持上传多种经营数据截图：①近7天/近30天经营概览（曝光、入店、下单转化、客单价、商圈同行对比）②活动数据截图（满减、神券、收藏有礼等活动参与情况）③推广数据截图（点金推广、铂金展位、推广魔方、斗金推广等消耗与产出）④商品销售截图 ⑤其他经营相关截图。AI会自动识别每张截图的内容并纳入分析。</div>
-      <div class="thumb-grid" id="overviewThumbs"></div>
+      <div id="overviewList" style="margin-top:10px;"></div>
     </div>
 
     <div class="section" id="shopSection">
@@ -3290,39 +3297,57 @@ function recognizeOverviewImage(dataUrl, callback){
 }
 
 function renderOverviewThumbs(){
-  var box=$('overviewThumbs'); if(!box) return;
+  var box=$('overviewList'); if(!box) return;
   box.innerHTML='';
+  if(!state.overview || !state.overview.length) return;
   (state.overview||[]).forEach(function(s,i){
-    var d=document.createElement('div'); d.className='thumb';
-    var recogHtml='';
+    var d=document.createElement('div');
+    d.style.cssText='border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fff;';
+    var statusHtml='';
+    var detailHtml='';
     if(s.recognition){
       var type=s.recognition.screenshot_type||'已识别';
       var notes=s.recognition.notes||'';
+      statusHtml='<span style="color:#16A34A;font-size:12px;font-weight:600;">✅ 已识别</span>';
       // 显示更详细的识别内容
-      var detailHtml='';
+      var details=[];
+      details.push('<span style="color:#2563EB;">类型：'+type+'</span>');
+      if(notes) details.push('<span style="color:var(--text2);">说明：'+notes+'</span>');
       if(s.recognition.peer&&Object.keys(s.recognition.peer).length){
         var peerDetails=[];
         if(s.recognition.peer.exposure!=null) peerDetails.push('曝光:'+fmt(s.recognition.peer.exposure));
         if(s.recognition.peer.enter_rate!=null) peerDetails.push('入店率:'+s.recognition.peer.enter_rate+'%');
         if(s.recognition.peer.order_rate!=null) peerDetails.push('下单率:'+s.recognition.peer.order_rate+'%');
-        if(peerDetails.length) detailHtml+='<div style="font-size:9px;color:#16A34A;margin-top:2px;">同行: '+peerDetails.join(' ')+'</div>';
+        if(peerDetails.length) details.push('<span style="color:#16A34A;">同行数据：'+peerDetails.join('，')+'</span>');
       }
       if(s.recognition.activity&&s.recognition.activity.length){
-        detailHtml+='<div style="font-size:9px;color:#2563EB;margin-top:2px;">活动: '+s.recognition.activity.length+'项</div>';
+        var activityNames=s.recognition.activity.map(function(a){return a.name||a.activity_name||'活动';}).slice(0,5).join('、');
+        details.push('<span style="color:#2563EB;">活动数据：'+s.recognition.activity.length+'项（'+activityNames+'）</span>');
       }
       if(s.recognition.promotion&&s.recognition.promotion.length){
-        detailHtml+='<div style="font-size:9px;color:#7C3AED;margin-top:2px;">推广: '+s.recognition.promotion.length+'项</div>';
+        var promoNames=s.recognition.promotion.map(function(p){return p.channel||p.name||'推广';}).slice(0,5).join('、');
+        details.push('<span style="color:#7C3AED;">推广数据：'+s.recognition.promotion.length+'项（'+promoNames+'）</span>');
       }
       if(s.recognition.order_distribution&&Object.keys(s.recognition.order_distribution).length){
-        detailHtml+='<div style="font-size:9px;color:#DB2777;margin-top:2px;">订单分布: 已识别</div>';
+        details.push('<span style="color:#DB2777;">订单分布：已识别</span>');
       }
-      recogHtml='<div style="font-size:10px;color:#16A34A;margin-top:4px;word-break:break-all;">✅ '+type+(notes?'：'+notes.slice(0,25):'')+'</div>'+detailHtml;
+      if(s.recognition.products&&s.recognition.products.length){
+        details.push('<span style="color:#059669;">商品销售：'+s.recognition.products.length+'个商品</span>');
+      }
+      detailHtml='<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;line-height:1.6;">'+details.join('')+'</div>';
     } else if(s.recognition===null){
-      recogHtml='<div style="font-size:10px;color:#B45309;margin-top:4px;">⚠️ 识别失败</div>';
+      statusHtml='<span style="color:#B45309;font-size:12px;font-weight:600;">⚠️ 识别失败</span>';
+      detailHtml='<div style="margin-top:6px;font-size:11px;color:var(--text3);">图片可能不清晰或不是经营数据截图，请重新上传</div>';
     } else if(s.recognizing){
-      recogHtml='<div style="font-size:10px;color:#2563EB;margin-top:4px;">⏳ 识别中...</div>';
+      statusHtml='<span style="color:#2563EB;font-size:12px;font-weight:600;">⏳ 识别中...</span>';
+      detailHtml='<div style="margin-top:6px;font-size:11px;color:var(--text3);">AI正在识别截图内容，请稍候</div>';
     }
-    d.innerHTML='<img src="'+s.dataUrl+'"><button class="del" onclick="delOverview('+i+')">✕</button>'+recogHtml;
+    d.innerHTML='<div style="display:flex;align-items:center;gap:8px;">'+
+      '<span style="font-size:14px;">📊</span>'+
+      '<span style="font-size:12px;color:var(--text1);font-weight:500;flex:1;word-break:break-all;">'+s.name+'</span>'+
+      statusHtml+
+      '<button onclick="delOverview('+i+')" style="width:20px;height:20px;border:none;border-radius:4px;background:rgba(15,23,42,.6);color:#fff;font-size:11px;cursor:pointer;flex-shrink:0;">✕</button>'+
+      '</div>'+detailHtml;
     box.appendChild(d);
   });
   updateStartBtn();
