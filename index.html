@@ -2941,18 +2941,86 @@ function buildStructured(){
 }
 function completenessCheck(){
   var miss=[];
-  var shopOk=!!(state.shop&&state.shop.parsed&&state.shop.parsed.ok);
-  var hasFlow=shopOk&&state.shop.parsed.hasFlow;
-  var needMenu=!(state.menu&&state.menu.parsed&&state.menu.parsed.ok);
-  var needReview=!(state.review&&state.review.parsed&&state.review.parsed.ok);
-  var needPeer=!(state.peer&&state.peer.length);
-  var needQr=!(state.qr&&state.qr.file);
-  if(needQr) miss.push('门店二维码（必选）：用于模拟顾客进店排查前端体验');
-  if(!shopOk) miss.push('门店数据文件（必选）：缺少 有效订单/营业额/收入/单均实付 等经营数据');
-  else if(!hasFlow) miss.push('门店数据文件缺少 曝光/进店/下单/转化 列：本店流量转化数据不足');
-  if(needPeer) miss.push('同行数据以及重要截图：缺少 同行 的全部/新客/老客 曝光与入店、下单转化对比值');
-  if(needMenu) miss.push('菜单数据文件：缺少商品明细，将无法做菜单优化与导出');
-  if(needReview) miss.push('门店评价数据：缺少差评明细，将无法做差评专项分析');
+  var plan=getPlan();
+  var planId=plan?plan.cost:88;
+  
+  // 按照餐谋长业务规则定义各档位必填素材
+  var requiredByPlan={
+    38:['qr','overview'],
+    58:['qr','overview','menu'],
+    88:['qr','overview','menu','order','review','peer']
+  };
+  
+  var materialNames={
+    qr:'门店二维码截图',
+    overview:'经营概览截图',
+    menu:'商品销售Excel',
+    order:'商家订单Excel',
+    review:'用户评价Excel',
+    peer:'商圈同行对比数据',
+    roi:'推广ROI数据'
+  };
+  
+  // 检查各素材是否已上传
+  var materialStatus={
+    qr:!!(state.qr&&state.qr.file),
+    overview:!!(state.overview&&state.overview.length),
+    menu:!!(state.menu&&state.menu.parsed&&state.menu.parsed.ok),
+    order:!!(state.order&&state.order.parsed&&state.order.parsed.ok),
+    review:!!(state.review&&state.review.parsed&&state.review.parsed.ok),
+    peer:!!(state.peer&&state.peer.length),
+    roi:!!(state.roi&&state.roi.length)
+  };
+  
+  // 检查必填素材
+  var required=requiredByPlan[planId]||requiredByPlan[88];
+  required.forEach(function(m){
+    if(!materialStatus[m]){
+      miss.push(materialNames[m]+'（必填）');
+    }
+  });
+  
+  // 按照业务规则返回固定话术
+  if(miss.length>0){
+    var planName=plan?plan.name:'全量专业版';
+    var missingNames=miss.map(function(m){return m.replace('（必填）','');});
+    
+    // 档位1固定话术
+    if(planId===38){
+      if(missingNames.indexOf('经营概览截图')>-1){
+        miss=['您选择的是【基础诊断】档位，门店二维码截图、经营概览截图两项均为必填，缺少经营概览截图无法读取曝光转化以及同行指标，请补充后再提交。'];
+      } else if(missingNames.indexOf('门店二维码截图')>-1){
+        miss=['您选择的是【基础诊断】档位，门店二维码截图、经营概览截图两项均为必填，缺少门店二维码截图无法做用户端前端体验排查，请补充后再提交。'];
+      }
+    }
+    // 档位2固定话术
+    else if(planId===58){
+      if(missingNames.indexOf('商品销售Excel')>-1){
+        miss=['您选择【菜品菜单深度优化版】档位，商品销售Excel为必填素材，缺少该文件无法完成菜品优化、下架分析，请上传商品销售Excel后重新提交。'];
+      } else if(missingNames.indexOf('经营概览截图')>-1){
+        miss=['您选择【菜品菜单深度优化版】档位，经营概览截图为必填素材，缺少该文件无法做流量转化对标分析，请上传经营概览截图后重新提交。'];
+      } else if(missingNames.indexOf('门店二维码截图')>-1){
+        miss=['您选择【菜品菜单深度优化版】档位，门店二维码截图为必填素材，缺少该文件无法做用户端前端体验排查，请上传门店二维码截图后重新提交。'];
+      }
+    }
+    // 档位3固定话术
+    else if(planId===88){
+      if(missingNames.indexOf('商家订单Excel')>-1){
+        miss=['您选择【全量专业版】档位，商家订单Excel为必填素材，缺少该文件无法完成平台扣点、订单收益相关分析，请上传。'];
+      } else if(missingNames.indexOf('商圈同行对比数据')>-1){
+        miss=['您选择【全量专业版】档位，商圈同行对比数据为必填素材，缺少该文件无法完成全维度横向指标对比，请上传商圈同行对比数据。'];
+      } else if(missingNames.indexOf('用户评价Excel')>-1){
+        miss=['您选择【全量专业版】档位，用户评价Excel为必填素材，缺少该文件无法完成差评专项拆解、整改及回复模板，请上传用户评价Excel。'];
+      } else if(missingNames.indexOf('商品销售Excel')>-1){
+        miss=['您选择【全量专业版】档位，商品销售Excel为必填素材，缺少该文件无法完成菜单深度分析和优化版商品文件输出，请上传商品销售Excel。'];
+      } else if(missingNames.indexOf('经营概览截图')>-1){
+        miss=['您选择【全量专业版】档位，经营概览截图为必填素材，缺少该文件无法做流量转化对标分析，请上传经营概览截图。'];
+      } else if(missingNames.indexOf('门店二维码截图')>-1){
+        miss=['您选择【全量专业版】档位，门店二维码截图为必填素材，缺少该文件无法做用户端前端体验排查，请上传门店二维码截图。'];
+      }
+    }
+  }
+  
   return {miss:miss,count:miss.length};
 }
 
