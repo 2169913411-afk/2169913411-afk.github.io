@@ -350,6 +350,9 @@ function pickScrapePlat(el){
   // 显示/隐藏美团专用抓取区域
   var mtArea=$('meituanScrapeArea');
   if(mtArea) mtArea.style.display = (p==='美团外卖') ? 'block' : 'none';
+  // 显示/隐藏美团后台监听模式操作指南
+  var guide=$('meituanMonitorGuide');
+  if(guide) guide.style.display = (p==='美团外卖') ? 'block' : 'none';
 }
 function scrapePlat(){
   var o=document.querySelector('#scrapePlatRow .plat-opt.active');
