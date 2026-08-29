@@ -3321,7 +3321,9 @@ function buildStructured(){
     frontend_experience_recognized: !!(data.frontend_experience&&data.frontend_experience.notes&&data.frontend_experience.notes.length>0),
     peer_data_recognized: !!(data.peer&&Object.keys(data.peer).length>0),
     activity_data_recognized: !!(data.screenshot_activity&&data.screenshot_activity.length>0),
-    promotion_data_recognized: !!(data.screenshot_promotion&&data.screenshot_promotion.length>0)
+    promotion_data_recognized: !!(data.screenshot_promotion&&data.screenshot_promotion.length>0),
+    shop_data_scraped: false,
+    online_menu_recognized: false
   };
   
   return data;
@@ -3597,6 +3599,57 @@ function runAnalysis(plan){
     qrP=callQrObserve(api,state.qr.dataUrl).then(function(v){
       if(v&&v.frontend) structured.frontend_experience=Object.assign(structured.frontend_experience||{},v.frontend);
       return v;
+    }).then(function(v){
+      // 二维码识别成功后，调用云函数抓取门店数据
+      if(state.qr && state.qr.decoded){
+        console.log('二维码识别成功，开始抓取门店数据:', state.qr.decoded);
+        return callShopScraper(state.qr.decoded).then(function(shopData){
+          if(shopData){
+            // 将门店数据合并到structured对象中
+            structured.scraped_shop_data = shopData;
+            
+            // 更新店铺基本信息
+            if(!structured.shop_base) structured.shop_base = {};
+            if(shopData.shopName && !structured.shop_base.shop_name) structured.shop_base.shop_name = shopData.shopName;
+            if(shopData.rating != null) structured.shop_base.rating = shopData.rating;
+            if(shopData.monthSales != null) structured.shop_base.month_sales = shopData.monthSales;
+            if(shopData.platform) structured.shop_base.platform = shopData.platform;
+            if(shopData.deliveryTime) structured.shop_base.delivery_time = shopData.deliveryTime;
+            if(shopData.minOrderAmount != null) structured.shop_base.min_order_amount = shopData.minOrderAmount;
+            if(shopData.deliveryFee != null) structured.shop_base.delivery_fee = shopData.deliveryFee;
+            
+            // 如果没有商品销售Excel，使用抓取到的商品数据
+            if(!structured.products && shopData.products && shopData.products.length){
+              structured.products = shopData.products.map(function(p){
+                return {
+                  name: p.name,
+                  price: p.price,
+                  original_price: p.originalPrice,
+                  month_sales: p.monthSales,
+                  description: p.description,
+                  category: p.category,
+                  image: p.image
+                };
+              });
+            }
+            
+            // 存储菜单分组数据
+            if(shopData.categories && shopData.categories.length){
+              structured.menu_categories = shopData.categories;
+            }
+            
+            // 更新数据可用性标记
+            if(structured.data_availability){
+              structured.data_availability.shop_data_scraped = true;
+              structured.data_availability.online_menu_recognized = !!(shopData.categories && shopData.categories.length);
+            }
+            
+            console.log('门店数据已合并到structured对象中');
+          }
+          return v;
+        });
+      }
+      return v;
     })['catch'](function(){ return null; });
   }
   Promise.all([peerP,qrP]).then(function(){
@@ -3689,6 +3742,46 @@ function callQrObserve(api,qrDataUrl){
     });
 }
 
+/* 调用云函数抓取门店数据（月售、评分、分组、商品名称、价格等） */
+function callShopScraper(shopUrl, platform){
+  var scraperUrl = decodeCfgUrl();
+  if(!scraperUrl){
+    console.warn('未配置云函数地址，跳过门店数据抓取');
+    return Promise.resolve(null);
+  }
+  
+  // 自动识别平台
+  if(!platform){
+    if(isMeituanLink(shopUrl)) platform = '美团外卖';
+    else platform = '淘宝闪购';
+  }
+  
+  console.log('开始抓取门店数据:', shopUrl, '平台:', platform);
+  
+  return fetch(scraperUrl, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      url: shopUrl,
+      platform: platform,
+      action: 'scrape'
+    })
+  }).then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j && j.success && j.data){
+        console.log('门店数据抓取成功:', j.data.shopName, '商品数:', j.productCount);
+        return j.data;
+      } else {
+        console.warn('门店数据抓取失败:', j && j.error || j && j.message);
+        return null;
+      }
+    })
+    ['catch'](function(e){
+      console.warn('门店数据抓取请求失败:', e.message);
+      return null;
+    });
+}
+
 /* 强约束系统提示（融入餐谋长业务规则） */
 var LLM_SYSTEM=[
 '# 角色：「餐谋长」外卖SaaS平台AI诊断专家',
@@ -3720,6 +3813,7 @@ var LLM_SYSTEM=[
 '5. 用户评价Excel：存储全部好评、差评、追评内容，用于差评归类、问题拆解、生成整改以及回复模板。',
 '6. 推广ROI数据截图/表格：各个推广渠道消耗、产出、ROI投产数据。',
 '7. 商圈同行对比数据：同品类周边同行流量、转化、客单价对标数据。',
+'8. 扫码抓取的线上门店数据（scraped_shop_data）：通过二维码识别后自动调用服务器端抓取的门店真实数据，包含：店铺名称、评分、月售、配送时间、起送价、配送费、菜单分组（categories）、商品列表（products，包含商品名称、价格、原价、月售、描述、图片、所属分组）。如果data_availability.shop_data_scraped为true且data_availability.online_menu_recognized为true，说明已成功抓取到线上菜单数据，必须在菜品/菜单分析中充分使用这些数据，与商品销售Excel进行交叉验证分析。如果没有商品销售Excel，则直接使用抓取到的商品数据进行菜品分析。',
 '',
 '# 四、三档诊断档位完整规则（严格遵守档位深度隔离）',
 '## 档位1｜基础诊断（38积分）',
