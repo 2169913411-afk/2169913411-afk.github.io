@@ -2197,13 +2197,27 @@ function updatePlanRequirements(){
   // 素材名称映射
   var materialNames = {
     qr: '门店二维码截图',
-    overview: '经营概览截图',
+    overview: '经营数据截图',
     shop: '门店数据Excel',
     menu: '商品销售Excel',
     order: '商家订单Excel',
     review: '用户评价Excel',
     cost: '商品成本Excel'
   };
+  
+  // 检查素材是否已上传
+  function isMaterialUploaded(id){
+    switch(id){
+      case 'qr': return !!(state.qr&&state.qr.file);
+      case 'overview': return !!(state.overview&&state.overview.length);
+      case 'shop': return !!(state.shop&&state.shop.parsed&&state.shop.parsed.ok);
+      case 'menu': return !!(state.menu&&state.menu.parsed&&state.menu.parsed.ok);
+      case 'order': return !!(state.order&&state.order.parsed&&state.order.parsed.ok);
+      case 'review': return !!(state.review&&state.review.parsed&&state.review.parsed.ok);
+      case 'cost': return !!(state.cost&&state.cost.parsed&&state.cost.parsed.ok);
+      default: return false;
+    }
+  }
   
   // 更新标签和禁用状态
   function updateMaterial(id, isRequired, isDisabled){
@@ -2214,9 +2228,15 @@ function updatePlanRequirements(){
         // 禁用的不用提示出来，隐藏标签
         tag.style.display = 'none';
       } else {
-        tag.style.display = '';
-        tag.textContent = isRequired ? '需上传' : '可选';
-        tag.className = 'tag ' + (isRequired ? 'tag-req' : 'tag-opt');
+        var uploaded = isMaterialUploaded(id);
+        if(uploaded){
+          // 已上传，隐藏标签
+          tag.style.display = 'none';
+        } else {
+          tag.style.display = '';
+          tag.textContent = isRequired ? '需上传' : '可选';
+          tag.className = 'tag ' + (isRequired ? 'tag-req' : 'tag-opt');
+        }
       }
     }
     if(section){
