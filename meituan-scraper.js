@@ -141,33 +141,43 @@
     var dialog = document.createElement('div');
     dialog.style.cssText = 'background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
     dialog.innerHTML = `
-      <h3 style="margin:0 0 16px 0;font-size:18px;color:#1D2129;">选择抓取内容</h3>
+      <h3 style="margin:0 0 16px 0;font-size:18px;color:#1D2129;">选择抓取方式</h3>
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
-          <input type="radio" name="scrapeType" value="menu" checked style="width:18px;height:18px;accent-color:#165DFF;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:2px solid #165DFF;background:#F0F5FF;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#0E42D2'" onmouseout="this.style.borderColor='#165DFF'">
+          <input type="radio" name="scrapeType" value="monitor" checked style="width:18px;height:18px;accent-color:#165DFF;">
           <div>
-            <div style="font-weight:600;color:#1D2129;">仅抓取菜单</div>
-            <div style="font-size:12px;color:#86909C;">生成Excel表格，包含分组、名称、价格、月售、规格、图片链接</div>
+            <div style="font-weight:600;color:#1D2129;">后台监听模式（推荐）⭐</div>
+            <div style="font-size:12px;color:#86909C;">用户正常浏览切换分类，脚本后台自动收集所有菜品，避免403错误</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
+          <input type="radio" name="scrapeType" value="menu" style="width:18px;height:18px;accent-color:#165DFF;">
+          <div>
+            <div style="font-weight:600;color:#1D2129;">仅抓取菜单（当前分类）</div>
+            <div style="font-size:12px;color:#86909C;">立即抓取当前可见分类的菜品，生成Excel表格</div>
           </div>
         </label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
           <input type="radio" name="scrapeType" value="images" style="width:18px;height:18px;accent-color:#165DFF;">
           <div>
-            <div style="font-weight:600;color:#1D2129;">仅抓取图片</div>
-            <div style="font-size:12px;color:#86909C;">下载所有菜品图片，打包成ZIP文件</div>
+            <div style="font-weight:600;color:#1D2129;">仅抓取图片（当前分类）</div>
+            <div style="font-size:12px;color:#86909C;">立即抓取当前可见分类的菜品图片，打包成ZIP文件</div>
           </div>
         </label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;border:1px solid #E5E6EB;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='#165DFF'" onmouseout="this.style.borderColor='#E5E6EB'">
           <input type="radio" name="scrapeType" value="both" style="width:18px;height:18px;accent-color:#165DFF;">
           <div>
-            <div style="font-weight:600;color:#1D2129;">菜单+图片</div>
-            <div style="font-size:12px;color:#86909C;">同时生成Excel表格和图片ZIP包</div>
+            <div style="font-weight:600;color:#1D2129;">菜单+图片（当前分类）</div>
+            <div style="font-size:12px;color:#86909C;">立即抓取当前可见分类的菜单和图片</div>
           </div>
         </label>
       </div>
+      <div style="margin-top:16px;padding:12px;background:#FFF7E6;border-radius:8px;font-size:12px;color:#D46B08;line-height:1.6;">
+        💡 <strong>推荐使用后台监听模式</strong>：由于美团反爬机制严格，自动切换分类会触发403错误。使用监听模式，您只需正常点击浏览各个分类，脚本会在后台自动收集所有菜品数据。
+      </div>
       <div style="display:flex;gap:12px;margin-top:20px;">
         <button id="mt-scraper-cancel" style="flex:1;padding:10px;border:1px solid #E5E6EB;border-radius:8px;background:#fff;color:#4E5969;cursor:pointer;font-size:14px;transition:all 0.2s;" onmouseover="this.style.background='#F7F8FA'" onmouseout="this.style.background='#fff'">取消</button>
-        <button id="mt-scraper-confirm" style="flex:1;padding:10px;border:none;border-radius:8px;background:#165DFF;color:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#0E42D2'" onmouseout="this.style.background='#165DFF'">开始抓取</button>
+        <button id="mt-scraper-confirm" style="flex:1;padding:10px;border:none;border-radius:8px;background:#165DFF;color:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#0E42D2'" onmouseout="this.style.background='#165DFF'">开始</button>
       </div>
     `;
 
@@ -413,6 +423,207 @@
     return true;
   }
 
+  /* ---------- 后台监听模式（推荐） ---------- */
+  function startBackgroundMonitor(){
+    // 检查是否是美团店铺页面
+    if(!/waimai\.meituan\.com/.test(window.location.href)){
+      showToast('❌ 请在美团外卖店铺页面执行此脚本', 4000);
+      return;
+    }
+
+    // 初始化数据存储
+    if(!window.__monitorData){
+      window.__monitorData = {
+        products: [],
+        seenNames: {},
+        categories: {},
+        startTime: new Date().toISOString(),
+        observer: null
+      };
+    }
+
+    // 如果已经在监听，提示用户
+    if(window.__monitorData.observer){
+      showToast('📡 后台监听已在运行中！<br>当前已收集 ' + window.__monitorData.products.length + ' 个菜品', 3000);
+      updateMonitorPanel();
+      return;
+    }
+
+    showToast('📡 后台监听模式已启动！<br><br>请正常点击浏览各个分类，脚本会自动收集菜品数据。<br>收集完成后点击浮动面板的"导出"按钮。', 5000);
+
+    // 创建浮动控制面板
+    createMonitorPanel();
+
+    // 立即收集当前可见的菜品
+    collectCurrentDishes();
+
+    // 启动MutationObserver监听DOM变化
+    var observer = new MutationObserver(function(mutations){
+      // 延迟处理，避免频繁触发
+      clearTimeout(window.__monitorCollectTimer);
+      window.__monitorCollectTimer = setTimeout(function(){
+        collectCurrentDishes();
+      }, 500);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: false
+    });
+
+    window.__monitorData.observer = observer;
+    console.log('后台监听模式已启动，MutationObserver已激活');
+  }
+
+  /* ---------- 创建浮动控制面板 ---------- */
+  function createMonitorPanel(){
+    var existing = document.getElementById('mt-monitor-panel');
+    if(existing) existing.remove();
+
+    var panel = document.createElement('div');
+    panel.id = 'mt-monitor-panel';
+    panel.style.cssText = 'position:fixed;top:20px;right:20px;width:280px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:9999999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;';
+
+    panel.innerHTML = `
+      <div style="background:linear-gradient(135deg,#165DFF,#0E42D2);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px;">📡</span>
+          <span style="font-weight:600;font-size:14px;">后台监听中</span>
+        </div>
+        <div id="mt-monitor-status" style="width:8px;height:8px;background:#00FF00;border-radius:50%;box-shadow:0 0 8px #00FF00;"></div>
+      </div>
+      <div style="padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:#86909C;">已收集菜品</span>
+          <span id="mt-monitor-count" style="font-size:24px;font-weight:700;color:#165DFF;">0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:#86909C;">已浏览分类</span>
+          <span id="mt-monitor-categories" style="font-size:16px;font-weight:600;color:#4E5969;">0</span>
+        </div>
+        <div id="mt-monitor-current-cate" style="font-size:12px;color:#86909C;margin-bottom:12px;padding:8px;background:#F7F8FA;border-radius:6px;">
+          当前分类：加载中...
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <button id="mt-monitor-export-menu" style="padding:8px;border:1px solid #165DFF;border-radius:6px;background:#fff;color:#165DFF;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#F0F5FF'" onmouseout="this.style.background='#fff'">📊 导出Excel</button>
+          <button id="mt-monitor-export-images" style="padding:8px;border:1px solid #FF7D00;border-radius:6px;background:#fff;color:#FF7D00;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#FFF7E6'" onmouseout="this.style.background='#fff'">🖼️ 导出图片</button>
+        </div>
+        <button id="mt-monitor-export-all" style="width:100%;padding:10px;border:none;border-radius:6px;background:linear-gradient(135deg,#165DFF,#0E42D2);color:#fff;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;margin-bottom:8px;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">📦 导出全部（菜单+图片）</button>
+        <button id="mt-monitor-stop" style="width:100%;padding:8px;border:1px solid #E5E6EB;border-radius:6px;background:#fff;color:#86909C;cursor:pointer;font-size:12px;transition:all 0.2s;" onmouseover="this.style.background='#F7F8FA'" onmouseout="this.style.background='#fff'">⏹️ 停止监听</button>
+      </div>
+      <div style="padding:10px 16px;background:#F7F8FA;border-top:1px solid #E5E6EB;font-size:11px;color:#86909C;line-height:1.5;">
+        💡 请正常点击左侧分类浏览，脚本会自动收集每个分类的菜品。收集完所有分类后点击导出按钮。
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    // 绑定按钮事件
+    document.getElementById('mt-monitor-export-menu').onclick = function(){
+      exportMonitorData('menu');
+    };
+    document.getElementById('mt-monitor-export-images').onclick = function(){
+      exportMonitorData('images');
+    };
+    document.getElementById('mt-monitor-export-all').onclick = function(){
+      exportMonitorData('both');
+    };
+    document.getElementById('mt-monitor-stop').onclick = function(){
+      stopMonitor();
+    };
+  }
+
+  /* ---------- 更新监控面板显示 ---------- */
+  function updateMonitorPanel(){
+    if(!window.__monitorData) return;
+
+    var countEl = document.getElementById('mt-monitor-count');
+    var cateEl = document.getElementById('mt-monitor-categories');
+    var currentCateEl = document.getElementById('mt-monitor-current-cate');
+
+    if(countEl) countEl.textContent = window.__monitorData.products.length;
+    if(cateEl) cateEl.textContent = Object.keys(window.__monitorData.categories).length;
+
+    var activeCate = document.querySelector('.item_peLjjt.on_MX5HsQ') || document.querySelector('.category_Qve6pO .item_bpZh4h.active_vMJjpr');
+    if(currentCateEl && activeCate){
+      currentCateEl.innerHTML = '当前分类：<strong style="color:#1D2129;">' + activeCate.innerText.trim() + '</strong>';
+    }
+  }
+
+  /* ---------- 收集当前可见的菜品 ---------- */
+  function collectCurrentDishes(){
+    if(!window.__monitorData) return;
+
+    var activeCateEl = document.querySelector('.item_peLjjt.on_MX5HsQ') || document.querySelector('.category_Qve6pO .item_bpZh4h.active_vMJjpr');
+    var categoryName = activeCateEl ? activeCateEl.innerText.trim() : '未知分类';
+
+    // 记录已浏览的分类
+    if(categoryName && categoryName !== '未知分类'){
+      window.__monitorData.categories[categoryName] = true;
+    }
+
+    // 收集当前可见的菜品
+    var spuItems = document.querySelectorAll('.spu_s6NtPr');
+    var newCount = 0;
+
+    spuItems.forEach(function(el){
+      var product = extractProduct(el, categoryName);
+      if(product && !window.__monitorData.seenNames[product.name]){
+        window.__monitorData.seenNames[product.name] = 1;
+        window.__monitorData.products.push(product);
+        newCount++;
+      }
+    });
+
+    if(newCount > 0){
+      console.log('新增 ' + newCount + ' 个菜品，总计 ' + window.__monitorData.products.length + ' 个');
+    }
+
+    updateMonitorPanel();
+  }
+
+  /* ---------- 导出监控数据 ---------- */
+  async function exportMonitorData(type){
+    if(!window.__monitorData || window.__monitorData.products.length === 0){
+      showToast('❌ 还没有收集到菜品数据，请先浏览各个分类', 3000);
+      return;
+    }
+
+    var products = window.__monitorData.products;
+    var shopName = (document.title || '美团店铺').replace(/[\\/:*?"<>|]/g, '_');
+
+    showToast('📦 正在导出 ' + products.length + ' 个菜品...', 2000);
+
+    if(type === 'menu' || type === 'both'){
+      generateExcel(products, shopName);
+      await sleep(1000);
+    }
+
+    if(type === 'images' || type === 'both'){
+      await downloadImages(products, shopName);
+    }
+
+    // 保存到全局变量
+    window.__meituanScrapeResult = products;
+    window.__meituanScrapeDone = true;
+
+    showToast('✅ 导出完成！共 ' + products.length + ' 个菜品', 4000);
+  }
+
+  /* ---------- 停止监听 ---------- */
+  function stopMonitor(){
+    if(window.__monitorData && window.__monitorData.observer){
+      window.__monitorData.observer.disconnect();
+      window.__monitorData.observer = null;
+
+      var panel = document.getElementById('mt-monitor-panel');
+      if(panel) panel.remove();
+
+      showToast('⏹️ 后台监听已停止<br>共收集 ' + window.__monitorData.products.length + ' 个菜品<br>数据已保留，可再次点击书签继续监听', 5000);
+    }
+  }
+
   /* ---------- 主抓取流程 ---------- */
   async function scrape(scrapeType, appendMode){
     // 检查是否是美团店铺页面
@@ -513,14 +724,19 @@
 
   // 启动：优先读取URL参数，否则显示选择对话框
   var urlMode = getUrlParam('cmz_scrape');
-  if(urlMode === 'menu' || urlMode === 'img' || urlMode === 'all'){
+  if(urlMode === 'monitor'){
+    // 后台监听模式
+    startBackgroundMonitor();
+  } else if(urlMode === 'menu' || urlMode === 'img' || urlMode === 'all'){
     // 将URL参数转换为脚本使用的类型
     var scrapeType = urlMode === 'menu' ? 'menu' : (urlMode === 'img' ? 'images' : 'both');
     scrape(scrapeType);
   } else {
     // 没有URL参数，显示选择对话框
     showScrapeTypeDialog(function(scrapeType){
-      if(scrapeType){
+      if(scrapeType === 'monitor'){
+        startBackgroundMonitor();
+      } else if(scrapeType){
         scrape(scrapeType);
       } else {
         console.log('用户取消抓取');
