@@ -2512,6 +2512,10 @@ function parseJson(txt){
 /* ---------- 上传 ---------- */
 function setupZone(zoneId,inputId,handler){
   var zone=$(zoneId), input=$(inputId);
+  if(!zone || !input){
+    console.warn('[setupZone] 元素不存在，跳过:', zoneId, inputId);
+    return;
+  }
   zone.addEventListener('click',function(e){ if(e.target!==input) input.click(); });
   input.addEventListener('change',function(e){ e.stopPropagation(); handler(input.files); input.value=''; });
   input.addEventListener('click',function(e){ e.stopPropagation(); });
