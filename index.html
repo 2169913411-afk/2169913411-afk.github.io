@@ -1684,6 +1684,184 @@ var __extractShopIdInterval = setInterval(function(){
 setTimeout(function(){ clearInterval(__extractShopIdInterval); }, 10000);
 </script>
 <script>
+/* ========== 美团长截图AI识别（内联版本，确保不依赖app.js.3） ========== */
+var __meituanOcrInterval = setInterval(function(){
+  // 检查并添加识别函数
+  if(typeof window.recognizeMeituanScreenshots !== 'function'){
+    window.meituanScreenshots = [];
+    window.recognizeMeituanScreenshots = async function(){
+      if(window.meituanScreenshots.length === 0){
+        if(typeof toast === 'function') toast('请先上传长截图');
+        return;
+      }
+      var statusEl = document.getElementById('meituanOcrStatus');
+      if(statusEl){
+        statusEl.style.display = 'block';
+        statusEl.textContent = '🤖 AI正在识别菜品数据，请稍候...';
+        statusEl.style.background = '#FFF7ED';
+        statusEl.style.borderColor = '#FED7AA';
+        statusEl.style.color = '#B45309';
+      }
+      try{
+        var apiKey = 'f556e493ee9540ab82d696d4dada4d5c.4W9S0BVvIWVcz7W9';
+        var baseUrl = 'https://open.bigmodel.cn/api/paas/v4';
+        var model = 'glm-4v-flash';
+        var prompt = '请识别这张美团外卖店铺菜单长截图中的所有菜品信息。\n' +
+          '对每个菜品提取：菜品名称、价格（元）、月售、分组名称。\n' +
+          '注意：\n1. 价格提取实际支付价格（划线价旁边的价格）\n' +
+          '2. 月售提取数字（如"月售100+"提取100）\n' +
+          '3. 分组名称是左侧分类栏中的分类名\n' +
+          '4. 如果一个菜品在多个分组出现，只记录一次\n' +
+          '5. 只提取真实菜品，不要提取广告、活动入口等\n\n' +
+          '请严格按以下JSON格式返回（不要输出其他内容）：\n' +
+          '{"dishes":[{"name":"菜品名","price":12.5,"sales":100,"category":"分组名"}]}';
+        
+        var allDishes = [];
+        for(var i=0;i<window.meituanScreenshots.length;i++){
+          if(statusEl) statusEl.textContent = '🤖 正在识别第 '+(i+1)+'/'+window.meituanScreenshots.length+' 张截图...';
+          var content = [
+            {type:'text',text:prompt},
+            {type:'image_url',image_url:{url:window.meituanScreenshots[i].data}}
+          ];
+          var resp = await fetch(baseUrl+'/chat/completions',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+            body:JSON.stringify({model:model,messages:[{role:'user',content:content}],temperature:0.1,max_tokens:4096})
+          });
+          if(!resp.ok) throw new Error('API请求失败：'+resp.status);
+          var data = await resp.json();
+          var resultText = data.choices[0].message.content;
+          var jsonMatch = resultText.match(/\{[\s\S]*\}/);
+          if(jsonMatch){
+            var parsed = JSON.parse(jsonMatch[0]);
+            if(parsed.dishes && Array.isArray(parsed.dishes)){
+              allDishes = allDishes.concat(parsed.dishes);
+            }
+          }
+        }
+        // 去重
+        var uniqueDishes = [];
+        var seen = {};
+        allDishes.forEach(function(d){
+          var key = d.name+'_'+d.price;
+          if(!seen[key]){ seen[key] = true; uniqueDishes.push(d); }
+        });
+        if(statusEl){
+          statusEl.textContent = '✅ 识别完成！共识别到 '+uniqueDishes.length+' 个菜品';
+          statusEl.style.background = '#F0FDF4';
+          statusEl.style.borderColor = '#BBF7D0';
+          statusEl.style.color = '#16A34A';
+        }
+        window.__meituanOcrDishes = uniqueDishes;
+        // 渲染结果
+        var resultEl = document.getElementById('meituanOcrResult');
+        if(resultEl){
+          resultEl.style.display = 'block';
+          var html = '<div style="margin-top:10px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+            '<span style="font-size:13px;font-weight:600;">识别结果（'+uniqueDishes.length+'个菜品）</span>' +
+            '<button style="background:#E8F0FE;color:#165DFF;border:1px solid #C6D9FF;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;" onclick="exportMeituanOcrExcel()">📥 导出Excel</button>' +
+            '</div>' +
+            '<div style="max-height:200px;overflow-y:auto;border:1px solid #E5E6EB;border-radius:8px;">' +
+            '<table style="width:100%;font-size:12px;border-collapse:collapse;">' +
+            '<thead><tr style="background:#F7F8FA;position:sticky;top:0;">' +
+            '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5E6EB;">分组</th>' +
+            '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid #E5E6EB;">菜品名称</th>' +
+            '<th style="padding:6px 8px;text-align:right;border-bottom:1px solid #E5E6EB;">价格</th>' +
+            '<th style="padding:6px 8px;text-align:right;border-bottom:1px solid #E5E6EB;">月售</th>' +
+            '</tr></thead><tbody>';
+          uniqueDishes.forEach(function(d){
+            html += '<tr>' +
+              '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;color:#86909C;">'+(d.category||'')+'</td>' +
+              '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;">'+(d.name||'')+'</td>' +
+              '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;text-align:right;color:#FF7D00;font-weight:600;">¥'+(d.price||'')+'</td>' +
+              '<td style="padding:6px 8px;border-bottom:1px solid #F2F3F5;text-align:right;color:#4E5969;">'+(d.sales||'')+'</td>' +
+              '</tr>';
+          });
+          html += '</tbody></table></div></div>';
+          resultEl.innerHTML = html;
+        }
+      }catch(e){
+        console.error('识别失败',e);
+        if(statusEl){
+          statusEl.textContent = '❌ 识别失败：'+e.message;
+          statusEl.style.background = '#FEF2F2';
+          statusEl.style.borderColor = '#FECACA';
+          statusEl.style.color = '#DC2626';
+        }
+      }
+    };
+    window.exportMeituanOcrExcel = function(){
+      var dishes = window.__meituanOcrDishes || [];
+      if(dishes.length === 0){ if(typeof toast === 'function') toast('没有可导出的数据'); return; }
+      var csv = '\uFEFF分组,菜品名称,价格(元),月售\n';
+      dishes.forEach(function(d){ csv += (d.category||'')+','+(d.name||'')+','+(d.price||'')+','+(d.sales||'')+'\n'; });
+      var blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = '美团菜单_'+new Date().toISOString().slice(0,10)+'.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if(typeof toast === 'function') toast('Excel已导出');
+    };
+  }
+  
+  // 检查并更新美团专用抓取区域的HTML
+  var meituanArea = document.getElementById('meituanScrapeArea');
+  if(meituanArea && meituanArea.innerHTML.indexOf('meituanScreenshotZone') === -1){
+    var ocrHtml = '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px;margin-bottom:12px;">' +
+      '<div style="font-size:13px;font-weight:700;color:#16A34A;margin-bottom:8px;display:flex;align-items:center;gap:6px;">' +
+      '<span>📸</span> 长截图AI识别（推荐 · 不会触发反爬）</div>' +
+      '<div style="font-size:12px;color:#4E5969;line-height:1.8;margin-bottom:10px;">' +
+      '<b>操作步骤：</b><br>1. 在手机美团APP中打开目标店铺<br>2. 使用手机长截图功能，截取完整菜单<br>3. 将长截图上传到下方，AI自动识别菜品<br>4. 识别完成后可导出Excel表格</div>' +
+      '<div style="display:flex;gap:10px;align-items:flex-start;">' +
+      '<div class="upload-zone" style="flex:0 0 120px;height:80px;margin:0;cursor:pointer;" id="meituanScreenshotZone" onclick="document.getElementById(\'meituanScreenshotInput\').click()">' +
+      '<div class="main" style="font-size:12px;">上传长截图</div>' +
+      '<div class="sub" style="font-size:11px;">或 Ctrl+V 粘贴</div>' +
+      '<input type="file" id="meituanScreenshotInput" accept="image/*" class="hidden" multiple></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;gap:6px;">' +
+      '<div id="meituanScreenshotList" style="font-size:11px;color:#4E5969;max-height:60px;overflow-y:auto;">暂无截图</div>' +
+      '<button style="background:#E8F0FE;color:#165DFF;border:1px solid #C6D9FF;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;height:32px;" onclick="recognizeMeituanScreenshots()">🤖 AI识别菜品</button>' +
+      '</div></div>' +
+      '<div id="meituanOcrStatus" style="display:none;margin-top:10px;font-size:12px;font-weight:600;line-height:1.8;border-radius:8px;padding:8px 10px;"></div>' +
+      '<div id="meituanOcrResult" style="display:none;margin-top:10px;"></div></div>';
+    meituanArea.insertAdjacentHTML('afterbegin', ocrHtml);
+    
+    // 绑定上传事件
+    var input = document.getElementById('meituanScreenshotInput');
+    if(input){
+      input.addEventListener('change', function(e){
+        var files = e.target.files;
+        for(var i=0;i<files.length;i++){
+          (function(file){
+            var reader = new FileReader();
+            reader.onload = function(ev){
+              window.meituanScreenshots.push({name:file.name,data:ev.target.result});
+              var listEl = document.getElementById('meituanScreenshotList');
+              if(listEl){
+                listEl.innerHTML = window.meituanScreenshots.map(function(s,i){
+                  return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
+                    '<span style="color:#16A34A;">✅</span>' +
+                    '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.name+'</span>' +
+                    '<button style="background:none;border:none;color:#F53F3F;cursor:pointer;font-size:12px;" onclick="window.meituanScreenshots.splice('+i+',1);document.getElementById(\'meituanScreenshotList\').innerHTML=window.meituanScreenshots.map(function(s,j){return \'<div style=\\\'display:flex;align-items:center;gap:6px;margin-bottom:4px;\\\'><span style=\\\'color:#16A34A;\\\'>✅</span><span style=\\\'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\\\'>\'+s.name+\'</span></div>\';}).join(\'\');">删除</button>' +
+                    '</div>';
+                }).join('');
+              }
+            };
+            reader.readAsDataURL(file);
+          })(files[i]);
+        }
+      });
+    }
+  }
+}, 1000);
+// 15秒后停止检查
+setTimeout(function(){ clearInterval(__meituanOcrInterval); }, 15000);
+</script>
+<script>
 /* ================================================================
    餐谋长·运营助手（公开版）—— 免飞书登录，单文件可运行
    数据识别(前处理) + 智谱GLM分析 + 9模块报告 + 菜单导出(必要才改标红)
