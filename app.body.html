@@ -54,7 +54,7 @@
         <div class="paste-hint">粘贴到：同行/重要截图</div>
         <input type="file" id="peerInput" accept="image/*" multiple class="hidden">
       </div>
-      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天流量数据：新客曝光/入店/下单、老客曝光/入店/下单、全部顾客曝光/入店/下单（曝光按“人”计）；其他重要截图可一并上传</div>
+      <div class="tip" style="font-size:11px;color:var(--text3);margin-top:6px;">建议上传近7天或近30天流量数据：新客曝光/入店/下单、老客曝光/入店/下单、全部顾客曝光/入店/下单（曝光按"人"计）；其他重要截图可一并上传</div>
       <div class="thumb-grid" id="peerThumbs"></div>
     </div>
 
@@ -331,6 +331,25 @@
       <div id="scrapeStatus" style="display:none;font-size:13px;font-weight:600;line-height:1.8;border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#FFF7ED;border:1px solid #FED7AA;color:#B45309;"></div>
       <div style="font-size:12px;color:var(--text2);line-height:1.8;background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
         已打开店铺页。装过「自动抓取脚本」会全自动抓取下载；未装则点一次浏览器书签栏「餐谋长抓取」。首次用手机「饿了么」App 扫码登录一次即可。
+      </div>
+    </div>
+
+    <!-- 美团外卖专用抓取区域 -->
+    <div id="meituanScrapeArea" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:13px;color:var(--text1);font-weight:700;margin-bottom:8px;">🍔 美团外卖专用抓取</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+        <b>操作步骤：</b><br>
+        1. 点击上方「开始抓取」打开美团店铺页面<br>
+        2. 在美团店铺页面按 <b>F12</b>（Mac：<b>Cmd+Option+J</b>）打开控制台<br>
+        3. 点击下方「复制抓取脚本」，粘贴到控制台回车执行<br>
+        4. 脚本自动逐个分类抓取，完成后自动下载 Excel
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-blue-ghost" style="height:36px;font-size:13px;" onclick="copyMeituanScraper()">📋 复制美团抓取脚本</button>
+        <span id="meituanCopyStatus" style="font-size:12px;color:#16A34A;"></span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">
+        提示：美团店铺页面需先登录（手机美团App扫码），登录后再执行脚本。脚本支持虚拟滚动，自动加载所有分类菜品。
       </div>
     </div>
   </div>

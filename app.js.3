@@ -347,6 +347,9 @@ function pickScrapePlat(el){
   var p=el.getAttribute('data-plat');
   var t=$('scrapePlatTip'); if(t) t.textContent=tips[p]||'';
   var l=$('scrapeLoginTip'); if(l) l.textContent=(tips[p]||'')+'（第 1 步登录账号）';
+  // 显示/隐藏美团专用抓取区域
+  var mtArea=$('meituanScrapeArea');
+  if(mtArea) mtArea.style.display = (p==='美团外卖') ? 'block' : 'none';
 }
 function scrapePlat(){
   var o=document.querySelector('#scrapePlatRow .plat-opt.active');
@@ -464,12 +467,28 @@ function confirmScrape(){
   var raw=($('shopLink')||{}).value||'';
   var link=cleanLink(raw);
   var qr=window.__scrapeQR||'';
+  var plat=scrapePlat();
   if(/小程序:\/\//.test(raw)||raw.indexOf('#小程序')>-1){
     setScrapeStatus('❌ 这是微信小程序链接，电脑端无法直接解析。<br>请用手机微信打开该链接 → 进入店铺 → 右上角分享 → 选「复制链接」→ 把复制的 <b>https://h5.ele.me/...</b> 链接粘贴回来；或直接上传店铺二维码。','err');
     if($('shopLink')) $('shopLink').focus();
     return;
   }
   if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
+  // 美团外卖专用处理
+  if(plat==='美团外卖'){
+    showScrapeFlow();
+    setScrapeStatus('✅ 已识别美团外卖店铺链接。<br><b>操作步骤：</b><br>1. 点击下方按钮打开美团店铺页面<br>2. 在美团店铺页面按 <b>F12</b>（Mac：<b>Cmd+Option+J</b>）打开控制台<br>3. 点击「复制美团抓取脚本」，粘贴到控制台回车执行<br>4. 脚本自动逐个分类抓取，完成后自动下载 Excel','ok');
+    // 打开美团店铺页面
+    if(/^https?:\/\//i.test(link)){
+      window.open(link,'_blank');
+    }else if(qr && /^https?:\/\//i.test(qr)){
+      window.open(qr,'_blank');
+    }
+    // 显示美团专用区域
+    var mtArea=$('meituanScrapeArea');
+    if(mtArea) mtArea.style.display='block';
+    return;
+  }
   if(link && extractShopId(link)){
     showScrapeFlow();
     setScrapeStatus('已识别店铺ID，正在构造店铺直链并打开…','run');
@@ -528,6 +547,15 @@ function copyScrapeScript(){
   if(!SCRAPE_SCRIPT){ loadScrapeScript(); toast('抓取脚本加载中，请稍后重试'); return; }
   copyText(SCRAPE_SCRIPT);
   var st=$('scrapeScriptStatus'); if(st) st.innerHTML='<span style="color:#16A34A;">已复制。切到店铺页面 → 按 F12（Mac：Cmd+Option+J）→ 粘贴 → 回车，即可自动下载菜单 Excel</span>';
+}
+/* 美团外卖专用抓取脚本（从网站加载远程脚本） */
+var MEITUAN_SCRAPER_URL='https://2169913411-afk.github.io/meituan-scraper.js';
+function copyMeituanScraper(){
+  var code="fetch('"+MEITUAN_SCRAPER_URL+"?v='+Date.now()).then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(e){alert('抓取脚本加载失败：'+e.message)})";
+  copyText(code);
+  var st=$('meituanCopyStatus');
+  if(st) st.textContent='✅ 已复制，请到美团店铺页面F12控制台粘贴执行';
+  toast('美团抓取脚本已复制');
 }
 function arrayBufferToBase64(buf){
   var bytes=new Uint8Array(buf), binary='';
