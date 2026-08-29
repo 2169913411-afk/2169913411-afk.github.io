@@ -2653,37 +2653,38 @@ function removeQrLink(){
   toast('店铺链接已移除');
   updateStartBtn();
 }
-setupZone('qrZone','qrInput',function(files){
-  if(!files.length) return;
-  var f=files[0];
-  fileToDataUrl(f,0).then(function(d){
-    state.qr={file:f,dataUrl:d,name:f.name};
-    $('qrName').textContent=f.name;
-    $('qrItem').classList.remove('hidden');
-    $('qrZone').classList.add('hidden');
-    updateStartBtn();
-    // 上传后立即识别二维码内容
-    recognizeQrFromDataUrl(d,function(qrText){
-      if(qrText){
-        state.qr.decoded=qrText;
-        // 显示二维码识别结果
-        var qrResultEl=$('qrRecogResult');
-        if(qrResultEl){
-          qrResultEl.innerHTML='<div style="font-size:11px;color:#16A34A;margin-top:6px;word-break:break-all;">✅ 二维码识别成功：'+qrText.slice(0,80)+(qrText.length>80?'...':'')+'</div>';
-        }
-        toast('二维码识别成功');
-      }else{
-        var qrResultEl=$('qrRecogResult');
-        if(qrResultEl){
-          qrResultEl.innerHTML='<div style="font-size:12px;color:#B45309;margin-top:8px;padding:10px;background:#FFFBEB;border-radius:6px;border:1px solid #FDE68A;">'+
-            '<div style="font-weight:600;margin-bottom:4px;">⚠️ 检测到淘宝/美团小程序码，无法自动识别</div>'+
-            '<div style="font-size:11px;line-height:1.6;">这种圆形带logo的小程序码不是标准二维码，浏览器无法直接解码。<br><b>解决方案：</b>请在下方"手动粘贴店铺链接"输入框中，粘贴从淘宝/美团APP分享的店铺链接（以https://开头的完整链接），点击"应用链接"即可。</div>'+
-            '</div>';
-        }
-      }
-    });
-  });
-});
+// qrZone元素已移除，注释掉setupZone调用
+// setupZone('qrZone','qrInput',function(files){
+//   if(!files.length) return;
+//   var f=files[0];
+//   fileToDataUrl(f,0).then(function(d){
+//     state.qr={file:f,dataUrl:d,name:f.name};
+//     $('qrName').textContent=f.name;
+//     $('qrItem').classList.remove('hidden');
+//     $('qrZone').classList.add('hidden');
+//     updateStartBtn();
+//     // 上传后立即识别二维码内容
+//     recognizeQrFromDataUrl(d,function(qrText){
+//       if(qrText){
+//         state.qr.decoded=qrText;
+//         // 显示二维码识别结果
+//         var qrResultEl=$('qrRecogResult');
+//         if(qrResultEl){
+//           qrResultEl.innerHTML='<div style="font-size:11px;color:#16A34A;margin-top:6px;word-break:break-all;">✅ 二维码识别成功：'+qrText.slice(0,80)+(qrText.length>80?'...':'')+'</div>';
+//         }
+//         toast('二维码识别成功');
+//       }else{
+//         var qrResultEl=$('qrRecogResult');
+//         if(qrResultEl){
+//           qrResultEl.innerHTML='<div style="font-size:12px;color:#B45309;margin-top:8px;padding:10px;background:#FFFBEB;border-radius:6px;border:1px solid #FDE68A;">'+
+//             '<div style="font-weight:600;margin-bottom:4px;">⚠️ 检测到淘宝/美团小程序码，无法自动识别</div>'+
+//             '<div style="font-size:11px;line-height:1.6;">这种圆形带logo的小程序码不是标准二维码，浏览器无法直接解码。<br><b>解决方案：</b>请在下方"手动粘贴店铺链接"输入框中，粘贴从淘宝/美团APP分享的店铺链接（以https://开头的完整链接），点击"应用链接"即可。</div>'+
+//             '</div>';
+//         }
+//       }
+//     });
+//   });
+// });
 
 /* 2. 同行对比截图 */
 /* 粘贴图片：鼠标悬停在哪个上传框，就粘贴到哪个框 */
@@ -2693,7 +2694,8 @@ function bindPasteZone(el,key){
   el.addEventListener('mouseenter',function(){ pasteTarget=key; el.classList.add('paste-target'); });
   el.addEventListener('mouseleave',function(){ if(pasteTarget===key){ pasteTarget=null; el.classList.remove('paste-target'); } });
 }
-bindPasteZone($('qrZone'),'qr');
+// qrZone元素已移除，注释掉bindPasteZone调用
+// bindPasteZone($('qrZone'),'qr');
 bindPasteZone($('overviewZone'),'overview');
 bindPasteZone($('menuZone'),'menu');
 bindPasteZone($('orderZone'),'order');
