@@ -5012,7 +5012,10 @@ setTimeout(initLucide, 800);
     renderEmpty();
     if((state.history||[]).length>0) collapseNews();
     setInterval(function(){ renderEmpty(); }, 4000);
-    setTimeout(function(){ updatePlanRequirements(); }, 1000);
+    // 立即调用updatePlanRequirements，确保需求提示正确
+    updatePlanRequirements();
+    // 再次调用确保所有元素加载完成
+    setTimeout(function(){ updatePlanRequirements(); }, 500);
   }
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', init);
