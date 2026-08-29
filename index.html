@@ -1345,17 +1345,17 @@ h1,h2,h3,.lp-title{
     <div class="section">
       <div class="section-title" style="font-size:14px;">选择分析功能</div>
       <div id="planList">
-        <label class="plan-opt">
+        <label class="plan-opt" data-plan="38">
           <input type="radio" name="plan" value="38">
           <div><div class="p-name">基础数据诊断</div><div class="p-desc">识别数据 + 简单诊断</div></div>
           <span class="p-cost">38积分</span>
         </label>
-        <label class="plan-opt">
+        <label class="plan-opt" data-plan="58">
           <input type="radio" name="plan" value="58">
           <div><div class="p-name">深度运营诊断 + 话术</div><div class="p-desc">全维度诊断 + 商家沟通话术</div></div>
           <span class="p-cost">58积分</span>
         </label>
-        <label class="plan-opt active">
+        <label class="plan-opt active" data-plan="88">
           <input type="radio" name="plan" value="88" checked>
           <span class="reco">推荐</span>
           <div><div class="p-name">菜单全量优化 + 导出</div><div class="p-desc">商品标题/描述/定价优化 + 导出Excel + 同步话术</div></div>
@@ -2097,6 +2097,11 @@ function defaultState(){
   };
 }
 var state = loadState();
+// 确保notesText函数已定义（JSON.stringify会忽略函数，所以每次加载后都要重新定义）
+state.notesText = function(){ 
+  var input = document.getElementById('notesInput');
+  return input && input.value ? input.value.trim() : ''; 
+};
 function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem('cmz_public_state'));
