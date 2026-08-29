@@ -4305,17 +4305,34 @@ document.querySelectorAll('.plan-opt input[name=plan]').forEach(function(r){
     document.querySelectorAll('.plan-opt').forEach(function(o){ o.classList.remove('active'); });
     r.closest('.plan-opt').classList.add('active');
     refreshTip();
+    updatePlanRequirements();
+  });
+});
+
+// 额外绑定.plan-opt的点击事件，确保点击label也能正确更新active类
+document.querySelectorAll('.plan-opt').forEach(function(opt){
+  opt.addEventListener('click',function(e){
+    var radio = opt.querySelector('input[name=plan]');
+    if(radio && !radio.checked){
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', {bubbles: true}));
+    }
   });
 });
 
 /* ---------- 初始化 ---------- */
 (function init(){
   if(!state.platform) state.platform='淘宝闪购';
+  // 确保notesText函数已定义
+  if(typeof state.notesText !== 'function'){
+    state.notesText = function(){ return ($('notesInput')||{}).value ? $('notesInput').value.trim() : ''; };
+  }
   document.querySelectorAll('.plat-opt').forEach(function(el){
     el.classList.toggle('active',el.getAttribute('data-plat')===state.platform);
   });
   updateBalanceUI();
   refreshTip();
+  updatePlanRequirements();
   loadScrapeScript();
   setupBookmarkDrag();
   document.querySelectorAll('.mask').forEach(function(m){
