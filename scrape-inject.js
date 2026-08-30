@@ -211,7 +211,7 @@
   function showDownloadPanel(r){
     window.__cmzResult=r;
     
-    /* v3.4：把抓取的菜单数据存储到localStorage，供餐谋长网站自动读取 */
+    /* v3.5：把抓取的菜单数据存储到window.name（跨域传递，跳转后保留） */
     try{
       var shopData = {
         platform: isMeituanPage() ? '美团外卖' : '淘宝闪购',
@@ -246,10 +246,10 @@
         });
       }
       
-      /* 存储到localStorage */
-      localStorage.setItem('cmz_scraped_shop', JSON.stringify(shopData));
-      localStorage.setItem('cmz_scraped_time', new Date().toISOString());
-      console.log('餐谋长抓取：数据已存储到localStorage，共', shopData.products.length, '个商品');
+      /* 存储到window.name（跨域传递，跳转后保留） */
+      var dataStr = JSON.stringify(shopData);
+      window.name = 'CMZ_SCRAPED_DATA:' + dataStr;
+      console.log('餐谋长抓取：数据已存储到window.name，共', shopData.products.length, '个商品，大小', dataStr.length, '字节');
     }catch(e){
       console.error('存储数据失败:', e);
     }

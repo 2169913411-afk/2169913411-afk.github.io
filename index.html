@@ -5275,7 +5275,7 @@ function copyFull(){
 }
 
 /* 零插件抓取书签：加载网站内的远程抓取脚本 */
-var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260830.4').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
+var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260830.5').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
 function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
@@ -5705,7 +5705,7 @@ function detectScraper(){
       var bm=$('bookmarkDragV3');
       if(bm&&!bm.getAttribute('data-set')){
         bm.setAttribute('data-set','1');
-        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260830.4\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
+        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260830.5\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
       }
     }
   }
@@ -6509,27 +6509,16 @@ setTimeout(initLucide, 800);
     setTimeout(function(){ checkScrapedData(); }, 1000);
   }
   
-  /* v0.37：检查localStorage中是否有书签抓取的店铺数据，自动导入 */
+  /* v0.37：检查window.name中是否有书签抓取的店铺数据，自动导入 */
   function checkScrapedData(){
     try{
-      var scrapedData = localStorage.getItem('cmz_scraped_shop');
-      var scrapedTime = localStorage.getItem('cmz_scraped_time');
-      if(!scrapedData) return;
+      /* 从window.name中读取数据（跨域传递，跳转后保留） */
+      var nameStr = window.name || '';
+      if(!nameStr || nameStr.indexOf('CMZ_SCRAPED_DATA:') !== 0) return;
       
-      var data = JSON.parse(scrapedData);
+      var dataStr = nameStr.substring('CMZ_SCRAPED_DATA:'.length);
+      var data = JSON.parse(dataStr);
       if(!data || !data.products || !data.products.length) return;
-      
-      // 检查是否是新抓取的数据（5分钟内）
-      var isNew = false;
-      if(scrapedTime){
-        var timeDiff = Date.now() - new Date(scrapedTime).getTime();
-        isNew = timeDiff < 5 * 60 * 1000; // 5分钟内
-      }
-      
-      // 检查URL参数是否有scraped=1
-      var hasScrapedParam = location.search.indexOf('scraped=1') > -1;
-      
-      if(!isNew && !hasScrapedParam) return; // 不是新数据，不提示
       
       console.log('检测到书签抓取的店铺数据:', data.shopName, data.products.length, '个商品');
       
@@ -6557,11 +6546,14 @@ setTimeout(initLucide, 800);
           importBtn.onclick = function(){
             importScrapedData(data);
             tip.remove();
+            // 清空window.name，避免重复提示
+            window.name = '';
           };
         }
         if(ignoreBtn){
           ignoreBtn.onclick = function(){
             tip.remove();
+            window.name = '';
           };
         }
       }, 100);
