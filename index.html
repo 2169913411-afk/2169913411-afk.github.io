@@ -2639,10 +2639,16 @@ function applyQrShopLink(){
       if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 未配置解码服务地址，请先在商家调研中配置</span>';
       return;
     }
+    
+    // 从淘宝口令中提取纯URL
+    var urlMatch = link.match(/https?:\/\/[^\s]+/);
+    var pureUrl = urlMatch ? urlMatch[0] : link;
+    console.log('提取的纯URL:', pureUrl);
+    
     fetch(decodeUrl+'/api/decode',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({url:link, text:link}) // 同时传url和text，兼容不同服务
+      body:JSON.stringify({url: pureUrl}) // 只传纯URL
     }).then(function(r){ return r.json(); }).then(function(j){
       if(j&&j.ok&&j.url){
         linkInput.value=j.url;
@@ -5419,10 +5425,16 @@ function decodeTaoKouLing(){
   if(!raw.trim()){ if(st) st.innerHTML='<span style="color:#DC2626;">请先粘贴淘宝口令到输入框</span>'; return; }
   if(!url){ if(st) st.innerHTML='<span style="color:#DC2626;">请先在上方填入口令解码服务地址</span>'; return; }
   if(st) st.innerHTML='<span style="color:#1D4ED8;">解码中，请稍候…</span>';
+  
+  // 从淘宝口令中提取纯URL
+  var urlMatch = raw.match(/https?:\/\/[^\s]+/);
+  var pureUrl = urlMatch ? urlMatch[0] : raw;
+  console.log('提取的纯URL:', pureUrl);
+  
   fetch(url+'/api/decode',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({url:raw, text:raw}) // 同时传url和text，兼容不同服务
+    body:JSON.stringify({url: pureUrl}) // 只传纯URL
   }).then(function(r){ return r.json(); }).then(function(j){
     if(j&&j.ok&&j.url){
       box.value=j.url;
