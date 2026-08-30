@@ -2642,7 +2642,7 @@ function applyQrShopLink(){
     fetch(decodeUrl+'/api/decode',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:link})
+      body:JSON.stringify({url:link, text:link}) // 同时传url和text，兼容不同服务
     }).then(function(r){ return r.json(); }).then(function(j){
       if(j&&j.ok&&j.url){
         linkInput.value=j.url;
@@ -2654,7 +2654,7 @@ function applyQrShopLink(){
         // 自动尝试抓取门店数据
         tryScrapeShopData(j.url);
       }else{
-        if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 解码失败：'+(j&&j.error||'未知错误')+'</span>';
+        if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 解码失败：'+(j&&j.error||j&&j.message||'未知错误')+'</span>';
       }
     })['catch'](function(e){
       if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 请求失败：'+e.message+'</span>';
@@ -5422,14 +5422,14 @@ function decodeTaoKouLing(){
   fetch(url+'/api/decode',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({text:raw})
+    body:JSON.stringify({url:raw, text:raw}) // 同时传url和text，兼容不同服务
   }).then(function(r){ return r.json(); }).then(function(j){
     if(j&&j.ok&&j.url){
       box.value=j.url;
       if(st) st.innerHTML='<span style="color:#16A34A;">✅ 解码成功，已自动填入店铺直链，可点「开始抓取」</span>';
       var th=$('taoHint'); if(th) th.style.display='none';
     }else{
-      if(st) st.innerHTML='<span style="color:#DC2626;">解码失败：'+(j&&j.error||'未知错误')+'</span>';
+      if(st) st.innerHTML='<span style="color:#DC2626;">解码失败：'+(j&&j.error||j&&j.message||'未知错误')+'</span>';
     }
   })['catch'](function(e){
     if(st) st.innerHTML='<span style="color:#DC2626;">请求失败：'+e.message+'（请检查服务地址是否正确）</span>';
