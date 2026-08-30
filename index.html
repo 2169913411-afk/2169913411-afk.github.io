@@ -2675,20 +2675,24 @@ function applyQrShopLink(){
         updateStartBtn();
       } else {
         // 抓取失败，可能需要登录，或者数据为空
-        var errorMsg = (j&&j.error)||(j&&j.message)||'店铺数据为空，可能需要登录淘宝闪购账号';
+        var errorMsg = (j&&j.error)||(j&&j.message)||'店铺数据为空，腾讯云解码服务无法抓取到店铺数据';
         if(linkStatus) linkStatus.innerHTML = 
-          '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;">' +
-          '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 店铺数据抓取失败，需要登录淘宝闪购账号</div>' +
-          '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">' +
-          '错误信息：'+errorMsg+'<br><br>' +
+          '<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;margin-top:8px;">' +
+          '<div style="font-size:13px;font-weight:600;color:#991B1B;margin-bottom:8px;">❌ 腾讯云解码服务抓取失败</div>' +
+          '<div style="font-size:12px;color:#7F1D1D;line-height:1.6;margin-bottom:10px;">' +
+          '<b>错误信息：</b>'+errorMsg+'<br><br>' +
+          '<b>可能原因：</b><br>' +
+          '1. 淘宝反爬机制升级，腾讯云函数IP被封禁<br>' +
+          '2. 淘宝短链接重定向逻辑变化<br>' +
+          '3. 腾讯云函数代码需要更新<br><br>' +
           '<b>解决方案（任选一种）：</b><br>' +
-          '1. 点击下方"打开登录页面"按钮，登录后点击"重新抓取"<br>' +
-          '2. 在淘宝APP中打开店铺，点击分享→复制链接，获取h5.ele.me开头的直链，直接粘贴到上方输入框<br>' +
-          '3. 跳过店铺数据抓取，直接上传经营数据截图和门店经营数据Excel进行分析' +
+          '1. <b>推荐</b>：点击下方"在浏览器中打开"按钮，登录淘宝账号后，复制浏览器地址栏中的h5.ele.me链接，粘贴到上方输入框<br>' +
+          '2. 在淘宝APP中打开店铺，点击分享→复制链接，获取h5.ele.me开头的直链<br>' +
+          '3. 跳过店铺数据抓取，直接上传经营数据截图和门店经营数据Excel进行分析<br>' +
+          '4. 检查腾讯云函数（cmz-decode）的日志和代码，更新抓取逻辑' +
           '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<button onclick="window.open(\'https://h5.ele.me/login/\',\'_blank\')" style="padding:6px 14px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">打开登录页面</button>' +
-          '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">我已登录，重新抓取</button>' +
+          '<button onclick="window.open(\''+pureUrl+'\',\'_blank\')" style="padding:6px 14px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">在浏览器中打开</button>' +
           '<button onclick="skipShopScrape()" style="padding:6px 14px;background:#6B7280;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">跳过，继续分析</button>' +
           '</div>' +
           '</div>';
@@ -2733,15 +2737,23 @@ function tryScrapeShopData(shopUrl){
       var loginUrl = isMeituanLink(shopUrl) ? 'https://h5.waimai.meituan.com/login' : 'https://h5.ele.me/login/';
       
       if(linkStatus) linkStatus.innerHTML = 
-        '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;">' +
-        '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 门店数据抓取失败，需要登录'+platform+'账号</div>' +
-        '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">' +
-        '请先在新标签页登录'+platform+'账号，登录完成后回到本页面，点击"重新抓取"按钮。<br><br>' +
-        '<b>备用方案：</b>如果登录后仍然无法抓取，可以直接上传经营数据截图和门店经营数据Excel进行分析。' +
+        '<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;margin-top:8px;">' +
+        '<div style="font-size:13px;font-weight:600;color:#991B1B;margin-bottom:8px;">❌ 门店数据抓取失败</div>' +
+        '<div style="font-size:12px;color:#7F1D1D;line-height:1.6;margin-bottom:10px;">' +
+        '<b>平台：</b>'+platform+'<br><br>' +
+        '<b>可能原因：</b><br>' +
+        '1. 需要登录'+platform+'账号才能查看店铺数据<br>' +
+        '2. '+platform+'反爬机制升级<br>' +
+        '3. 店铺链接无效或店铺已关闭<br><br>' +
+        '<b>解决方案（任选一种）：</b><br>' +
+        '1. 点击下方"在浏览器中打开"按钮，登录后复制浏览器地址栏中的链接，重新粘贴到上方输入框<br>' +
+        '2. 点击"打开登录页面"，登录后点击"重新抓取"<br>' +
+        '3. 跳过店铺数据抓取，直接上传经营数据截图和门店经营数据Excel进行分析' +
         '</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<button onclick="window.open(\''+shopUrl+'\',\'_blank\')" style="padding:6px 14px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">在浏览器中打开</button>' +
         '<button onclick="window.open(\''+loginUrl+'\',\'_blank\')" style="padding:6px 14px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">打开登录页面</button>' +
-        '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">我已登录，重新抓取</button>' +
+        '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">重新抓取</button>' +
         '<button onclick="skipShopScrape()" style="padding:6px 14px;background:#6B7280;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">跳过，继续分析</button>' +
         '</div>' +
         '</div>';
