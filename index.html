@@ -4226,17 +4226,25 @@ state.notesText=function(){ return $('notesInput').value.trim(); };
 
 /* 视觉提取 prompt（识别同行对比值 + 活动数据 + 推广数据 + 其他经营数据；本店指标已由门店文件精确计算） */
 function callPeerExtract(api,peerImages){
-  var sys='你是外卖运营数据录入助手。用户上传了【经营数据截图】，可能包含：同行对比数据、活动数据、推广数据、商品销售数据等。任务：从截图中提取所有有价值的经营数据。\n要求：\n1. 只输出一个JSON对象，禁止输出其他文字。\n2. 先识别这张截图的类型（同行对比/活动数据/推广数据/商品销售/其他），然后提取对应的数据：\n   - 同行对比截图 → peer对象：必须先识别截图当前选中的流量类型（全部顾客/新客/老客），然后提取对应维度的同行数据\n     * exposure(同行曝光人数)\n     * enter_rate(同行入店转化率，百分数如6.4)\n     * order_rate(同行下单转化率，百分数如12.7)\n     * customer_type(流量类型："全部顾客"/"新客"/"老客"，必须填写)\n   - 活动数据截图 → activity对象：活动名称、活动类型、参与状态、活动力度、活动效果等\n   - 推广数据截图 → promotion对象：推广渠道、消耗金额、产出金额、ROI、曝光、点击等\n   - 商品销售截图 → products对象：商品名称、销量、销售额等\n   - 其他经营数据 → other对象：其他有价值的经营信息\n3. 数值必须是截图中的真实数值，看不清或没有就填 null，绝对禁止编造。\n4. 不要提取本店核心指标（本店数值由系统文件精确计算），只提取同行对比值和活动/推广等额外数据。\n5. 如果截图中有多个标签页（如全部顾客/新客/老客），只提取当前选中标签页的数据，并在customer_type中明确标注。\n输出JSON：{"peer":{"exposure":number|null,"enter_rate":number|null,"order_rate":number|null,"customer_type":"全部顾客|新客|老客|null"},"activity":[],"promotion":[],"products":[],"other":[],"screenshot_type":"同行对比/活动数据/推广数据/商品销售/其他","notes":"截图内容简要说明，包括当前选中的流量类型"}';
+  var sys='你是外卖运营数据录入助手，专门识别美团外卖和淘宝闪购（饿了么）商家后台的经营数据截图。\n\n【重要：输出格式要求】\n1. 只输出一个JSON对象，禁止输出任何其他文字、解释、markdown格式。\n2. 不要用```json```代码块包裹，直接输出纯JSON。\n3. JSON必须是合法的，可以直接被JSON.parse()解析。\n4. 所有字符串值必须用双引号，不能用单引号。\n5. 数值类型不要加引号。\n\n【截图类型识别】\n先识别这张截图的类型，可能是：\n- 同行对比截图（流量转化漏斗图，包含本店和商圈同行均值）\n- 活动数据截图（满减、神券、收藏有礼等活动列表）\n- 推广数据截图（点金推广、铂金展位、推广魔方、斗金推广等消耗与产出）\n- 商品销售截图（商品销量、销售额排行）\n- 其他经营数据截图\n\n【同行对比截图识别要点】\n如果是流量转化漏斗图：\n1. 必须先识别当前选中的流量类型标签（全部顾客/新客/老客），看哪个标签是高亮/选中状态\n2. 识别"商圈同行均值"列的数据（通常在右侧，橙色/浅色背景）\n3. 只提取同行数据，不要提取本店数据（本店数据由系统文件精确计算）\n4. 同行数据包括：\n   - exposure: 同行曝光人数（如49531）\n   - enter_rate: 同行进店转化率（如6.4，注意是百分数的数值部分，不要加%号）\n   - order_rate: 同行下单转化率（如12.7，注意是百分数的数值部分，不要加%号）\n   - customer_type: 流量类型，必须是"全部顾客"、"新客"、"老客"中的一个\n\n【淘宝闪购（饿了么）界面特点】\n- 时间筛选标签：今日实时、昨日、近7日、近30日、自定义、按周、按月\n- 流量类型：全部顾客、新客、老客（选中的标签通常是橙色/红色背景）\n- 漏斗图：左侧是本店（蓝色），右侧是商圈同行均值（橙色/浅色）\n- 数据格式：曝光88,076人，进店4,875人，下单638人\n- 转化率显示在漏斗图两侧：进店转化率5.5%，下单转化率13.1%\n\n【输出JSON结构】\n{"peer":{"exposure":49531,"enter_rate":6.4,"order_rate":12.7,"customer_type":"新客"},"activity":[],"promotion":[],"products":[],"other":[],"screenshot_type":"同行对比","notes":"近30日新客流量转化，同行曝光49531人，进店转化率6.4%，下单转化率12.7%"}\n\n如果某些数据看不清或没有，填null，绝对禁止编造数据。';
   var keys=['exposure','enter_rate','order_rate','customer_type'];
   var merged={peer:{},peer_by_type:{all:{},new:{},old:{}},activity:[],promotion:[],products:[],other:[],notes:[]};
   // 逐张识别（每次只传1张图，规避视觉模型单次图片数量上限1210），小并发池加速，结果合并取并集
   var imgs=(peerImages||[]).slice();
   function work(img){
-    var parts=[{type:'text',text:'请识别这一张经营数据截图中的所有有价值数据，包括同行对比、活动数据、推广数据等。特别注意：如果截图中有流量类型切换（全部顾客/新客/老客），请明确标注当前选中的是哪种类型。'}];
+    var parts=[{type:'text',text:'请识别这一张经营数据截图中的所有有价值数据。\n\n【重要提醒】\n1. 只输出纯JSON，不要任何其他文字或markdown格式\n2. 如果是流量转化漏斗图，先看清楚当前选中的是"全部顾客"、"新客"还是"老客"\n3. 只提取"商圈同行均值"列的数据，不要提取本店数据\n4. 转化率只填数值部分（如6.4），不要加%号\n5. 看不清的数据填null，不要编造'}];
     parts.push({type:'image_url',image_url:{url:img.data}});
     return callLLM(api.baseUrl+'/chat/completions',api.apiKey,api.visionModel||API_DEFAULT.visionModel,
       [{role:'system',content:sys},{role:'user',content:parts}],api.timeout,1024)
-    .then(parseJson)['catch'](function(){ return null; })
+    .then(function(raw){
+      // 调试：记录原始返回内容
+      console.log('[视觉识别原始返回]', img.name, ':', String(raw).substring(0, 500));
+      return raw;
+    })
+    .then(parseJson)['catch'](function(e){
+      console.warn('[视觉识别JSON解析失败]', img.name, ':', e.message);
+      return null;
+    })
     .then(function(v){
       if(v){
         if(v.peer){
@@ -4245,6 +4253,8 @@ function callPeerExtract(api,peerImages){
           var typeKey='all';
           if(ctype&&ctype.indexOf('新')>-1) typeKey='new';
           else if(ctype&&ctype.indexOf('老')>-1) typeKey='old';
+          
+          console.log('[视觉识别成功]', img.name, '类型:', typeKey, '数据:', JSON.stringify(v.peer));
           
           // 存储到对应类型分组
           ['exposure','enter_rate','order_rate'].forEach(function(k){
