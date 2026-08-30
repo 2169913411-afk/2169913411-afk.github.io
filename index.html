@@ -2650,7 +2650,13 @@ function applyQrShopLink(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({url: pureUrl}) // 只传纯URL
     }).then(function(r){ return r.json(); }).then(function(j){
+      console.log('解码服务返回:', JSON.stringify(j));
+      
+      // 处理两种返回格式：
+      // 格式1：{ok: true, url: "解码后的URL"}
+      // 格式2：{success: true, data: {shopName: "...", products: [...]}}
       if(j&&j.ok&&j.url){
+        // 格式1：返回了解码后的URL
         linkInput.value=j.url;
         state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:j.url};
         if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 解码成功，店铺链接已应用</span>';
@@ -2659,8 +2665,26 @@ function applyQrShopLink(){
         updateStartBtn();
         // 自动尝试抓取门店数据
         tryScrapeShopData(j.url);
-      }else{
-        if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 解码失败：'+(j&&j.error||j&&j.message||'未知错误')+'</span>';
+      } else if(j&&j.success&&j.data&&j.data.shopName){
+        // 格式2：直接返回了店铺数据
+        var shopData = j.data;
+        state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:pureUrl, scrapedData: shopData};
+        if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 店铺数据抓取成功：'+shopData.shopName+'（'+(shopData.products?shopData.products.length:0)+'个商品）</span>';
+        showAppliedLinkInfo(pureUrl);
+        toast('店铺数据抓取成功');
+        updateStartBtn();
+      } else {
+        // 抓取失败，可能需要登录
+        var errorMsg = (j&&j.error)||(j&&j.message)||'店铺数据为空，可能需要登录';
+        if(linkStatus) linkStatus.innerHTML = 
+          '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;">' +
+          '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 店铺数据抓取失败，可能需要登录淘宝闪购账号</div>' +
+          '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">错误信息：'+errorMsg+'<br>请先在新标签页登录淘宝闪购账号，登录完成后回到本页面，点击"重新抓取"按钮。</div>' +
+          '<div style="display:flex;gap:8px;">' +
+          '<button onclick="window.open(\'https://h5.ele.me/login/\',\'_blank\')" style="padding:6px 14px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">打开登录页面</button>' +
+          '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">我已登录，重新抓取</button>' +
+          '</div>' +
+          '</div>';
       }
     })['catch'](function(e){
       if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 请求失败：'+e.message+'</span>';
