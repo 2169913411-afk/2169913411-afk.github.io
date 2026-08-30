@@ -5275,7 +5275,7 @@ function copyFull(){
 }
 
 /* 零插件抓取书签：加载网站内的远程抓取脚本 */
-var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260828.3').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
+var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260830.4').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
 function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
@@ -5705,7 +5705,7 @@ function detectScraper(){
       var bm=$('bookmarkDragV3');
       if(bm&&!bm.getAttribute('data-set')){
         bm.setAttribute('data-set','1');
-        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260828.3\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
+        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260830.4\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
       }
     }
   }
@@ -6505,6 +6505,107 @@ setTimeout(initLucide, 800);
     updatePlanRequirements();
     // 再次调用确保所有元素加载完成
     setTimeout(function(){ updatePlanRequirements(); }, 500);
+    // v0.37：检查localStorage中是否有书签抓取的店铺数据，自动导入
+    setTimeout(function(){ checkScrapedData(); }, 1000);
+  }
+  
+  /* v0.37：检查localStorage中是否有书签抓取的店铺数据，自动导入 */
+  function checkScrapedData(){
+    try{
+      var scrapedData = localStorage.getItem('cmz_scraped_shop');
+      var scrapedTime = localStorage.getItem('cmz_scraped_time');
+      if(!scrapedData) return;
+      
+      var data = JSON.parse(scrapedData);
+      if(!data || !data.products || !data.products.length) return;
+      
+      // 检查是否是新抓取的数据（5分钟内）
+      var isNew = false;
+      if(scrapedTime){
+        var timeDiff = Date.now() - new Date(scrapedTime).getTime();
+        isNew = timeDiff < 5 * 60 * 1000; // 5分钟内
+      }
+      
+      // 检查URL参数是否有scraped=1
+      var hasScrapedParam = location.search.indexOf('scraped=1') > -1;
+      
+      if(!isNew && !hasScrapedParam) return; // 不是新数据，不提示
+      
+      console.log('检测到书签抓取的店铺数据:', data.shopName, data.products.length, '个商品');
+      
+      // 显示导入提示
+      var tip = document.createElement('div');
+      tip.style.cssText = 'position:fixed;top:70px;right:20px;z-index:99999;background:#F0FDF4;border:2px solid #16A34A;border-radius:12px;padding:16px 20px;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-family:-apple-system,"PingFang SC",sans-serif;';
+      tip.innerHTML = 
+        '<div style="font-size:15px;font-weight:700;color:#166534;margin-bottom:8px;">✅ 检测到新抓取的店铺数据</div>' +
+        '<div style="font-size:13px;color:#15803D;line-height:1.6;margin-bottom:12px;">' +
+        '<b>店铺：</b>' + (data.shopName || '未知') + '<br>' +
+        '<b>平台：</b>' + (data.platform || '未知') + '<br>' +
+        '<b>商品数量：</b>' + data.products.length + '个（覆盖' + (data.categories ? data.categories.length : 0) + '个分类）' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button id="cmzImportBtn" style="flex:1;padding:8px 12px;background:#16A34A;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">导入并开始分析</button>' +
+        '<button id="cmzIgnoreBtn" style="padding:8px 12px;background:#E5E7EB;color:#374151;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">忽略</button>' +
+        '</div>';
+      document.body.appendChild(tip);
+      
+      // 绑定按钮事件
+      setTimeout(function(){
+        var importBtn = document.getElementById('cmzImportBtn');
+        var ignoreBtn = document.getElementById('cmzIgnoreBtn');
+        if(importBtn){
+          importBtn.onclick = function(){
+            importScrapedData(data);
+            tip.remove();
+          };
+        }
+        if(ignoreBtn){
+          ignoreBtn.onclick = function(){
+            tip.remove();
+          };
+        }
+      }, 100);
+      
+    }catch(e){
+      console.error('检查抓取数据失败:', e);
+    }
+  }
+  
+  /* v0.37：导入书签抓取的店铺数据 */
+  function importScrapedData(data){
+    try{
+      // 把数据存储到state中
+      state.qr = state.qr || {};
+      state.qr.scrapedData = {
+        platform: data.platform,
+        shopName: data.shopName,
+        shopId: '',
+        rating: null,
+        monthSales: null,
+        categories: data.categories || [],
+        products: data.products || []
+      };
+      state.qr.decoded = data.shopUrl || '';
+      state.qr.name = data.shopName || '书签抓取的店铺';
+      
+      // 显示成功提示
+      toast('店铺数据已导入：' + (data.shopName || '未知') + '（' + data.products.length + '个商品）');
+      
+      // 更新开始按钮状态
+      updateStartBtn();
+      
+      // 显示链接状态
+      var linkStatus = document.getElementById('qrLinkStatus');
+      if(linkStatus){
+        linkStatus.innerHTML = '<span style="color:#16A34A;">✅ 店铺数据已从书签导入：' + (data.shopName || '未知') + '（' + data.products.length + '个商品）</span>';
+      }
+      
+      console.log('店铺数据已导入:', data);
+      
+    }catch(e){
+      console.error('导入数据失败:', e);
+      toast('导入数据失败：' + e.message);
+    }
   }
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', init);

@@ -207,16 +207,70 @@
     var z=ok?await zip.generateAsync({type:'blob'}):null;
     return {ok:ok, zip:z};
   }
-  /* 抓取完成：显示下载面板（用户点按钮时自选保存位置） */
+  /* 抓取完成：显示下载面板（用户点按钮时自选保存位置）+ 存储数据到localStorage + 返回网站按钮 */
   function showDownloadPanel(r){
     window.__cmzResult=r;
+    
+    /* v3.4：把抓取的菜单数据存储到localStorage，供餐谋长网站自动读取 */
+    try{
+      var shopData = {
+        platform: isMeituanPage() ? '美团外卖' : '淘宝闪购',
+        shopName: r.shop || '',
+        shopUrl: location.href,
+        scrapeTime: new Date().toISOString(),
+        categories: [],
+        products: []
+      };
+      
+      /* 从items中提取分类和商品 */
+      var cateMap = {};
+      if(r.items && r.items.length){
+        r.items.forEach(function(item){
+          if(item.cate && !cateMap[item.cate]){
+            cateMap[item.cate] = {name: item.cate, products: []};
+            shopData.categories.push(cateMap[item.cate]);
+          }
+          var product = {
+            name: item.name || '',
+            price: item.price ? parseFloat(item.price) : null,
+            originalPrice: item.use ? parseFloat(item.use) : null,
+            monthSales: item.sales || '',
+            description: item.desc || '',
+            image: item.img || '',
+            category: item.cate || ''
+          };
+          shopData.products.push(product);
+          if(cateMap[item.cate]){
+            cateMap[item.cate].products.push(product);
+          }
+        });
+      }
+      
+      /* 存储到localStorage */
+      localStorage.setItem('cmz_scraped_shop', JSON.stringify(shopData));
+      localStorage.setItem('cmz_scraped_time', new Date().toISOString());
+      console.log('餐谋长抓取：数据已存储到localStorage，共', shopData.products.length, '个商品');
+    }catch(e){
+      console.error('存储数据失败:', e);
+    }
+    
     var parts=[];
     parts.push('✅ '+BRAND+'：识别到 <b>'+r.itemsCount+'</b> 个菜品（覆盖 '+r.cateCount+' 个分类）');
+    
+    /* v3.4：添加返回餐谋长网站按钮 */
+    parts.push('<button style="margin:0 6px;padding:7px 16px;border:none;border-radius:8px;background:#16A34A;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(22,163,74,.3);" onclick="window.__cmzReturnToSite()">← 返回餐谋长网站（自动导入数据）</button>');
+    
     if(r.menuText) parts.push('<button style="margin:0 6px;padding:7px 16px;border:none;border-radius:8px;background:#165DFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(22,93,255,.3);" onclick="window.__cmzSave(\'menu\')">下载菜单（Excel）</button>');
     if(r.zip) parts.push('<button style="margin:0 6px;padding:7px 16px;border:none;border-radius:8px;background:#FF7D00;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(255,125,0,.3);" onclick="window.__cmzSave(\'zip\')">下载菜品图包（zip·'+r.imgCount+'张）</button>');
-    parts.push('<span style="font-size:11px;opacity:.7;">点按钮下载可自选保存位置</span>');
+    parts.push('<span style="font-size:11px;opacity:.7;">数据已自动保存，返回网站即可自动导入</span>');
     banner(parts.join(' '),'#F0FDF4');
   }
+  
+  /* v3.4：返回餐谋长网站函数 */
+  window.__cmzReturnToSite = function(){
+    /* 跳转到餐谋长网站，并带上参数表示有新抓取的数据 */
+    window.open('https://2169913411-afk.github.io/?scraped=1', '_blank');
+  };
   (async function(){
     /* ---------- 美团外卖：动态加载美团专用抓取脚本 ---------- */
     if(isMeituanPage()){
