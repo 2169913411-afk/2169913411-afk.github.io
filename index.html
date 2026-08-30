@@ -2228,7 +2228,7 @@ function updatePlanRequirements(){
   // 检查素材是否已上传
   function isMaterialUploaded(id){
     switch(id){
-      case 'qr': return !!(state.qr&&state.qr.file);
+      case 'qr': return !!(state.qr&&(state.qr.file||state.qr.decoded)); // 支持上传二维码图片或手动输入店铺链接
       case 'overview': return !!(state.overview&&state.overview.length);
       case 'shop': return !!(state.shop&&state.shop.parsed&&state.shop.parsed.ok);
       case 'menu': return !!(state.menu&&state.menu.parsed&&state.menu.parsed.ok);
@@ -2651,6 +2651,8 @@ function applyQrShopLink(){
         showAppliedLinkInfo(j.url);
         toast('店铺链接已应用');
         updateStartBtn();
+        // 自动尝试抓取门店数据
+        tryScrapeShopData(j.url);
       }else{
         if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 解码失败：'+(j&&j.error||'未知错误')+'</span>';
       }
@@ -2666,6 +2668,47 @@ function applyQrShopLink(){
   showAppliedLinkInfo(link);
   toast('店铺链接已应用');
   updateStartBtn();
+  // 自动尝试抓取门店数据
+  tryScrapeShopData(link);
+}
+
+/* 尝试抓取门店数据，并显示结果或登录提示 */
+function tryScrapeShopData(shopUrl){
+  var linkStatus=$('qrLinkStatus');
+  if(linkStatus) linkStatus.innerHTML='<span style="color:#1D4ED8;">🔄 正在抓取门店数据...</span>';
+  
+  callShopScraper(shopUrl).then(function(shopData){
+    if(shopData && shopData.shopName){
+      // 抓取成功
+      if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 门店数据抓取成功：'+shopData.shopName+'（'+(shopData.products?shopData.products.length:0)+'个商品）</span>';
+      toast('门店数据抓取成功');
+    } else {
+      // 抓取失败，可能需要登录
+      var platform = isMeituanLink(shopUrl) ? '美团外卖' : '淘宝闪购';
+      var loginUrl = isMeituanLink(shopUrl) ? 'https://h5.waimai.meituan.com/login' : 'https://h5.ele.me/login/';
+      
+      if(linkStatus) linkStatus.innerHTML = 
+        '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;">' +
+        '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 门店数据抓取失败，可能需要登录'+platform+'账号</div>' +
+        '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">请先在新标签页登录'+platform+'账号，登录完成后回到本页面，点击"重新抓取"按钮。</div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button onclick="window.open(\''+loginUrl+'\',\'_blank\')" style="padding:6px 14px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">打开登录页面</button>' +
+        '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">我已登录，重新抓取</button>' +
+        '</div>' +
+        '</div>';
+    }
+  })['catch'](function(err){
+    if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 抓取请求失败：'+err.message+'</span>';
+  });
+}
+
+/* 重新抓取门店数据 */
+function retryScrapeShop(){
+  if(state.qr && state.qr.decoded){
+    tryScrapeShopData(state.qr.decoded);
+  } else {
+    toast('请先应用店铺链接');
+  }
 }
 /* 显示已应用的链接信息 */
 function showAppliedLinkInfo(link){
