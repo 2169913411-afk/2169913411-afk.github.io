@@ -3541,6 +3541,147 @@ function pickAnalysisPlat(el){
 }
 
 /* ---------- 数据完整度预检（免费） ---------- */
+/* 日度数据预处理：计算趋势、异常值、周环比等 */
+function analyzeDailyData(dailyData){
+  if(!dailyData||!dailyData.length) return null;
+  
+  var result={
+    total_days:dailyData.length,
+    summary:{},
+    trends:{},
+    weekly_comparison:{},
+    anomalies:[],
+    best_days:[],
+    worst_days:[]
+  };
+  
+  // 计算汇总统计
+  var fields=['orders','income','gmv','exposure','enter','order_conversion','avg_pay'];
+  fields.forEach(function(field){
+    var values=dailyData.map(function(d){return d[field];}).filter(function(v){return v!=null&&!isNaN(v);});
+    if(values.length){
+      var sum=values.reduce(function(a,b){return a+b;},0);
+      var avg=sum/values.length;
+      var max=Math.max.apply(null,values);
+      var min=Math.min.apply(null,values);
+      result.summary[field]={
+        total:sum,
+        avg:Math.round(avg*100)/100,
+        max:max,
+        min:min,
+        max_date:dailyData.find(function(d){return d[field]===max;})?dailyData.find(function(d){return d[field]===max;}).date:null,
+        min_date:dailyData.find(function(d){return d[field]===min;})?dailyData.find(function(d){return d[field]===min;}).date:null
+      };
+    }
+  });
+  
+  // 计算趋势（最近7天 vs 前7天）
+  if(dailyData.length>=14){
+    var recent7=dailyData.slice(-7);
+    var previous7=dailyData.slice(-14,-7);
+    
+    fields.forEach(function(field){
+      var recentAvg=recent7.map(function(d){return d[field];}).filter(function(v){return v!=null&&!isNaN(v);}).reduce(function(a,b){return a+b;},0)/7;
+      var prevAvg=previous7.map(function(d){return d[field];}).filter(function(v){return v!=null&&!isNaN(v);}).reduce(function(a,b){return a+b;},0)/7;
+      
+      if(prevAvg>0){
+        var changeRate=((recentAvg-prevAvg)/prevAvg)*100;
+        result.trends[field]={
+          recent_7d_avg:Math.round(recentAvg*100)/100,
+          previous_7d_avg:Math.round(prevAvg*100)/100,
+          change_rate:Math.round(changeRate*10)/10,
+          direction:changeRate>2?'上升':(changeRate<-2?'下降':'平稳')
+        };
+      }
+    });
+  }
+  
+  // 计算周环比（按周分组）
+  if(dailyData.length>=7){
+    var weeks={};
+    dailyData.forEach(function(d){
+      var date=new Date(d.date);
+      var weekNum=Math.ceil((date.getDate()+new Date(date.getFullYear(),date.getMonth(),1).getDay())/7);
+      var weekKey=date.getFullYear()+'-'+(date.getMonth()+1)+'-W'+weekNum;
+      if(!weeks[weekKey]) weeks[weekKey]={orders:0,income:0,gmv:0,days:0};
+      if(d.orders!=null) weeks[weekKey].orders+=d.orders;
+      if(d.income!=null) weeks[weekKey].income+=d.income;
+      if(d.gmv!=null) weeks[weekKey].gmv+=d.gmv;
+      weeks[weekKey].days++;
+    });
+    
+    var weekKeys=Object.keys(weeks).sort();
+    if(weekKeys.length>=2){
+      var latestWeek=weeks[weekKeys[weekKeys.length-1]];
+      var prevWeek=weeks[weekKeys[weekKeys.length-2]];
+      result.weekly_comparison={
+        latest_week:weekKeys[weekKeys.length-1],
+        previous_week:weekKeys[weekKeys.length-2],
+        latest_week_orders:latestWeek.orders,
+        previous_week_orders:prevWeek.orders,
+        orders_change_rate:prevWeek.orders>0?Math.round(((latestWeek.orders-prevWeek.orders)/prevWeek.orders)*1000)/10:null,
+        latest_week_income:Math.round(latestWeek.income*100)/100,
+        previous_week_income:Math.round(prevWeek.income*100)/100,
+        income_change_rate:prevWeek.income>0?Math.round(((latestWeek.income-prevWeek.income)/prevWeek.income)*1000)/10:null
+      };
+    }
+  }
+  
+  // 检测异常值（订单量低于平均值50%或高于平均值200%）
+  if(result.summary.orders&&result.summary.orders.avg>0){
+    var avgOrders=result.summary.orders.avg;
+    dailyData.forEach(function(d){
+      if(d.orders!=null){
+        if(d.orders<avgOrders*0.5){
+          result.anomalies.push({
+            date:d.date,
+            type:'订单量异常偏低',
+            value:d.orders,
+            expected:Math.round(avgOrders),
+            deviation:Math.round(((d.orders-avgOrders)/avgOrders)*100)
+          });
+        }else if(d.orders>avgOrders*2){
+          result.anomalies.push({
+            date:d.date,
+            type:'订单量异常偏高',
+            value:d.orders,
+            expected:Math.round(avgOrders),
+            deviation:Math.round(((d.orders-avgOrders)/avgOrders)*100)
+          });
+        }
+      }
+    });
+  }
+  
+  // 找出最好和最差的5天
+  var sortedByOrders=dailyData.filter(function(d){return d.orders!=null;}).sort(function(a,b){return b.orders-a.orders;});
+  result.best_days=sortedByOrders.slice(0,5).map(function(d){return {date:d.date,orders:d.orders,income:d.income,gmv:d.gmv};});
+  result.worst_days=sortedByOrders.slice(-5).reverse().map(function(d){return {date:d.date,orders:d.orders,income:d.income,gmv:d.gmv};});
+  
+  // 工作日vs周末分析
+  var weekdayData=dailyData.filter(function(d){
+    var day=new Date(d.date).getDay();
+    return day>=1&&day<=5;
+  });
+  var weekendData=dailyData.filter(function(d){
+    var day=new Date(d.date).getDay();
+    return day===0||day===6;
+  });
+  
+  if(weekdayData.length&&weekendData.length){
+    var weekdayAvgOrders=weekdayData.reduce(function(a,b){return a+(b.orders||0);},0)/weekdayData.length;
+    var weekendAvgOrders=weekendData.reduce(function(a,b){return a+(b.orders||0);},0)/weekendData.length;
+    result.weekday_vs_weekend={
+      weekday_avg_orders:Math.round(weekdayAvgOrders*10)/10,
+      weekend_avg_orders:Math.round(weekendAvgOrders*10)/10,
+      difference:weekdayAvgOrders>0?Math.round(((weekendAvgOrders-weekdayAvgOrders)/weekdayAvgOrders)*1000)/10:null,
+      better_performing:weekendAvgOrders>weekdayAvgOrders?'周末表现更好':'工作日表现更好'
+    };
+  }
+  
+  return result;
+}
+
 function buildStructured(){
   var data={};
   var shopParsed=(state.shop&&state.shop.parsed)||null;
@@ -3557,6 +3698,9 @@ function buildStructured(){
         start_date:shopParsed.daily[0]?shopParsed.daily[0].date:null,
         end_date:shopParsed.daily[shopParsed.daily.length-1]?shopParsed.daily[shopParsed.daily.length-1].date:null
       };
+      
+      // 日度数据预处理：计算趋势、异常值、周环比等
+      data.daily_analysis=analyzeDailyData(shopParsed.daily);
     }
     
     // 添加列映射信息，帮助AI理解数据结构
@@ -4001,11 +4145,17 @@ function runAnalysis(plan){
             toast('门店线上菜单数据抓取成功');
           } else {
             console.log('门店数据抓取失败，返回为空');
-            toast('门店线上菜单数据抓取失败，将基于已有数据分析');
+            // 记录抓取失败原因，供AI分析时参考
+            structured.frontend_experience.scrape_failed = true;
+            structured.frontend_experience.scrape_reason = '店铺页面需要登录或抓取失败，无法获取线上门店实时数据';
+            toast('门店线上菜单数据抓取失败（可能需要登录），将基于已有数据分析');
           }
           return v;
         })['catch'](function(err){
           console.error('门店数据抓取失败:', err);
+          // 记录抓取失败原因
+          structured.frontend_experience.scrape_failed = true;
+          structured.frontend_experience.scrape_reason = '抓取请求失败：' + err.message;
           toast('门店线上菜单数据抓取失败：' + err.message);
           return v;
         });
@@ -4768,17 +4918,25 @@ function callReport(api,structured,plan,extra){
     if(structured.peer_by_type.new) dataSummary+='  - 新客同行：曝光、进店转化率、下单转化率\n';
     if(structured.peer_by_type.old) dataSummary+='  - 老客同行：曝光、进店转化率、下单转化率\n';
   }
-  if(structured.daily_data){
+  if(structured.daily_analysis){
+    dataSummary+='✅ 日度数据分析结果：已完成趋势分析、异常值检测、周环比、工作日vs周末对比（预处理结果，直接使用）\n';
+  } else if(structured.daily_data){
     dataSummary+='✅ 日度明细数据：最近'+structured.daily_data.length+'天的日度经营数据（可用于趋势分析、异常检测）\n';
   }
   if(structured.products){
     dataSummary+='✅ 商品销售数据：'+structured.products.length+'个商品的销量、销售额、成本等（来自商品销售Excel）\n';
+  }
+  if(structured.cost_data){
+    dataSummary+='✅ 商品成本数据：商品成本结构、毛利率等（来自商品成本Excel）\n';
   }
   if(structured.bad_reviews){
     dataSummary+='✅ 用户评价数据：'+structured.bad_reviews.total+'条差评（来自用户评价Excel）\n';
   }
   if(structured.scraped_shop_data){
     dataSummary+='✅ 线上门店抓取数据：店铺评分、月售、配送时间、起送价、配送费、菜单分组、商品列表等（来自店铺链接实时抓取）\n';
+  }
+  if(structured.frontend_experience&&structured.frontend_experience.scrape_failed){
+    dataSummary+='⚠️ 线上门店抓取失败：'+structured.frontend_experience.scrape_reason+'（将基于已有数据进行分析，前端体验部分会说明限制）\n';
   }
   if(structured.frontend_experience&&structured.frontend_experience.notes){
     dataSummary+='✅ 前端体验分析：店铺头图、公告、商品排序、价格活动展示等（来自店铺链接抓取）\n';
@@ -4791,10 +4949,20 @@ function callReport(api,structured,plan,extra){
   var analysisRequirements='\n【分析要求】\n';
   analysisRequirements+='1. 数据维度区分：必须严格区分"全部顾客"、"新客"、"老客"三个维度的本店数据和同行数据，绝对不能混淆。分析新客问题时用新客同行数据对比，分析老客问题时用老客同行数据对比。\n';
   analysisRequirements+='2. 深入分析：不能只罗列数据，必须分析数据背后的原因。例如：进店转化率低，要分析是头图问题、起送价问题、配送费问题、还是评分问题；下单转化率低，要分析是菜单结构问题、价格问题、商品评价问题、还是活动力度问题。\n';
-  analysisRequirements+='3. 趋势分析：如果有日度明细数据，必须分析近30天的趋势变化，找出异常波动的日期，并分析可能的原因。\n';
-  analysisRequirements+='4. 前端体验：如果有店铺链接抓取数据，必须基于线上门店的实际情况（头图、公告、评分、月售、菜单结构、商品价格、活动展示等）给出具体的优化建议，不能凭空想象。\n';
-  analysisRequirements+='5. 菜品分析：如果有商品销售数据，必须区分引流款、利润款、凑单款、滞销款，给出具体的菜品优化建议（哪些需要提价、哪些需要降价、哪些需要下架、哪些需要作为招牌推荐）。\n';
-  analysisRequirements+='6. 活动建议：必须基于门店的实际情况（品类、客单价、成本结构、现有活动）给出具体的活动建议，包括活动名称、活动力度、预期效果。必须考虑美团神券/淘宝爆红包等平台级活动的存在。\n';
+  analysisRequirements+='3. 趋势分析：如果有日度数据分析结果（daily_analysis），必须直接使用预处理结果，包括：最近7天vs前7天的趋势变化（上升/下降/平稳）、周环比数据、异常值日期及可能原因、工作日vs周末表现对比、最好和最差的5天。不能只说"需要关注趋势"，必须具体指出哪些指标在上升/下降，幅度多少。\n';
+  analysisRequirements+='4. 前端体验：如果有店铺链接抓取数据，必须基于线上门店的实际情况（头图、公告、评分、月售、菜单结构、商品价格、活动展示等）给出具体的优化建议，不能凭空想象。如果抓取失败，必须明确说明"由于店铺页面需要登录，无法获取线上门店实时数据，前端体验分析基于代运营补充说明和通用经验给出"。\n';
+  analysisRequirements+='5. 菜品分析深化：如果有商品销售数据，必须进行以下分析：\n';
+  analysisRequirements+='   - 引流款：销量高但毛利率低的商品，用于吸引流量，建议保持低价或作为套餐搭配\n';
+  analysisRequirements+='   - 利润款：销量中等但毛利率高的商品，是主要利润来源，建议优化展示位置和描述\n';
+  analysisRequirements+='   - 凑单款：价格低、销量高的小商品，用于提升客单价和满足满减门槛\n';
+  analysisRequirements+='   - 滞销款：销量低、销售额占比低的商品，建议优化或下架\n';
+  analysisRequirements+='   - 每个分类必须给出具体的商品名称和数据支撑，不能只说"需要优化菜品结构"\n';
+  analysisRequirements+='6. 活动建议精准化：必须基于门店的实际情况给出具体的活动建议：\n';
+  analysisRequirements+='   - 必做活动：满减活动（基于客单价设置2-3档门槛，首档门槛=客单价*0.8，第二档=客单价*1.2）、收藏有礼、减配送费\n';
+  analysisRequirements+='   - 选做活动：新客立减（如果新客转化率低）、下单返券、集点返券、商品折扣、买赠、超值换购、第二份半价、M件N折\n';
+  analysisRequirements+='   - 平台级活动：必须考虑美团神券/淘宝爆红包的存在，建议商家积极参与，设置合理的报名价（报名价-9.5≈商家到手价）\n';
+  analysisRequirements+='   - 二级端口活动：神枪手/超抢手（性价比套餐，建议3-5个产品）、拼好饭/爆品团（极致低价，客单价高的门店不建议上）\n';
+  analysisRequirements+='   - 每个活动建议必须包含：活动名称、具体力度（如"满25减4"）、预期效果（如"预计提升下单转化率3-5个百分点"）、成本测算（如"每单增加成本约2元，但客单价提升5元"）\n';
   analysisRequirements+='7. 可执行性：所有建议必须具体、可执行，不能说"建议提升转化率"这类空话。每个建议必须包含：具体做什么、怎么做、预期效果是什么、优先级（高/中/低）。\n';
   analysisRequirements+='8. 数据缺失说明：如果某些数据缺失，必须明确说明缺失了什么数据，以及这会对分析造成什么限制，不能编造数据。\n';
   
