@@ -2677,23 +2677,24 @@ function applyQrShopLink(){
         // 抓取失败，可能需要登录，或者数据为空
         var errorMsg = (j&&j.error)||(j&&j.message)||'店铺数据为空，腾讯云解码服务无法抓取到店铺数据';
         if(linkStatus) linkStatus.innerHTML = 
-          '<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;margin-top:8px;">' +
-          '<div style="font-size:13px;font-weight:600;color:#991B1B;margin-bottom:8px;">❌ 腾讯云解码服务抓取失败</div>' +
-          '<div style="font-size:12px;color:#7F1D1D;line-height:1.6;margin-bottom:10px;">' +
+          '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px;margin-top:8px;">' +
+          '<div style="font-size:14px;font-weight:600;color:#92400E;margin-bottom:10px;">⚠️ 淘宝口令解码成功，但店铺数据抓取失败</div>' +
+          '<div style="font-size:12px;color:#78350F;line-height:1.7;margin-bottom:12px;">' +
           '<b>错误信息：</b>'+errorMsg+'<br><br>' +
-          '<b>可能原因：</b><br>' +
-          '1. 淘宝反爬机制升级，腾讯云函数IP被封禁<br>' +
-          '2. 淘宝短链接重定向逻辑变化<br>' +
-          '3. 腾讯云函数代码需要更新<br><br>' +
-          '<b>解决方案（任选一种）：</b><br>' +
-          '1. <b>推荐</b>：点击下方"在浏览器中打开"按钮，登录淘宝账号后，复制浏览器地址栏中的h5.ele.me链接，粘贴到上方输入框<br>' +
-          '2. 在淘宝APP中打开店铺，点击分享→复制链接，获取h5.ele.me开头的直链<br>' +
-          '3. 跳过店铺数据抓取，直接上传经营数据截图和门店经营数据Excel进行分析<br>' +
-          '4. 检查腾讯云函数（cmz-decode）的日志和代码，更新抓取逻辑' +
+          '<b>原因说明：</b>淘宝/饿了么加强了反爬机制，腾讯云函数的服务器IP被限制访问。这是平台层面的限制，不是我们的网站问题。<br><br>' +
+          '<b>✅ 推荐解决方案（30秒搞定）：</b><br>' +
+          '1. 点击下方"在浏览器中打开淘宝店铺"按钮<br>' +
+          '2. 在新标签页中登录淘宝账号（如果未登录）<br>' +
+          '3. 进入店铺后，复制浏览器地址栏中的链接（应该是 h5.ele.me 开头）<br>' +
+          '4. 回到本页面，把复制的链接粘贴到上方输入框，点击"应用链接"<br><br>' +
+          '<b>💡 其他方案：</b><br>' +
+          '• 在淘宝APP中打开店铺，点击分享→复制链接，获取 h5.ele.me 开头的直链<br>' +
+          '• 点击"跳过店铺数据"，直接上传经营数据截图和门店经营数据Excel进行分析<br>' +
+          '• 联系技术人员更新腾讯云函数（cmz-decode）的抓取逻辑' +
           '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<button onclick="window.open(\''+pureUrl+'\',\'_blank\')" style="padding:6px 14px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">在浏览器中打开</button>' +
-          '<button onclick="skipShopScrape()" style="padding:6px 14px;background:#6B7280;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">跳过，继续分析</button>' +
+          '<button onclick="window.open(\''+pureUrl+'\',\'_blank\')" style="padding:8px 16px;background:#FF6A00;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">🛒 在浏览器中打开淘宝店铺</button>' +
+          '<button onclick="skipShopScrape()" style="padding:8px 16px;background:#6B7280;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">⏭️ 跳过店铺数据，继续分析</button>' +
           '</div>' +
           '</div>';
       }
