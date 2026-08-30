@@ -2665,8 +2665,8 @@ function applyQrShopLink(){
         updateStartBtn();
         // 自动尝试抓取门店数据
         tryScrapeShopData(j.url);
-      } else if(j&&j.success&&j.data&&j.data.shopName){
-        // 格式2：直接返回了店铺数据
+      } else if(j&&j.success&&j.data&&j.data.shopName&&j.data.products&&j.data.products.length>0){
+        // 格式2：直接返回了店铺数据（且数据不为空）
         var shopData = j.data;
         state.qr={file:null,dataUrl:null,name:'手动输入店铺链接',decoded:pureUrl, scrapedData: shopData};
         if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 店铺数据抓取成功：'+shopData.shopName+'（'+(shopData.products?shopData.products.length:0)+'个商品）</span>';
@@ -2674,15 +2674,22 @@ function applyQrShopLink(){
         toast('店铺数据抓取成功');
         updateStartBtn();
       } else {
-        // 抓取失败，可能需要登录
-        var errorMsg = (j&&j.error)||(j&&j.message)||'店铺数据为空，可能需要登录';
+        // 抓取失败，可能需要登录，或者数据为空
+        var errorMsg = (j&&j.error)||(j&&j.message)||'店铺数据为空，可能需要登录淘宝闪购账号';
         if(linkStatus) linkStatus.innerHTML = 
           '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;">' +
-          '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 店铺数据抓取失败，可能需要登录淘宝闪购账号</div>' +
-          '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">错误信息：'+errorMsg+'<br>请先在新标签页登录淘宝闪购账号，登录完成后回到本页面，点击"重新抓取"按钮。</div>' +
-          '<div style="display:flex;gap:8px;">' +
+          '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 店铺数据抓取失败，需要登录淘宝闪购账号</div>' +
+          '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">' +
+          '错误信息：'+errorMsg+'<br><br>' +
+          '<b>解决方案（任选一种）：</b><br>' +
+          '1. 点击下方"打开登录页面"按钮，登录后点击"重新抓取"<br>' +
+          '2. 在淘宝APP中打开店铺，点击分享→复制链接，获取h5.ele.me开头的直链，直接粘贴到上方输入框<br>' +
+          '3. 跳过店铺数据抓取，直接上传经营数据截图和门店经营数据Excel进行分析' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
           '<button onclick="window.open(\'https://h5.ele.me/login/\',\'_blank\')" style="padding:6px 14px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">打开登录页面</button>' +
           '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">我已登录，重新抓取</button>' +
+          '<button onclick="skipShopScrape()" style="padding:6px 14px;background:#6B7280;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">跳过，继续分析</button>' +
           '</div>' +
           '</div>';
       }
@@ -2707,11 +2714,19 @@ function tryScrapeShopData(shopUrl){
   var linkStatus=$('qrLinkStatus');
   if(linkStatus) linkStatus.innerHTML='<span style="color:#1D4ED8;">🔄 正在抓取门店数据...</span>';
   
+  // 先检查是否已经有解码服务返回的店铺数据
+  if(state.qr && state.qr.scrapedData && state.qr.scrapedData.shopName && state.qr.scrapedData.products && state.qr.scrapedData.products.length>0){
+    var existingData = state.qr.scrapedData;
+    if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 店铺数据已就绪：'+existingData.shopName+'（'+(existingData.products?existingData.products.length:0)+'个商品）</span>';
+    return Promise.resolve(existingData);
+  }
+  
   callShopScraper(shopUrl).then(function(shopData){
-    if(shopData && shopData.shopName){
+    if(shopData && shopData.shopName && shopData.products && shopData.products.length>0){
       // 抓取成功
       if(linkStatus) linkStatus.innerHTML='<span style="color:#16A34A;">✅ 门店数据抓取成功：'+shopData.shopName+'（'+(shopData.products?shopData.products.length:0)+'个商品）</span>';
       toast('门店数据抓取成功');
+      return shopData;
     } else {
       // 抓取失败，可能需要登录
       var platform = isMeituanLink(shopUrl) ? '美团外卖' : '淘宝闪购';
@@ -2719,16 +2734,22 @@ function tryScrapeShopData(shopUrl){
       
       if(linkStatus) linkStatus.innerHTML = 
         '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:8px;">' +
-        '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 门店数据抓取失败，可能需要登录'+platform+'账号</div>' +
-        '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">请先在新标签页登录'+platform+'账号，登录完成后回到本页面，点击"重新抓取"按钮。</div>' +
-        '<div style="display:flex;gap:8px;">' +
+        '<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:8px;">⚠️ 门店数据抓取失败，需要登录'+platform+'账号</div>' +
+        '<div style="font-size:12px;color:#78350F;line-height:1.6;margin-bottom:10px;">' +
+        '请先在新标签页登录'+platform+'账号，登录完成后回到本页面，点击"重新抓取"按钮。<br><br>' +
+        '<b>备用方案：</b>如果登录后仍然无法抓取，可以直接上传经营数据截图和门店经营数据Excel进行分析。' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
         '<button onclick="window.open(\''+loginUrl+'\',\'_blank\')" style="padding:6px 14px;background:#F59E0B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">打开登录页面</button>' +
         '<button onclick="retryScrapeShop()" style="padding:6px 14px;background:#165DFF;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">我已登录，重新抓取</button>' +
+        '<button onclick="skipShopScrape()" style="padding:6px 14px;background:#6B7280;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">跳过，继续分析</button>' +
         '</div>' +
         '</div>';
+      return null;
     }
   })['catch'](function(err){
     if(linkStatus) linkStatus.innerHTML='<span style="color:#DC2626;">❌ 抓取请求失败：'+err.message+'</span>';
+    return null;
   });
 }
 
@@ -2736,6 +2757,21 @@ function tryScrapeShopData(shopUrl){
 function retryScrapeShop(){
   if(state.qr && state.qr.decoded){
     tryScrapeShopData(state.qr.decoded);
+  } else {
+    toast('请先应用店铺链接');
+  }
+}
+
+/* 跳过店铺数据抓取，继续分析 */
+function skipShopScrape(){
+  if(state.qr && state.qr.decoded){
+    // 标记为抓取失败，但保留链接，让用户可以继续分析
+    state.qr.scrapeFailed = true;
+    state.qr.scrapeReason = '用户选择跳过店铺数据抓取';
+    var linkStatus = document.getElementById('qrLinkStatus');
+    if(linkStatus) linkStatus.innerHTML = '<span style="color:#6B7280;">⚠️ 已跳过店铺数据抓取，将基于其他数据进行分析</span>';
+    toast('已跳过店铺数据抓取');
+    updateStartBtn();
   } else {
     toast('请先应用店铺链接');
   }
