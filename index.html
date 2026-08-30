@@ -5800,67 +5800,115 @@ function resolveMeituanLink(shortUrl){
 }
 /* 开始抓取（自动模式，带持久状态提示） */
 function confirmScrape(){
-  var raw=($('shopLink')||{}).value||'';
-  var link=cleanLink(raw);
-  var qr=window.__scrapeQR||'';
-  if(/小程序:\/\//.test(raw)||raw.indexOf('#小程序')>-1){
-    setScrapeStatus('❌ 这是微信小程序链接，电脑端无法直接解析。<br>请用手机微信打开该链接 → 进入店铺 → 右上角分享 → 选「复制链接」→ 把复制的 <b>https://h5.ele.me/...</b> 链接粘贴回来；或直接上传店铺二维码。','err');
-    if($('shopLink')) $('shopLink').focus();
-    return;
-  }
-  if(!link&&!qr){ toast('请先上传店铺二维码或粘贴店铺链接'); return; }
-  if(link && extractShopId(link)){
+  try{
+    var raw=($('shopLink')||{}).value||'';
+    var link=cleanLink(raw);
+    var qr=window.__scrapeQR||'';
+    
+    console.log('confirmScrape被调用，原始输入:', raw, '清洗后链接:', link);
+    
+    if(/小程序:\/\//.test(raw)||raw.indexOf('#小程序')>-1){
+      setScrapeStatus('❌ 这是微信小程序链接，电脑端无法直接解析。<br>请用手机微信打开该链接 → 进入店铺 → 右上角分享 → 选「复制链接」→ 把复制的 <b>https://h5.ele.me/...</b> 链接粘贴回来；或直接上传店铺二维码。','err');
+      if($('shopLink')) $('shopLink').focus();
+      return;
+    }
+    if(!link&&!qr){ 
+      toast('请先上传店铺二维码或粘贴店铺链接'); 
+      setScrapeStatus('⚠️ 请先在上方输入店铺链接，或上传店铺二维码。','err');
+      return; 
+    }
+    
     showScrapeFlow();
-    setScrapeStatus('已识别店铺ID，正在构造店铺直链并打开…','run');
-    _doScrape(normalizeShopUrl(link));
-    return;
-  }
-  if(link && isTaoKouLing(link)){
-    showScrapeFlow();
-    var isMt=isMeituanLink(link);
-    var hasPlugin=document.documentElement.getAttribute('data-cmz-scraper')==='installed';
-    if(isMt){
-      // 美团短链接 dpurl.cn：桌面浏览器直接打开会被重定向到下载页
-      // 需要用云函数解码服务（移动端UA跟随重定向），提取 poi_id_str，构造 H5 店铺直链
-      showScrapeFlow();
-      var decodeUrl = decodeCfgUrl();
-      if(!decodeUrl){
-        setScrapeStatus('⚠️ 请先在「解码服务设置」中填入云函数地址（用于解码美团/淘宝短链接）。<br>填入后点「开始抓取」即可自动解码并打开店铺。','err');
+    
+    // 判断平台类型
+    var isMt = isMeituanLink(link);
+    var isEle = /(h5\.)?ele\.me|i\.ele\.me|m\.tb\.cn|tb\.cn|market\.m\.taobao|ug\.ele\.me/i.test(link);
+    var platName = isMt ? '美团外卖' : (isEle ? '淘宝闪购' : '未知平台');
+    
+    console.log('平台识别:', platName, 'isMt:', isMt, 'isEle:', isEle);
+    
+    // 情况1：包含shopId的链接（直接构造店铺直链）
+    if(link && extractShopId(link)){
+      setScrapeStatus('✅ 已识别店铺ID，正在打开'+platName+'店铺页…<br><b>下一步：</b>在新标签页中登录账号 → 进入店铺 → 点击书签栏「<b>餐谋长抓取</b>」。','run');
+      var targetUrl = normalizeShopUrl(link);
+      console.log('构造的店铺直链:', targetUrl);
+      var win = window.open(targetUrl,'_blank');
+      if(!win){
+        setScrapeStatus('⚠️ 浏览器阻止了弹出窗口！<br>请点击地址栏右侧的「弹窗已被阻止」图标 → 选择「始终允许此网站的弹出窗口」→ 然后重新点击「开始抓取」。','err');
         return;
       }
-      setScrapeStatus('已识别美团外卖短链接，正在通过云函数解码店铺地址…','run');
+      return;
+    }
+    
+    // 情况2：美团短链接（dpurl.cn）
+    if(link && isMt && isTaoKouLing(link)){
+      var decodeUrl = decodeCfgUrl();
+      if(!decodeUrl){
+        setScrapeStatus('⚠️ 美团短链接需要解码服务。<br>请先在「解码服务设置」中填入云函数地址，或直接使用美团H5店铺链接（h5.waimai.meituan.com/...）。','err');
+        return;
+      }
+      setScrapeStatus('⏳ 已识别美团短链接，正在通过云函数解码店铺地址…','run');
       fetch(decodeUrl+'/api/decode',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({text:link})
       }).then(function(r){ return r.json(); }).then(function(j){
         if(j&&j.ok&&j.url){
-          setScrapeStatus('✅ 解码成功，正在打开美团店铺页…<br>'+(j.poiId?'店铺ID：'+j.poiId+'<br>':'')+'打开后请先登录美团账号，再点书签栏「<b>餐谋长抓取</b>」自动抓取。','ok');
+          setScrapeStatus('✅ 解码成功，正在打开美团店铺页…<br>'+(j.poiId?'店铺ID：'+j.poiId+'<br>':'')+'<b>下一步：</b>在新标签页中登录美团账号 → 进入店铺 → 点击书签栏「<b>餐谋长抓取</b>」。','ok');
           toast('美团店铺解码成功，正在打开');
-          window.open(j.url,'_blank');
+          var win2 = window.open(j.url,'_blank');
+          if(!win2){
+            setScrapeStatus('⚠️ 浏览器阻止了弹出窗口！<br>请点击地址栏右侧的「弹窗已被阻止」图标 → 选择「始终允许此网站的弹出窗口」→ 然后重新点击「开始抓取」。','err');
+          }
         }else{
           setScrapeStatus('⚠️ 解码失败：'+(j&&j.error||'未知错误')+'<br>已直接打开美团链接，请在新标签页中登录后进入店铺，再点书签抓取。','run');
-          window.open(link,'_blank');
+          var win3 = window.open(link,'_blank');
+          if(!win3){
+            setScrapeStatus('⚠️ 浏览器阻止了弹出窗口！<br>请点击地址栏右侧的「弹窗已被阻止」图标 → 选择「始终允许此网站的弹出窗口」→ 然后重新点击「开始抓取」。','err');
+          }
         }
       })['catch'](function(e){
         setScrapeStatus('⚠️ 解码服务请求失败：'+e.message+'<br>已直接打开美团链接，请在新标签页中登录后进入店铺，再点书签抓取。','run');
-        window.open(link,'_blank');
+        var win4 = window.open(link,'_blank');
+        if(!win4){
+          setScrapeStatus('⚠️ 浏览器阻止了弹出窗口！<br>请点击地址栏右侧的「弹窗已被阻止」图标 → 选择「始终允许此网站的弹出窗口」→ 然后重新点击「开始抓取」。','err');
+        }
       });
       return;
     }
-    if(hasPlugin){
-      setScrapeStatus('已检测到抓取插件，正在打开口令页 → 插件会自动识别店铺并进店抓取，<b>无需手动操作</b>。请保持本页打开，等自动下载即可。','run');
-      toast('已打开口令页，插件将自动进店抓取');
-    }else{
-      setScrapeStatus('正在打开淘宝口令页…<br><b>提示：</b>未检测到抓取插件。打开后请复制地址栏链接（含 shopId=…）粘贴回来点「开始抓取」；或先安装下方 <b>④ 抓取插件</b>（油猴脚本），即可实现口令全自动抓取。','run');
-      toast('已打开口令页，请复制地址栏链接粘贴回来');
+    
+    // 情况3：淘宝口令/短链
+    if(link && isTaoKouLing(link)){
+      setScrapeStatus('⏳ 正在打开淘宝口令页…<br><b>提示：</b>打开后请用手机淘宝/饿了么App扫码登录 → 进入店铺 → 复制地址栏链接（含 shopId=…）粘贴回来 → 再点「开始抓取」。<br>或者直接使用饿了么H5店铺链接（h5.ele.me/...）。','run');
+      toast('已打开口令页，请登录后复制店铺链接粘贴回来');
+      var win5 = window.open(link,'_blank');
+      if(!win5){
+        setScrapeStatus('⚠️ 浏览器阻止了弹出窗口！<br>请点击地址栏右侧的「弹窗已被阻止」图标 → 选择「始终允许此网站的弹出窗口」→ 然后重新点击「开始抓取」。','err');
+      }
+      return;
     }
-    window.open(link,'_blank');
-    return;
+    
+    // 情况4：普通URL（直接打开）
+    if(/^https?:\/\//i.test(link)){
+      setScrapeStatus('✅ 正在打开'+platName+'店铺页…<br><b>下一步：</b>在新标签页中登录账号 → 进入店铺 → 点击书签栏「<b>餐谋长抓取</b>」自动抓取。','ok');
+      console.log('直接打开链接:', link);
+      var win6 = window.open(link,'_blank');
+      if(!win6){
+        setScrapeStatus('⚠️ 浏览器阻止了弹出窗口！<br>请点击地址栏右侧的「弹窗已被阻止」图标 → 选择「始终允许此网站的弹出窗口」→ 然后重新点击「开始抓取」。','err');
+        return;
+      }
+      return;
+    }
+    
+    // 情况5：无法识别
+    setScrapeStatus('⚠️ 无法识别该内容为店铺链接。<br>请上传店铺二维码，或用手机打开口令后复制 <b>h5.ele.me/...</b>（淘宝）或 <b>h5.waimai.meituan.com/...</b>（美团）链接粘贴回来。','err');
+    toast('无法识别该链接');
+    
+  }catch(e){
+    console.error('confirmScrape执行出错:', e);
+    setScrapeStatus('❌ 执行出错：'+e.message+'<br>请刷新页面后重试，或检查浏览器控制台。','err');
+    toast('执行出错：'+e.message);
   }
-  if(/^https?:\/\//i.test(link)){ _doScrape(link); return; }
-  setScrapeStatus('⚠️ 无法识别该内容为店铺链接。请上传店铺二维码，或用手机打开口令后复制 <b>h5.ele.me/...</b> 链接粘贴回来。','err');
-  toast('无法识别该链接');
 }
 function _doScrape(target){
   showScrapeFlow();
