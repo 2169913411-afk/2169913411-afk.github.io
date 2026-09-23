@@ -1,4 +1,4 @@
-/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.3
+/* 餐谋长·运营助手 - 商家调研零安装抓取脚本 v3.4（新增京东门店商品管理页）
    v3.3 更新：
    - 新增美团外卖支持（自动识别美团页面，使用美团选择器和抓取逻辑）
    - 美团抓取支持菜单、图片、菜单+图片三种模式
@@ -146,7 +146,7 @@
       var now=jdProductDetails().map(function(x){return x.sku+':'+x.name;}).join('|');
       if(now && now!==before) return true;
     }
-    return true;
+    return false;
   }
   async function jdCollectCategory(category){
     var found={}, sc=jdScrollElement(), original=sc?sc.scrollTop:0, page=0;
@@ -178,7 +178,7 @@
       if(!next || page>=59) break;
       var before=jdProductDetails().map(function(x){return x.sku+':'+x.name;}).join('|');
       next.click();
-      await jdWaitChange(before,6000);
+      if(!await jdWaitChange(before,6000)) break;
       if(isPunish() || /验证码|安全验证|操作过于频繁/.test(document.body.innerText||'')) break;
     }
     if(sc) sc.scrollTop=original;
@@ -203,7 +203,10 @@
       if(!node) continue;
       var before=jdProductDetails().map(function(x){return x.sku+':'+x.name;}).join('|');
       node.click();
-      await jdWaitChange(before,6000);
+      if(!await jdWaitChange(before,4000)){
+        banner('⚠️ 京东分类「'+categories[i]+'」页面没有更新，为避免错分商品已跳过。','#FEF3C7');
+        continue;
+      }
       var part=await jdCollectCategory(categories[i]);
       items=items.concat(part);
       banner('⏳ 京东采集中：'+(i+1)+'/'+categories.length+' 个分类，已收集 '+items.length+' 件…');
