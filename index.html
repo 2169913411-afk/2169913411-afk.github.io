@@ -5275,7 +5275,7 @@ function copyFull(){
 }
 
 /* 零插件抓取书签：加载网站内的远程抓取脚本 */
-var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260830.5').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
+var SCRAPE_BOOKMARK="javascript:(function(){fetch('https://2169913411-afk.github.io/scrape-inject.js?v=20260923.1').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert('抓取脚本加载失败，请检查网络后重试')})})();";
 function copyScrapeBookmark(){
   copyText(SCRAPE_BOOKMARK);
   toast('抓取书签代码已复制');
@@ -5705,7 +5705,7 @@ function detectScraper(){
       var bm=$('bookmarkDragV3');
       if(bm&&!bm.getAttribute('data-set')){
         bm.setAttribute('data-set','1');
-        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260830.5\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
+        bm.href='javascript:(function(){fetch(\'https://2169913411-afk.github.io/scrape-inject.js?v=20260923.1\').then(function(r){return r.text()}).then(function(t){eval(t)}).catch(function(){alert(\'抓取脚本加载失败，请检查网络后重试\')})})();';
       }
     }
   }
